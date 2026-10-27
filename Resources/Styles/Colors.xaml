@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    <!-- Deep green + golden yellow palette -->
+    <Color x:Key="DeepGreen">#0B4D2C</Color>
+    <Color x:Key="DeepGreenDark">#06331C</Color>
+    <Color x:Key="ForestMid">#1B6B40</Color>
+    <Color x:Key="Gold">#F2B705</Color>
+    <Color x:Key="GoldSoft">#FFF1BF</Color>
+    <Color x:Key="Ivory">#FAF8F0</Color>
+    <Color x:Key="InkDark">#16221B</Color>
+    <Color x:Key="Gray600">#5C6B62</Color>
+    <Color x:Key="Gray200">#DCE3DE</Color>
+    <Color x:Key="ErrorRed">#B3261E</Color>
+    <Color x:Key="ErrorSoft">#FBE3E1</Color>
+</ResourceDictionary>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.StatusPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             xmlns:models="clr-namespace:FacultyMonitoring.Models"
+             x:DataType="vm:StatusViewModel"
+             Title="System checks">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <Label Text="{Binding Heading}" FontSize="20" FontAttributes="Bold"
+                   TextColor="{StaticResource DeepGreen}" />
+
+            <Border StrokeThickness="0" Padding="16,14" BackgroundColor="{StaticResource ErrorSoft}">
+                <Border.StrokeShape><RoundRectangle CornerRadius="12" /></Border.StrokeShape>
+                <Border.Triggers>
+                    <DataTrigger TargetType="Border" Binding="{Binding AllPassed}" Value="True">
+                        <Setter Property="BackgroundColor" Value="{StaticResource GoldSoft}" />
+                    </DataTrigger>
+                </Border.Triggers>
+                <HorizontalStackLayout Spacing="10">
+                    <ActivityIndicator IsRunning="{Binding IsRunning}" IsVisible="{Binding IsRunning}"
+                                       Color="{StaticResource DeepGreen}" HeightRequest="20" WidthRequest="20" />
+                    <Label Text="{Binding Summary}" FontAttributes="Bold" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Border>
+
+            <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding Checks}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="models:CheckResult">
+                        <Border Style="{StaticResource Card}" Padding="14">
+                            <Grid ColumnDefinitions="32,*" ColumnSpacing="10">
+                                <Label Text="{Binding Symbol}" FontSize="22" FontAttributes="Bold"
+                                       TextColor="{StaticResource ErrorRed}" VerticalOptions="Start">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding Passed}" Value="True">
+                                            <Setter Property="TextColor" Value="{StaticResource ForestMid}" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                    <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <Button Text="Re-run checks" Command="{Binding RunChecksCommand}"
+                    Style="{StaticResource OutlineButton}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

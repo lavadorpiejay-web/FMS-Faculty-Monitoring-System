@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.SchoolDirectoryPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             xmlns:models="clr-namespace:FacultyMonitoring.Models"
+             x:DataType="vm:SchoolDirectoryViewModel"
+             Title="Departments">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <Border Style="{StaticResource Card}" BackgroundColor="{StaticResource GoldSoft}"
+                    Stroke="{StaticResource Gold}" IsVisible="{Binding IsNotValid}">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="No school on this account" Style="{StaticResource SectionTitle}" />
+                    <Label Text="This account has no valid school, so there are no departments to show."
+                           FontSize="14" TextColor="{StaticResource Gray600}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <VerticalStackLayout Spacing="16" IsVisible="{Binding IsValid}">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="Your school" FontSize="12" TextColor="{StaticResource Gray600}" />
+                    <Label Text="{Binding School}" FontSize="20" FontAttributes="Bold"
+                           TextColor="{StaticResource DeepGreen}" />
+                    <Label Text="{Binding Summary}" FontSize="13" TextColor="{StaticResource Gray600}" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="16" BindableLayout.ItemsSource="{Binding Departments}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:DepartmentGroup">
+                            <Border Style="{StaticResource Card}">
+                                <VerticalStackLayout Spacing="8">
+                                    <Label Text="{Binding Department}" Style="{StaticResource SectionTitle}" />
+                                    <Label Text="{Binding FacultyCountText}" FontSize="12"
+                                           TextColor="{StaticResource Gray600}" />
+
+                                    <Label Text="Chairperson" FontSize="12" FontAttributes="Bold"
+                                           TextColor="{StaticResource ForestMid}" Margin="0,6,0,0" />
+                                    <Label Text="No chairperson registered yet." FontSize="13"
+                                           TextColor="{StaticResource Gray600}" IsVisible="{Binding NoChairperson}" />
+                                    <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Chairpersons}">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="models:DirectoryEntry">
+                                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" />
+                                    </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </VerticalStackLayout>
+
+                                    <Label Text="Faculty" FontSize="12" FontAttributes="Bold"
+                                           TextColor="{StaticResource ForestMid}" Margin="0,6,0,0" />
+                                    <Label Text="No faculty registered yet." FontSize="13"
+                                           TextColor="{StaticResource Gray600}" IsVisible="{Binding NoFaculty}" />
+                                    <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Faculty}">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="models:DirectoryEntry">
+                                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" />
+                                    </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </VerticalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <Label Text="Read-only view. You can see who is in each department of your school but cannot change anything."
+                       FontSize="12" TextColor="{StaticResource Gray600}" />
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

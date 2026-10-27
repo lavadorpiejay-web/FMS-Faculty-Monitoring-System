@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.DashboardPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             x:DataType="vm:DashboardViewModel"
+             Title="Home">
+    <ScrollView>
+        <VerticalStackLayout Spacing="0">
+
+            <VerticalStackLayout BackgroundColor="{StaticResource DeepGreen}" Padding="24,24,24,28" Spacing="4">
+                <Label Text="{Binding RoleName}" TextTransform="Uppercase" CharacterSpacing="2"
+                       FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Gold}" />
+                <Label Text="{Binding Greeting}" FontSize="24" FontAttributes="Bold" TextColor="White" />
+                <Label Text="{Binding Department}" FontSize="14" TextColor="#CFE3D6" />
+            </VerticalStackLayout>
+            <BoxView HeightRequest="4" Color="{StaticResource Gold}" />
+
+            <VerticalStackLayout Padding="20" Spacing="16">
+                <Label Text="{Binding Tagline}" FontSize="14" TextColor="{StaticResource Gray600}" />
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Your place in the hierarchy" Style="{StaticResource SectionTitle}" />
+                        <Label IsVisible="{Binding HasReportsTo}" FontSize="14">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="Reports to: " TextColor="{StaticResource Gray600}" />
+                                    <Span Text="{Binding ReportsTo}" FontAttributes="Bold" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                        <Label IsVisible="{Binding HasOversees}" FontSize="14">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="Oversees: " TextColor="{StaticResource Gray600}" />
+                                    <Span Text="{Binding Oversees}" FontAttributes="Bold" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Available to you" Style="{StaticResource SectionTitle}" />
+                        <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Allowed}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <HorizontalStackLayout Spacing="10">
+                                        <Label Text="✓" FontAttributes="Bold" TextColor="{StaticResource ForestMid}" />
+                                        <Label Text="{Binding .}" FontSize="14" />
+                                    </HorizontalStackLayout>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource Card}" BackgroundColor="{StaticResource GoldSoft}"
+                        Stroke="{StaticResource Gold}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Restricted for your role" Style="{StaticResource SectionTitle}" />
+                        <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Restricted}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <HorizontalStackLayout Spacing="10">
+                                        <Label Text="🔒" FontSize="13" />
+                                        <Label Text="{Binding .}" FontSize="14" TextColor="{StaticResource Gray600}" />
+                                    </HorizontalStackLayout>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

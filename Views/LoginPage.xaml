@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.LoginPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             x:DataType="vm:LoginViewModel"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{StaticResource DeepGreen}">
+    <ScrollView>
+        <VerticalStackLayout Padding="28,56,28,28" Spacing="24" VerticalOptions="Center">
+
+            <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                <Border WidthRequest="84" HeightRequest="84" BackgroundColor="{StaticResource Gold}"
+                        StrokeThickness="0" HorizontalOptions="Center">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="42" />
+                    </Border.StrokeShape>
+                    <Label Text="FM" FontSize="30" FontAttributes="Bold"
+                           TextColor="{StaticResource DeepGreenDark}"
+                           HorizontalOptions="Center" VerticalOptions="Center" />
+                </Border>
+                <Label Text="Faculty Monitoring" FontSize="26" FontAttributes="Bold"
+                       TextColor="White" HorizontalOptions="Center" />
+                <Label Text="Sign in with your SIS credentials" FontSize="14"
+                       TextColor="{StaticResource Gold}" HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+            <Border Style="{StaticResource Card}" Padding="20">
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="SIS ID" Style="{StaticResource SectionTitle}" FontSize="13" />
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0" BackgroundColor="White">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                        <Entry Text="{Binding SisId}" Placeholder="Enter your SIS ID"
+                               Keyboard="Plain" ReturnType="Next" AutomationId="SisIdEntry" />
+                    </Border>
+
+                    <Label Text="Password" Style="{StaticResource SectionTitle}" FontSize="13" />
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0,4,0" BackgroundColor="White">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Entry Text="{Binding Password}" Placeholder="Enter your password"
+                                   IsPassword="{Binding IsPasswordHidden}" ReturnType="Go"
+                                   ReturnCommand="{Binding SignInCommand}" AutomationId="PasswordEntry" />
+                            <Button Grid.Column="1" Text="{Binding ShowHideText}"
+                                    Command="{Binding TogglePasswordCommand}"
+                                    Style="{StaticResource TextButton}" />
+                        </Grid>
+                    </Border>
+
+                    <Border IsVisible="{Binding HasError}" BackgroundColor="{StaticResource ErrorSoft}"
+                            StrokeThickness="0" Padding="12,10">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+                        <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource ErrorRed}" FontSize="13" />
+                    </Border>
+
+                    <Button Text="Sign in" Command="{Binding SignInCommand}"
+                            IsEnabled="{Binding IsNotBusy}" AutomationId="SignInButton" />
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                                       Color="{StaticResource DeepGreen}" HeightRequest="24" />
+                    <Button Text="Create an account" Command="{Binding GoToRegisterCommand}"
+                            Style="{StaticResource OutlineButton}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding DemoHint}" IsVisible="{Binding HasDemoHint}"
+                   FontSize="11" TextColor="#CFE3D6" HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

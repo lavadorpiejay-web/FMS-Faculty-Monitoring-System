@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.DepartmentFacultyPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             xmlns:models="clr-namespace:FacultyMonitoring.Models"
+             x:DataType="vm:DepartmentFacultyViewModel"
+             Title="Faculty">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <Border Style="{StaticResource Card}" BackgroundColor="{StaticResource GoldSoft}"
+                    Stroke="{StaticResource Gold}" IsVisible="{Binding IsNotValid}">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="No department on this account" Style="{StaticResource SectionTitle}" />
+                    <Label Text="This account has no valid school and department, so there are no faculty to show."
+                           FontSize="14" TextColor="{StaticResource Gray600}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <VerticalStackLayout Spacing="16" IsVisible="{Binding IsValid}">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="Your department" FontSize="12" TextColor="{StaticResource Gray600}" />
+                    <Label Text="{Binding Department}" FontSize="20" FontAttributes="Bold"
+                           TextColor="{StaticResource DeepGreen}" />
+                    <Label Text="{Binding School}" FontSize="14" TextColor="{StaticResource Gray600}" />
+                </VerticalStackLayout>
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Faculty" Style="{StaticResource SectionTitle}" />
+                        <Label Text="{Binding Summary}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                        <Label Text="No faculty registered yet." FontSize="13"
+                               TextColor="{StaticResource Gray600}" IsVisible="{Binding FacultyEmpty}" />
+                        <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding Faculty}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:DirectoryEntry">
+                                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" />
+                                    </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="Read-only view. You can see the faculty in your department but cannot change anything."
+                       FontSize="12" TextColor="{StaticResource Gray600}" />
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
