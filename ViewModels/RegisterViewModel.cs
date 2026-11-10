@@ -17,8 +17,34 @@ public partial class RegisterViewModel : ObservableObject
 
     [ObservableProperty] private string _fullName = "";
     [ObservableProperty] private string _sisId = "";
-    [ObservableProperty] private string _password = "";
-    [ObservableProperty] private string _confirmPassword = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasMatchText))]
+    [NotifyPropertyChangedFor(nameof(PasswordsMatch))]
+    [NotifyPropertyChangedFor(nameof(MatchText))]
+    private string _password = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasMatchText))]
+    [NotifyPropertyChangedFor(nameof(PasswordsMatch))]
+    [NotifyPropertyChangedFor(nameof(MatchText))]
+    private string _confirmPassword = "";
+
+    // One switch shows or hides both password boxes so the person can check what they typed.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowHideText))]
+    private bool _isPasswordHidden = true;
+
+    public string ShowHideText => IsPasswordHidden ? "Show" : "Hide";
+
+    // Live check under "Confirm password".
+    public bool HasMatchText => ConfirmPassword.Length > 0;
+    public bool PasswordsMatch => Password == ConfirmPassword;
+    public string MatchText => PasswordsMatch ? "Passwords match" : "Passwords do not match";
+
+    [RelayCommand]
+    private void TogglePassword() => IsPasswordHidden = !IsPasswordHidden;
+
     [ObservableProperty] private string? _selectedDepartment;
 
     // Departments shown in the picker: only those of the chosen school.
@@ -90,6 +116,7 @@ public partial class RegisterViewModel : ObservableObject
         SelectedSchool = null;
         SelectedDepartment = null;
         SelectedRoleLabel = null;
+        IsPasswordHidden = true;
     }
 
     [RelayCommand]

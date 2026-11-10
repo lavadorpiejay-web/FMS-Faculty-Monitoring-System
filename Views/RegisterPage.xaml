@@ -54,18 +54,37 @@
                            FontSize="12" TextColor="{StaticResource Gray600}" />
 
                     <Label Text="Password" Style="{StaticResource SectionTitle}" FontSize="13" />
-                    <Border Stroke="{StaticResource Gray200}" Padding="12,0">
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0,4,0">
                         <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
-                        <Entry Text="{Binding Password}" Placeholder="At least 8 characters, letters and numbers"
-                               IsPassword="True" ReturnType="Next" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Entry Text="{Binding Password}" Placeholder="At least 8 characters, letters and numbers"
+                                   IsPassword="{Binding IsPasswordHidden}" ReturnType="Next" />
+                            <Button Grid.Column="1" Text="{Binding ShowHideText}"
+                                    Command="{Binding TogglePasswordCommand}"
+                                    Style="{StaticResource TextButton}" />
+                        </Grid>
                     </Border>
 
                     <Label Text="Confirm password" Style="{StaticResource SectionTitle}" FontSize="13" />
-                    <Border Stroke="{StaticResource Gray200}" Padding="12,0">
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0,4,0">
                         <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
-                        <Entry Text="{Binding ConfirmPassword}" Placeholder="Re-enter your password"
-                               IsPassword="True" ReturnType="Go" ReturnCommand="{Binding RegisterCommand}" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Entry Text="{Binding ConfirmPassword}" Placeholder="Re-enter your password"
+                                   IsPassword="{Binding IsPasswordHidden}" ReturnType="Go"
+                                   ReturnCommand="{Binding RegisterCommand}" />
+                            <Button Grid.Column="1" Text="{Binding ShowHideText}"
+                                    Command="{Binding TogglePasswordCommand}"
+                                    Style="{StaticResource TextButton}" />
+                        </Grid>
                     </Border>
+                    <Label Text="{Binding MatchText}" IsVisible="{Binding HasMatchText}" FontSize="12"
+                           TextColor="{StaticResource ErrorRed}">
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label" Binding="{Binding PasswordsMatch}" Value="True">
+                                <Setter Property="TextColor" Value="{StaticResource ForestMid}" />
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
 
                     <Border IsVisible="{Binding HasError}" BackgroundColor="{StaticResource ErrorSoft}"
                             StrokeThickness="0" Padding="12,10">
