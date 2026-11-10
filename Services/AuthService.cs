@@ -8,7 +8,7 @@ public interface IAuthService
     Task<AuthResult> RegisterAsync(RegistrationRequest request);
 }
 
-/// <summary>Local account store (users.json, hashed passwords). Swap for a real SIS client later.</summary>
+
 public sealed class LocalAuthService : IAuthService
 {
     private const int MaxAttempts = 5;

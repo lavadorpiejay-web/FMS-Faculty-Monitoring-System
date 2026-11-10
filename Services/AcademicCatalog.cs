@@ -2,13 +2,9 @@ namespace FacultyMonitoring.Services;
 
 public sealed record School(string Name, IReadOnlyList<string> Departments);
 
-/// <summary>
-/// Single source of truth for schools and their departments.
-/// To add a school or department later, add it to <see cref="Schools"/> below. Nothing else needs to change.
-/// </summary>
 public static class AcademicCatalog
 {
-    /// <summary>Non-academic office used by READS Scholars and IMS Personnel (no school or department).</summary>
+   
     public const string ImsOffice = "IMS Office";
 
     public static readonly IReadOnlyList<School> Schools = new List<School>
