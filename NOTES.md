@@ -45,7 +45,7 @@ The StatusPage runs per-role verification checks left over from the foundation m
 ## Key files
 - `Models\Models.cs`: UserAccount (with School and Department), FacultyMember, Subject, Classroom, RegistrationRequest, etc.
 - `Services\AcademicCatalog.cs`: schools and departments.
-- `Services\SeedData.cs`: starting data written on first launch (subjects and classrooms only; no accounts or faculty).
+- `Services\SeedData.cs`: starting data written on first launch: dummy accounts and faculty (debug builds only), one sample subject per department, and classrooms.
 - `Services\AuthService.cs`: sign-in, registration, validation against the catalog, lockout after 5 failed attempts.
 - `Services\RolePolicy.cs`: what each role can see and its routes.
 - `Services\ReadinessService.cs`: per-role verification checks.
@@ -56,9 +56,17 @@ The StatusPage runs per-role verification checks left over from the foundation m
 - `Resources\AppIcon\appicon.svg` and `appiconfg.svg`: FMS app icon (background and logo). `Resources\Splash\splash.png`: FMS splash image (clock-and-pen logo). Background colour is set in `FacultyMonitoring.csproj` (`#0C2D23`).
 
 ## Accounts
-There are no pre-made accounts. Every account is created on the Register screen, like a real user would.
-Suggested order for a fresh install: register IMS Personnel, then Dean, Chairperson and Faculty, then READS Scholars. Then sign in as IMS Personnel and assign each READS Scholar to a school and department.
-Account data lives in the app's private storage on the device, so uninstalling the app removes all accounts.
+**Debug builds (running from Visual Studio)** create dummy accounts on first launch so login is quick. All share the password `SeedData.DummyPassword` (the full list is in `DUMMY_ACCOUNTS.txt` in the project folder; nothing is shown on the login screen):
+- `ims01`: IMS Personnel
+- `reads01`: READS Scholar, already assigned to the Department of Computer Engineering
+- `dean.sea`: Dean of the School of Engineering and Architecture
+- `chair.CODE` and `faculty.CODE`: Chairperson and Faculty of each department, where CODE is `ee` (Electrical), `cpe` (Computer), `ce` (Civil), `ie` (Industrial), `me` (Mechanical), `arch` (Architecture), `ece` (Electronics)
+
+Accounts are generated from `Services\AcademicCatalog.cs`, so a new school or department automatically gets a dummy Dean, Chairperson and Faculty.
+
+**Release builds** create no accounts; everyone registers on the Register screen.
+
+Accounts are written only on first launch and live in the app's private storage, so uninstall the app to regenerate them. Uninstalling also erases any accounts you registered by hand.
 
 ## Milestones so far
 1. Milestone 1: foundation (login, roles, local JSON storage).
@@ -69,6 +77,7 @@ Account data lives in the app's private storage on the device, so uninstalling t
 6. Milestone 4b: removed all test accounts and sample faculty; login hint removed.
 7. Milestone 4c: FMS app icon (clock-and-pen logo), app name shown as "FMS", the Status / System / Platform / Storage tab renamed "System checks" for every role.
 8. Milestone 5: Dean sees every department of their school with its Chairperson(s) and Faculty; Chairperson sees the Faculty of their department (both read-only).
+9. Milestone 6: dummy accounts (debug builds only) for every school, department, READS Scholar and IMS Personnel.
 
 ## Open items / next
 - READS Scholar and IMS Personnel schedule features (not started; READS and IMS still cannot access or add schedules).

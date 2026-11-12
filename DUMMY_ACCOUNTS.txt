@@ -1,0 +1,44 @@
+FMS (Faculty Monitoring System): dummy accounts
+================================================
+
+Password for every account:  Fm@2026!
+
+These accounts exist only in DEBUG builds (running from Visual Studio). They are created the first time the app
+launches. To get them again, uninstall the app from the emulator and run it again.
+Sign-in is by SIS ID (not case sensitive).
+
+
+IMS Personnel and READS Scholar
+-------------------------------
+SIS ID      Role              Notes
+ims01       IMS Personnel     Assigns READS Scholars (Assign tab)
+reads01     READS Scholar     Assigned to the Department of Computer Engineering (Directory tab)
+
+
+Dean
+----
+SIS ID      Role    School
+dean.sea    Dean    School of Engineering and Architecture
+
+
+Chairpersons and Faculty
+------------------------
+School: School of Engineering and Architecture
+
+Department                                   Chairperson     Faculty
+Department of Electrical Engineering         chair.ee        faculty.ee
+Department of Computer Engineering           chair.cpe       faculty.cpe
+Department of Civil Engineering              chair.ce        faculty.ce
+Department of Industrial Engineering         chair.ie        faculty.ie
+Department of Mechanical Engineering         chair.me        faculty.me
+Department of Architecture                   chair.arch      faculty.arch
+Department of Electronics Engineering        chair.ece       faculty.ece
+
+
+Notes
+-----
+- When you add a school or department in Services\AcademicCatalog.cs, the app creates a dummy Dean, Chairperson
+  and Faculty for it automatically. The codes for new departments are s<school number>d<department number>,
+  for example chair.s2d1 and faculty.s2d1. They are listed in this file only if you add them by hand.
+- This file is for you. It is not shown anywhere in the app.
+- The password is also in Services\SeedData.cs. Keep the GitHub repository private.
