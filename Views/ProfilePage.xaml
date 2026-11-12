@@ -2,10 +2,11 @@
 <ContentPage x:Class="FacultyMonitoring.Views.ProfilePage"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
              xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
              x:DataType="vm:ProfileViewModel"
              Title="Profile">
-    <ScrollView>
+    <controls:DraggableScrollView>
         <VerticalStackLayout Padding="20" Spacing="20">
             <Border Style="{StaticResource Card}">
                 <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
@@ -36,5 +37,5 @@
 
             <Button Text="Sign out" Command="{Binding SignOutCommand}" />
         </VerticalStackLayout>
-    </ScrollView>
+    </controls:DraggableScrollView>
 </ContentPage>

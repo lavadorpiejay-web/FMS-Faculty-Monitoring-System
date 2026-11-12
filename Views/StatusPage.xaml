@@ -2,11 +2,12 @@
 <ContentPage x:Class="FacultyMonitoring.Views.StatusPage"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
              xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
              xmlns:models="clr-namespace:FacultyMonitoring.Models"
              x:DataType="vm:StatusViewModel"
              Title="System checks">
-    <ScrollView>
+    <controls:DraggableScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
             <Label Text="{Binding Heading}" FontSize="20" FontAttributes="Bold"
                    TextColor="{StaticResource DeepGreen}" />
@@ -51,5 +52,5 @@
             <Button Text="Re-run checks" Command="{Binding RunChecksCommand}"
                     Style="{StaticResource OutlineButton}" />
         </VerticalStackLayout>
-    </ScrollView>
+    </controls:DraggableScrollView>
 </ContentPage>

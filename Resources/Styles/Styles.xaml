@@ -18,6 +18,12 @@
         <Setter Property="BackgroundColor" Value="{StaticResource Ivory}" />
     </Style>
 
+    <!-- One scroll bar setting for every page. Change it here to change all screens. -->
+    <Style TargetType="ScrollView">
+        <Setter Property="VerticalScrollBarVisibility" Value="Never" />
+        <Setter Property="HorizontalScrollBarVisibility" Value="Never" />
+    </Style>
+
     <Style TargetType="Label">
         <Setter Property="TextColor" Value="{StaticResource InkDark}" />
         <Setter Property="FontFamily" Value="OpenSansRegular" />

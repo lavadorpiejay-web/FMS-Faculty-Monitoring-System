@@ -2,10 +2,11 @@
 <ContentPage x:Class="FacultyMonitoring.Views.RegisterPage"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
              xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
              x:DataType="vm:RegisterViewModel"
              Title="Create account">
-    <ScrollView>
+    <controls:DraggableScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
 
             <Border Style="{StaticResource Card}" Padding="20">
@@ -99,5 +100,5 @@
                 </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>
-    </ScrollView>
+    </controls:DraggableScrollView>
 </ContentPage>

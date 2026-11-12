@@ -38,9 +38,7 @@ public partial class ProfileViewModel : ObservableObject
     [RelayCommand]
     private async Task SignOutAsync()
     {
-        var confirm = await Shell.Current.DisplayAlert(
-            "Sign out", "Sign out of Faculty Monitoring?", "Sign out", "Cancel");
-        if (confirm)
-            await ((AppShell)Shell.Current).SignOutAsync();
+        // Signs out straight away, with no confirmation pop-up.
+        await ((AppShell)Shell.Current).SignOutAsync();
     }
 }

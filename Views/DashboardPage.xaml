@@ -2,10 +2,11 @@
 <ContentPage x:Class="FacultyMonitoring.Views.DashboardPage"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
              xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
              x:DataType="vm:DashboardViewModel"
              Title="Home">
-    <ScrollView>
+    <controls:DraggableScrollView>
         <VerticalStackLayout Spacing="0">
 
             <VerticalStackLayout BackgroundColor="{StaticResource DeepGreen}" Padding="24,24,24,28" Spacing="4">
@@ -75,5 +76,5 @@
                 </Border>
             </VerticalStackLayout>
         </VerticalStackLayout>
-    </ScrollView>
+    </controls:DraggableScrollView>
 </ContentPage>

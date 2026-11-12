@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using FacultyMonitoring.Models;
 using FacultyMonitoring.Services;
@@ -11,7 +10,8 @@ public partial class SchoolDirectoryViewModel : ObservableObject
     private readonly DirectoryService _directory;
     public SchoolDirectoryViewModel(DirectoryService directory) => _directory = directory;
 
-    public ObservableCollection<DepartmentGroup> Departments { get; } = new();
+    // Replaced in one assignment (not Clear + Add) so the page re-lays out once and the scroll bar does not jump.
+    [ObservableProperty] private IReadOnlyList<DepartmentGroup> _departments = Array.Empty<DepartmentGroup>();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNotValid))]
@@ -26,13 +26,11 @@ public partial class SchoolDirectoryViewModel : ObservableObject
     {
         var result = await _directory.LoadForCurrentDeanAsync();
 
-        Departments.Clear();
-        foreach (var group in result.Departments) Departments.Add(group);
-
         var chairs = result.Departments.Sum(g => g.Chairpersons.Count);
         var faculty = result.Departments.Sum(g => g.Faculty.Count);
         School = result.School;
         Summary = $"{result.Departments.Count} departments · {chairs} chairpersons · {faculty} faculty";
         IsValid = result.IsValid;
+        Departments = result.Departments;
     }
 }
