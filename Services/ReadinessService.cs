@@ -5,17 +5,28 @@ namespace FacultyMonitoring.Services;
 /// <summary>Runs the per-role verification checks required by the SRS foundation milestone.</summary>
 public sealed class ReadinessService
 {
-    private static readonly Version MinAndroid = new(7, 0); // project baseline; adjust to your target
+    // Must match <SupportedOSPlatformVersion> in FacultyMonitoring.csproj (21 = Android 5.0).
+    // If the SRS requires a higher minimum, raise it in BOTH places.
+    private static readonly Version MinAndroid = new(5, 0);
 
     private readonly JsonStorageService _storage;
     public ReadinessService(JsonStorageService storage) => _storage = storage;
 
     public async Task<List<CheckResult>> RunAsync(UserAccount user)
     {
+        // A real check: the navigation shell is loaded, a page is showing, and it is inside this role's area.
+        var shell = Shell.Current;
+        var shellOk = shell is AppShell
+            && shell.CurrentPage is not null
+            && RolePolicy.IsRouteAllowed(user.Role, shell.CurrentState?.Location?.OriginalString ?? "");
+
         var r = new List<CheckResult>
         {
             new("Authenticated session", $"Signed in as {user.SisId}", user.IsActive),
-            new("Application shell", "Navigation shell and layout rendered", true),
+            new("Application shell",
+                shellOk ? "Navigation shell loaded and showing a page in your role's area"
+                        : "Navigation shell is not showing a page in your role's area",
+                shellOk),
         };
 
         await _storage.InitializeAsync();
