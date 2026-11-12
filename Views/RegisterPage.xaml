@@ -70,10 +70,10 @@
                         <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
                         <Grid ColumnDefinitions="*,Auto">
                             <Entry Text="{Binding ConfirmPassword}" Placeholder="Re-enter your password"
-                                   IsPassword="{Binding IsPasswordHidden}" ReturnType="Go"
+                                   IsPassword="{Binding IsConfirmPasswordHidden}" ReturnType="Go"
                                    ReturnCommand="{Binding RegisterCommand}" />
-                            <Button Grid.Column="1" Text="{Binding ShowHideText}"
-                                    Command="{Binding TogglePasswordCommand}"
+                            <Button Grid.Column="1" Text="{Binding ConfirmShowHideText}"
+                                    Command="{Binding ToggleConfirmPasswordCommand}"
                                     Style="{StaticResource TextButton}" />
                         </Grid>
                     </Border>

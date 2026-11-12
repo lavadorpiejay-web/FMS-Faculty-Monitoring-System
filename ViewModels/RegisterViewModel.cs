@@ -30,12 +30,17 @@ public partial class RegisterViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(MatchText))]
     private string _confirmPassword = "";
 
-    // One switch shows or hides both password boxes so the person can check what they typed.
+    // Each password box has its own Show/Hide switch.
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowHideText))]
     private bool _isPasswordHidden = true;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ConfirmShowHideText))]
+    private bool _isConfirmPasswordHidden = true;
+
     public string ShowHideText => IsPasswordHidden ? "Show" : "Hide";
+    public string ConfirmShowHideText => IsConfirmPasswordHidden ? "Show" : "Hide";
 
     // Live check under "Confirm password".
     public bool HasMatchText => ConfirmPassword.Length > 0;
@@ -44,6 +49,9 @@ public partial class RegisterViewModel : ObservableObject
 
     [RelayCommand]
     private void TogglePassword() => IsPasswordHidden = !IsPasswordHidden;
+
+    [RelayCommand]
+    private void ToggleConfirmPassword() => IsConfirmPasswordHidden = !IsConfirmPasswordHidden;
 
     [ObservableProperty] private string? _selectedDepartment;
 
@@ -117,6 +125,7 @@ public partial class RegisterViewModel : ObservableObject
         SelectedDepartment = null;
         SelectedRoleLabel = null;
         IsPasswordHidden = true;
+        IsConfirmPasswordHidden = true;
     }
 
     [RelayCommand]
