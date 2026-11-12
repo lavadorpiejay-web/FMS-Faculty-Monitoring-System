@@ -5,7 +5,7 @@ namespace FacultyMonitoring.Services;
 /// <summary>
 /// Starting data written to local JSON on first launch.
 /// In DEBUG builds (running from Visual Studio) it also creates dummy accounts so you can sign in quickly:
-/// one Dean per school, one Chairperson and one Faculty per department, plus one READS Scholar and one IMS Personnel.
+/// one Dean per school, one Chairperson and one Faculty per department, plus five READS Scholars (unassigned) and one IMS Personnel.
 /// Release builds get no accounts at all; everyone registers.
 /// </summary>
 public static class SeedData
@@ -17,6 +17,9 @@ public static class SeedData
     public static IReadOnlyList<string> Departments => AcademicCatalog.AllDepartments;
 
     private const string Ims = AcademicCatalog.ImsOffice;
+
+    /// <summary>How many dummy READS Scholar accounts to create (reads01, reads02, ...).</summary>
+    private const int ReadsScholarCount = 5;
 
     // Short codes used in dummy SIS IDs (chair.cpe, faculty.cpe, ...). Matched against the department name.
     private static readonly (string Key, string Code)[] DepartmentCodes =
@@ -66,15 +69,15 @@ public static class SeedData
         // Every dummy account shares one password, so hash it once instead of once per account.
         var pw = PasswordHasher.Hash(DummyPassword);
         var units = Units();
-        var first = units.FirstOrDefault(u => u.Code == "cpe") ?? units.FirstOrDefault();
 
         var users = new List<UserAccount>
         {
             User("U-IMS", "ims01", "IMS Personnel (dummy)", "", Ims, UserRole.ImsPersonnel, pw),
-            // Already assigned, so the READS Directory works right away. Re-assign it on the IMS "Assign" tab.
-            User("U-READS", "reads01", "READS Scholar (dummy)", "", Ims, UserRole.ReadsScholar, pw,
-                 first?.School ?? "", first?.Department ?? ""),
         };
+
+        // READS Scholars start UNASSIGNED. Sign in as ims01 and use the Assign tab to give them a school and department.
+        for (var i = 1; i <= ReadsScholarCount; i++)
+            users.Add(User($"U-READS-{i}", $"reads{i:00}", $"READS Scholar {i} (dummy)", "", Ims, UserRole.ReadsScholar, pw));
 
         foreach (var school in units.Select(u => (u.School, u.SchoolCode)).Distinct())
             users.Add(User($"U-DEAN-{school.SchoolCode}", $"dean.{school.SchoolCode}",

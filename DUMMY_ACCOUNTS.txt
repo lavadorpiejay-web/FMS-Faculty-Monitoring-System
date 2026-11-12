@@ -8,11 +8,18 @@ launches. To get them again, uninstall the app from the emulator and run it agai
 Sign-in is by SIS ID (not case sensitive).
 
 
-IMS Personnel and READS Scholar
--------------------------------
+IMS Personnel and READS Scholars
+--------------------------------
 SIS ID      Role              Notes
 ims01       IMS Personnel     Assigns READS Scholars (Assign tab)
-reads01     READS Scholar     Assigned to the Department of Computer Engineering (Directory tab)
+reads01     READS Scholar     Starts unassigned (Directory tab says "No department assigned yet")
+reads02     READS Scholar     Starts unassigned
+reads03     READS Scholar     Starts unassigned
+reads04     READS Scholar     Starts unassigned
+reads05     READS Scholar     Starts unassigned
+
+To give a Scholar a department: sign in as ims01, open the Assign tab, pick the Scholar, the school and the
+department, and press Save. Then sign in as that Scholar and open the Directory tab.
 
 
 Dean

@@ -58,7 +58,7 @@ The StatusPage runs per-role verification checks left over from the foundation m
 ## Accounts
 **Debug builds (running from Visual Studio)** create dummy accounts on first launch so login is quick. All share the password `SeedData.DummyPassword` (the full list is in `DUMMY_ACCOUNTS.txt` in the project folder; nothing is shown on the login screen):
 - `ims01`: IMS Personnel
-- `reads01`: READS Scholar, already assigned to the Department of Computer Engineering
+- `reads01` to `reads05`: READS Scholars, all start unassigned (IMS Personnel assigns them on the Assign tab)
 - `dean.sea`: Dean of the School of Engineering and Architecture
 - `chair.CODE` and `faculty.CODE`: Chairperson and Faculty of each department, where CODE is `ee` (Electrical), `cpe` (Computer), `ce` (Civil), `ie` (Industrial), `me` (Mechanical), `arch` (Architecture), `ece` (Electronics)
 
