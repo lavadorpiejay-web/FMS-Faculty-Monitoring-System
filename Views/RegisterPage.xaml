@@ -16,12 +16,17 @@
                         <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
                         <Entry Text="{Binding FullName}" Placeholder="e.g. Juan Dela Cruz" ReturnType="Next" />
                     </Border>
+                    <Label Text="A user with this name is already registered." IsVisible="{Binding NameTaken}"
+                           FontSize="12" TextColor="{StaticResource ErrorRed}" />
 
                     <Label Text="SIS ID" Style="{StaticResource SectionTitle}" FontSize="13" />
                     <Border Stroke="{StaticResource Gray200}" Padding="12,0">
                         <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
-                        <Entry Text="{Binding SisId}" Placeholder="Your SIS ID" Keyboard="Plain" ReturnType="Next" />
+                        <Entry Text="{Binding SisId}" Placeholder="Your SIS ID (max 10 characters)" Keyboard="Plain"
+                               MaxLength="10" ReturnType="Next" />
                     </Border>
+                    <Label Text="This SIS ID is already registered." IsVisible="{Binding SisTaken}"
+                           FontSize="12" TextColor="{StaticResource ErrorRed}" />
 
                     <Label Text="Role" Style="{StaticResource SectionTitle}" FontSize="13" />
                     <Border Stroke="{StaticResource Gray200}" Padding="12,0">

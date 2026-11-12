@@ -6,11 +6,17 @@ public interface IAuthService
 {
     Task<AuthResult> SignInAsync(string sisId, string password);
     Task<AuthResult> RegisterAsync(RegistrationRequest request);
+
+    /// <summary>Live check used by the Register screen: is this name or SIS ID already registered?</summary>
+    Task<DuplicateCheck> CheckDuplicatesAsync(string fullName, string sisId);
 }
+
+public sealed record DuplicateCheck(bool NameTaken, bool SisTaken);
 
 
 public sealed class LocalAuthService : IAuthService
 {
+    public const int MaxSisIdLength = 10;
     private const int MaxAttempts = 5;
     private static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(1);
     private const string Invalid = "Invalid SIS ID or password.";
@@ -51,6 +57,23 @@ public sealed class LocalAuthService : IAuthService
         return new AuthResult(true, "OK", user);
     }
 
+    // Names match regardless of capitals or extra spaces ("juan  DELA cruz" = "Juan Dela Cruz").
+    private static string NormalizeName(string name) =>
+        string.Join(' ', name.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+
+    public async Task<DuplicateCheck> CheckDuplicatesAsync(string fullName, string sisId)
+    {
+        var name = NormalizeName(fullName ?? "");
+        var sis = (sisId ?? "").Trim();
+        if (name.Length == 0 && sis.Length == 0) return new DuplicateCheck(false, false);
+
+        await _storage.InitializeAsync();
+        var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
+        return new DuplicateCheck(
+            name.Length > 0 && users.Any(u => NormalizeName(u.FullName) == name),
+            sis.Length > 0 && users.Any(u => u.SisId.Equals(sis, StringComparison.OrdinalIgnoreCase)));
+    }
+
     public async Task<AuthResult> RegisterAsync(RegistrationRequest req)
     {
         static AuthResult Fail(string msg) => new(false, msg, null);
@@ -60,6 +83,7 @@ public sealed class LocalAuthService : IAuthService
 
         if (name.Length < 3) return Fail("Enter your full name.");
         if (sis.Length < 4 || sis.Any(char.IsWhiteSpace)) return Fail("SIS ID must be at least 4 characters with no spaces.");
+        if (sis.Length > MaxSisIdLength) return Fail($"SIS ID must be {MaxSisIdLength} characters or fewer.");
         if (!Enum.IsDefined(req.Role)) return Fail("Choose your role.");
 
         // School / department rules per role. Never trust the picker alone: validate against the catalog.
@@ -88,6 +112,8 @@ public sealed class LocalAuthService : IAuthService
         var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
         if (users.Any(u => u.SisId.Equals(sis, StringComparison.OrdinalIgnoreCase)))
             return Fail("That SIS ID is already registered.");
+        if (users.Any(u => NormalizeName(u.FullName) == NormalizeName(name)))
+            return Fail("A user with this name is already registered.");
 
         var (hash, salt) = await Task.Run(() => PasswordHasher.Hash(req.Password));
         var user = new UserAccount

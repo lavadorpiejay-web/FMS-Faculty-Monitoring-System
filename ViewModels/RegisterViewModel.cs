@@ -18,6 +18,33 @@ public partial class RegisterViewModel : ObservableObject
     [ObservableProperty] private string _fullName = "";
     [ObservableProperty] private string _sisId = "";
 
+    // Live "already registered" labels under Full name and SIS ID.
+    [ObservableProperty] private bool _nameTaken;
+    [ObservableProperty] private bool _sisTaken;
+
+    public int MaxSisIdLength => LocalAuthService.MaxSisIdLength;
+
+    private CancellationTokenSource? _duplicateCts;
+
+    partial void OnFullNameChanged(string value) => _ = CheckDuplicatesAsync();
+    partial void OnSisIdChanged(string value) => _ = CheckDuplicatesAsync();
+
+    private async Task CheckDuplicatesAsync()
+    {
+        _duplicateCts?.Cancel();
+        var cts = _duplicateCts = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(300, cts.Token);               // wait until the user pauses typing
+            var result = await _auth.CheckDuplicatesAsync(FullName, SisId);
+            if (cts.IsCancellationRequested) return;
+            NameTaken = result.NameTaken;
+            SisTaken = result.SisTaken;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception) { /* the label is only a hint; Register still checks again */ }
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMatchText))]
     [NotifyPropertyChangedFor(nameof(PasswordsMatch))]
