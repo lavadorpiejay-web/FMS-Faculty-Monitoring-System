@@ -18,10 +18,10 @@ public static class SeedData
 
     private const string Ims = AcademicCatalog.ImsOffice;
 
-    /// <summary>How many dummy READS Scholar accounts to create (reads01, reads02, ...).</summary>
+    /// <summary>How many dummy READS Scholar accounts to create (rds01, rds02, ...).</summary>
     private const int ReadsScholarCount = 5;
 
-    // Short codes used in dummy SIS IDs (chair.cpe, faculty.cpe, ...). Matched against the department name.
+    // Short codes used in dummy account codes (used in internal record IDs). Matched against the department name.
     private static readonly (string Key, string Code)[] DepartmentCodes =
     {
         ("Electrical", "ee"), ("Computer", "cpe"), ("Civil", "ce"), ("Industrial", "ie"),
@@ -77,17 +77,23 @@ public static class SeedData
 
         // READS Scholars start UNASSIGNED. Sign in as ims01 and use the Assign tab to give them a school and department.
         for (var i = 1; i <= ReadsScholarCount; i++)
-            users.Add(User($"U-READS-{i}", $"reads{i:00}", $"READS Scholar {i} (dummy)", "", Ims, UserRole.ReadsScholar, pw));
+            users.Add(User($"U-READS-{i}", $"rds{i:00}", $"READS Scholar {i} (dummy)", "", Ims, UserRole.ReadsScholar, pw));
 
-        foreach (var school in units.Select(u => (u.School, u.SchoolCode)).Distinct())
-            users.Add(User($"U-DEAN-{school.SchoolCode}", $"dean.{school.SchoolCode}",
-                $"Dean {school.SchoolCode.ToUpperInvariant()} (dummy)", school.School, "", UserRole.Dean, pw));
-
-        foreach (var u in units)
+        // Sign-in IDs are exactly 5 characters: dean1.., chr01.., fac01.. (in catalog order).
+        var schoolList = units.Select(u => (u.School, u.SchoolCode)).Distinct().ToList();
+        for (var i = 0; i < schoolList.Count; i++)
         {
-            users.Add(User($"U-CHAIR-{u.Code}", $"chair.{u.Code}", $"Chairperson {u.Code.ToUpperInvariant()} (dummy)",
+            var school = schoolList[i];
+            users.Add(User($"U-DEAN-{school.SchoolCode}", $"dean{i + 1}",
+                $"Dean {school.SchoolCode.ToUpperInvariant()} (dummy)", school.School, "", UserRole.Dean, pw));
+        }
+
+        for (var i = 0; i < units.Count; i++)
+        {
+            var u = units[i];
+            users.Add(User($"U-CHAIR-{u.Code}", $"chr{i + 1:00}", $"Chairperson {u.Code.ToUpperInvariant()} (dummy)",
                 u.School, u.Department, UserRole.Chairperson, pw));
-            users.Add(User($"U-FAC-{u.Code}", $"faculty.{u.Code}", $"Faculty {u.Code.ToUpperInvariant()} (dummy)",
+            users.Add(User($"U-FAC-{u.Code}", $"fac{i + 1:00}", $"Faculty {u.Code.ToUpperInvariant()} (dummy)",
                 u.School, u.Department, UserRole.Faculty, pw));
         }
         return users;

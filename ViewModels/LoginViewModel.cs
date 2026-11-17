@@ -62,7 +62,7 @@ public partial class LoginViewModel : ObservableObject
 
         if (string.IsNullOrWhiteSpace(SisId) || string.IsNullOrEmpty(Password))
         {
-            ErrorMessage = "Enter your SIS ID and password.";
+            ErrorMessage = "Enter your ID and password.";
             return;
         }
 

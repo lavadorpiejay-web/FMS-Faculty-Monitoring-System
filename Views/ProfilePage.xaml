@@ -14,7 +14,7 @@
                     <Label Text="Name" TextColor="{StaticResource Gray600}" />
                     <Label Grid.Column="1" Text="{Binding FullName}" FontAttributes="Bold" />
 
-                    <Label Grid.Row="1" Text="SIS ID" TextColor="{StaticResource Gray600}" />
+                    <Label Grid.Row="1" Text="ID" TextColor="{StaticResource Gray600}" />
                     <Label Grid.Row="1" Grid.Column="1" Text="{Binding SisId}" />
 
                     <Label Grid.Row="2" Text="Role" TextColor="{StaticResource Gray600}" />

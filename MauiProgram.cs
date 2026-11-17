@@ -21,7 +21,7 @@ public static class MauiProgram
         // Services
         builder.Services.AddSingleton<JsonStorageService>();
         builder.Services.AddSingleton<SessionService>();
-        builder.Services.AddSingleton<IAuthService, LocalAuthService>(); // swap for a real SIS client later
+        builder.Services.AddSingleton<IAuthService, LocalAuthService>(); // swap for a real auth client later
         builder.Services.AddSingleton<ReadinessService>();
         builder.Services.AddSingleton<DirectoryService>();
         builder.Services.AddSingleton<ScholarAssignmentService>();

@@ -18,7 +18,7 @@ public partial class RegisterViewModel : ObservableObject
     [ObservableProperty] private string _fullName = "";
     [ObservableProperty] private string _sisId = "";
 
-    // Live "already registered" labels under Full name and SIS ID.
+    // Live "already registered" labels under Full name and ID.
     [ObservableProperty] private bool _nameTaken;
     [ObservableProperty] private bool _sisTaken;
 
@@ -99,16 +99,40 @@ public partial class RegisterViewModel : ObservableObject
     // READS Scholar and IMS Personnel are placed in the IMS Office automatically.
     public bool IsOfficeRole => CurrentRole is UserRole.ReadsScholar or UserRole.ImsPersonnel;
 
+    // Live warning when the Chairperson (per department) or Dean (per school) seat is already taken.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOccupiedWarning))]
+    private string _occupiedWarning = "";
+    public bool HasOccupiedWarning => OccupiedWarning.Length > 0;
+
+    public string PasswordRule => LocalAuthService.PasswordRule;
+
+    private async Task CheckOccupiedAsync()
+    {
+        var role = CurrentRole;
+        if (role is null) { OccupiedWarning = ""; return; }
+        try
+        {
+            OccupiedWarning = await _auth.CheckRoleOccupiedAsync(role.Value,
+                NeedsSchool ? SelectedSchool : null, NeedsDepartment ? SelectedDepartment : null);
+        }
+        catch (Exception) { OccupiedWarning = ""; }
+    }
+
+    partial void OnSelectedDepartmentChanged(string? value) => _ = CheckOccupiedAsync();
+
     partial void OnSelectedSchoolChanged(string? value)
     {
         SelectedDepartment = null;
         Departments = AcademicCatalog.DepartmentsOf(value);
+        _ = CheckOccupiedAsync();
     }
 
     partial void OnSelectedRoleLabelChanged(string? value)
     {
         if (!NeedsSchool) SelectedSchool = null;          // also clears the department
         else if (!NeedsDepartment) SelectedDepartment = null;
+        _ = CheckOccupiedAsync();
     }
 
     [ObservableProperty]
@@ -165,6 +189,8 @@ public partial class RegisterViewModel : ObservableObject
         if (role is null) { ErrorMessage = "Choose your role."; return; }
         if (NeedsSchool && SelectedSchool is null) { ErrorMessage = "Choose your school."; return; }
         if (NeedsDepartment && SelectedDepartment is null) { ErrorMessage = "Choose your department."; return; }
+        await CheckOccupiedAsync();
+        if (HasOccupiedWarning) { ErrorMessage = OccupiedWarning; return; }
 
         try
         {
@@ -176,7 +202,7 @@ public partial class RegisterViewModel : ObservableObject
             if (!result.Success) { ErrorMessage = result.Message; return; }
 
             await Shell.Current.DisplayAlert("Account created",
-                $"You can now sign in with SIS ID \"{SisId.Trim()}\".", "OK");
+                $"You can now sign in with ID \"{SisId.Trim()}\".", "OK");
             await Shell.Current.GoToAsync("..");
         }
         finally { IsBusy = false; }

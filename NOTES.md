@@ -15,12 +15,17 @@ Last updated: 2026-10-25
 - Local JSON storage through `JsonStorageService`. Passwords are salted hashes (`PasswordHasher`).
 - Navigation through `AppShell`, with a navigation guard that blocks any area outside the signed-in role (`RolePolicy.IsRouteAllowed`).
 
+## Registration rules
+- ID: exactly 5 characters, no spaces (labelled just "ID").
+- Password: at least 8 characters with an uppercase letter, a lowercase letter, a number and a symbol.
+- A Chairperson seat (per department) or Dean seat (per school) that is already taken cannot be registered again.
+
 ## Roles (hierarchy: Dean > Chairperson > Faculty; IMS Personnel > READS Scholar)
 | Role | Registers with | Notes |
 |---|---|---|
 | Faculty | School and department | Reports to Chairperson |
-| Chairperson | School and department | One chairperson per department (not enforced yet) |
-| Dean | School only (no department) | One dean per school |
+| Chairperson | School and department | One chairperson per department (enforced: registration shows a "role is occupied" warning) |
+| Dean | School only (no department) | One dean per school (enforced the same way) |
 | READS Scholar | Nothing; placed in IMS Office automatically | Working student; attendance checking not enabled yet |
 | IMS Personnel | Nothing; placed in IMS Office automatically | Manages the app; supervises READS Scholars in the IMS Office |
 
@@ -58,9 +63,10 @@ The StatusPage runs per-role verification checks left over from the foundation m
 ## Accounts
 **Debug builds (running from Visual Studio)** create dummy accounts on first launch so login is quick. All share the password `SeedData.DummyPassword` (the full list is in `DUMMY_ACCOUNTS.txt` in the project folder; nothing is shown on the login screen):
 - `ims01`: IMS Personnel
-- `reads01` to `reads05`: READS Scholars, all start unassigned (IMS Personnel assigns them on the Assign tab)
-- `dean.sea`: Dean of the School of Engineering and Architecture
-- `chair.CODE` and `faculty.CODE`: Chairperson and Faculty of each department, where CODE is `ee` (Electrical), `cpe` (Computer), `ce` (Civil), `ie` (Industrial), `me` (Mechanical), `arch` (Architecture), `ece` (Electronics)
+- `rds01` to `rds05`: READS Scholars, all start unassigned (IMS Personnel assigns them on the Assign tab)
+- `dean1`: Dean of the School of Engineering and Architecture
+- `chr01` to `chr07` and `fac01` to `fac07`: Chairperson and Faculty of each department, in catalog order (01 Electrical, 02 Computer, 03 Civil, 04 Industrial, 05 Mechanical, 06 Architecture, 07 Electronics)
+- IDs are exactly 5 characters. Because every department and school already has a dummy Chairperson and Dean in debug builds, registering a Chairperson or Dean shows the "role is occupied" warning.
 
 Accounts are generated from `Services\AcademicCatalog.cs`, so a new school or department automatically gets a dummy Dean, Chairperson and Faculty.
 

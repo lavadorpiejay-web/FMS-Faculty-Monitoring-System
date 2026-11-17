@@ -7,8 +7,11 @@ public interface IAuthService
     Task<AuthResult> SignInAsync(string sisId, string password);
     Task<AuthResult> RegisterAsync(RegistrationRequest request);
 
-    /// <summary>Live check used by the Register screen: is this name or SIS ID already registered?</summary>
+    /// <summary>Live check used by the Register screen: is this name or ID already registered?</summary>
     Task<DuplicateCheck> CheckDuplicatesAsync(string fullName, string sisId);
+
+    /// <summary>Is the Chairperson (per department) or Dean (per school) seat already taken? Returns a warning, or "" if free.</summary>
+    Task<string> CheckRoleOccupiedAsync(UserRole role, string? school, string? department);
 }
 
 public sealed record DuplicateCheck(bool NameTaken, bool SisTaken);
@@ -16,10 +19,10 @@ public sealed record DuplicateCheck(bool NameTaken, bool SisTaken);
 
 public sealed class LocalAuthService : IAuthService
 {
-    public const int MaxSisIdLength = 10;
+    public const int MaxSisIdLength = 5;   // IDs are exactly 5 characters
     private const int MaxAttempts = 5;
     private static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(1);
-    private const string Invalid = "Invalid SIS ID or password.";
+    private const string Invalid = "Invalid ID or password.";
 
     private readonly JsonStorageService _storage;
     private readonly Dictionary<string, (int Fails, DateTime? LockedUntil)> _attempts = new();
@@ -74,6 +77,33 @@ public sealed class LocalAuthService : IAuthService
             sis.Length > 0 && users.Any(u => u.SisId.Equals(sis, StringComparison.OrdinalIgnoreCase)));
     }
 
+    public const string PasswordRule =
+        "Password needs at least 8 characters with an uppercase letter, a lowercase letter, a number and a symbol.";
+
+    // Mixed characters: upper + lower + digit + symbol.
+    public static bool IsStrongPassword(string p) =>
+        p.Length >= 8 && p.Any(char.IsUpper) && p.Any(char.IsLower) && p.Any(char.IsDigit)
+        && p.Any(c => !char.IsLetterOrDigit(c));
+
+    private static string OccupiedMessage(List<UserAccount> users, UserRole role, string? school, string? department)
+    {
+        if (role == UserRole.Chairperson && !string.IsNullOrEmpty(department) &&
+            users.Any(u => u.Role == UserRole.Chairperson && u.School == school && u.Department == department))
+            return $"This role is occupied: the {department} already has a Chairperson.";
+        if (role == UserRole.Dean && !string.IsNullOrEmpty(school) &&
+            users.Any(u => u.Role == UserRole.Dean && u.School == school))
+            return $"This role is occupied: the {school} already has a Dean.";
+        return "";
+    }
+
+    public async Task<string> CheckRoleOccupiedAsync(UserRole role, string? school, string? department)
+    {
+        if (role is not (UserRole.Chairperson or UserRole.Dean)) return "";
+        await _storage.InitializeAsync();
+        var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
+        return OccupiedMessage(users, role, school, department);
+    }
+
     public async Task<AuthResult> RegisterAsync(RegistrationRequest req)
     {
         static AuthResult Fail(string msg) => new(false, msg, null);
@@ -82,8 +112,7 @@ public sealed class LocalAuthService : IAuthService
         var sis = req.SisId.Trim();
 
         if (name.Length < 3) return Fail("Enter your full name.");
-        if (sis.Length < 4 || sis.Any(char.IsWhiteSpace)) return Fail("SIS ID must be at least 4 characters with no spaces.");
-        if (sis.Length > MaxSisIdLength) return Fail($"SIS ID must be {MaxSisIdLength} characters or fewer.");
+        if (sis.Length != MaxSisIdLength || sis.Any(char.IsWhiteSpace)) return Fail($"ID must be exactly {MaxSisIdLength} characters with no spaces.");
         if (!Enum.IsDefined(req.Role)) return Fail("Choose your role.");
 
         // School / department rules per role. Never trust the picker alone: validate against the catalog.
@@ -104,14 +133,15 @@ public sealed class LocalAuthService : IAuthService
                 school = ""; department = AcademicCatalog.ImsOffice;
                 break;
         }
-        if (req.Password.Length < 8 || !req.Password.Any(char.IsLetter) || !req.Password.Any(char.IsDigit))
-            return Fail("Password needs at least 8 characters, with letters and numbers.");
+        if (!IsStrongPassword(req.Password)) return Fail(PasswordRule);
         if (req.Password != req.ConfirmPassword) return Fail("Passwords do not match.");
 
         await _storage.InitializeAsync();
         var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
         if (users.Any(u => u.SisId.Equals(sis, StringComparison.OrdinalIgnoreCase)))
-            return Fail("That SIS ID is already registered.");
+            return Fail("That ID is already registered.");
+        var occupied = OccupiedMessage(users, req.Role, school, department);
+        if (occupied.Length > 0) return Fail(occupied);
         if (users.Any(u => NormalizeName(u.FullName) == NormalizeName(name)))
             return Fail("A user with this name is already registered.");
 
