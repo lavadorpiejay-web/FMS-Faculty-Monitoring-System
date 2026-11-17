@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.RegisterPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             x:DataType="vm:RegisterViewModel"
+             Title="Create account">
+    <controls:DraggableScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <Border Style="{StaticResource Card}" Padding="20">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Full name" Style="{StaticResource SectionTitle}" FontSize="13" />
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                        <Entry Text="{Binding FullName}" Placeholder="e.g. Juan Dela Cruz" ReturnType="Next" />
+                    </Border>
+                    <Label Text="A user with this name is already registered." IsVisible="{Binding NameTaken}"
+                           FontSize="12" TextColor="{StaticResource ErrorRed}" />
+
+                    <Label Text="ID" Style="{StaticResource SectionTitle}" FontSize="13" />
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                        <Entry Text="{Binding SisId}" Placeholder="Your ID (exactly 5 characters)" Keyboard="Plain"
+                               MaxLength="5" ReturnType="Next" />
+                    </Border>
+                    <Label Text="This ID is already registered." IsVisible="{Binding SisTaken}"
+                           FontSize="12" TextColor="{StaticResource ErrorRed}" />
+
+                    <Label Text="Role" Style="{StaticResource SectionTitle}" FontSize="13" />
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                        <Picker Title="Choose your role" ItemsSource="{Binding RoleLabels}"
+                                SelectedItem="{Binding SelectedRoleLabel}"
+                                TextColor="{StaticResource InkDark}" TitleColor="#8FA096" />
+                    </Border>
+                    <Label Text="{Binding RoleHint}" IsVisible="{Binding HasRoleHint}"
+                           FontSize="12" TextColor="{StaticResource Gray600}" />
+
+                    <Label Text="School" Style="{StaticResource SectionTitle}" FontSize="13"
+                           IsVisible="{Binding NeedsSchool}" />
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0" IsVisible="{Binding NeedsSchool}">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                        <Picker Title="Choose school" ItemsSource="{Binding Schools}"
+                                SelectedItem="{Binding SelectedSchool}"
+                                TextColor="{StaticResource InkDark}" TitleColor="#8FA096" />
+                    </Border>
+
+                    <Label Text="Department" Style="{StaticResource SectionTitle}" FontSize="13"
+                           IsVisible="{Binding NeedsDepartment}" />
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0" IsVisible="{Binding NeedsDepartment}">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                        <Picker Title="Choose school first, then department" ItemsSource="{Binding Departments}"
+                                SelectedItem="{Binding SelectedDepartment}" IsEnabled="{Binding HasSchool}"
+                                TextColor="{StaticResource InkDark}" TitleColor="#8FA096" />
+                    </Border>
+
+                    <Border IsVisible="{Binding HasOccupiedWarning}" BackgroundColor="{StaticResource ErrorSoft}"
+                            StrokeThickness="0" Padding="12,10">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+                        <Label Text="{Binding OccupiedWarning}" TextColor="{StaticResource ErrorRed}" FontSize="13" />
+                    </Border>
+
+                    <Label Text="You will be assigned to the IMS Office." IsVisible="{Binding IsOfficeRole}"
+                           FontSize="12" TextColor="{StaticResource Gray600}" />
+
+                    <Label Text="Password" Style="{StaticResource SectionTitle}" FontSize="13" />
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0,4,0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Entry Text="{Binding Password}" Placeholder="Mixed characters, min. 8"
+                                   IsPassword="{Binding IsPasswordHidden}" ReturnType="Next" />
+                            <Button Grid.Column="1" Text="{Binding ShowHideText}"
+                                    Command="{Binding TogglePasswordCommand}"
+                                    Style="{StaticResource TextButton}" />
+                        </Grid>
+                    </Border>
+
+                    <Label Text="{Binding PasswordRule}" FontSize="12" TextColor="{StaticResource Gray600}" />
+
+                    <Label Text="Confirm password" Style="{StaticResource SectionTitle}" FontSize="13" />
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0,4,0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Entry Text="{Binding ConfirmPassword}" Placeholder="Re-enter your password"
+                                   IsPassword="{Binding IsConfirmPasswordHidden}" ReturnType="Go"
+                                   ReturnCommand="{Binding RegisterCommand}" />
+                            <Button Grid.Column="1" Text="{Binding ConfirmShowHideText}"
+                                    Command="{Binding ToggleConfirmPasswordCommand}"
+                                    Style="{StaticResource TextButton}" />
+                        </Grid>
+                    </Border>
+                    <Label Text="{Binding MatchText}" IsVisible="{Binding HasMatchText}" FontSize="12"
+                           TextColor="{StaticResource ErrorRed}">
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label" Binding="{Binding PasswordsMatch}" Value="True">
+                                <Setter Property="TextColor" Value="{StaticResource ForestMid}" />
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
+
+                    <Border IsVisible="{Binding HasError}" BackgroundColor="{StaticResource ErrorSoft}"
+                            StrokeThickness="0" Padding="12,10">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+                        <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource ErrorRed}" FontSize="13" />
+                    </Border>
+
+                    <Button Text="Create account" Command="{Binding RegisterCommand}"
+                            IsEnabled="{Binding IsNotBusy}" />
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                                       Color="{StaticResource DeepGreen}" HeightRequest="24" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </controls:DraggableScrollView>
+</ContentPage>
