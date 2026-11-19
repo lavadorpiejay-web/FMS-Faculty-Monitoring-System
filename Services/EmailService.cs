@@ -54,7 +54,9 @@ public sealed class EmailService : IEmailService
 
     private static async Task SendOnceAsync(EmailSettings s, int port, SecureSocketOptions security, MimeMessage message)
     {
-        using var client = new SmtpClient { Timeout = 20000 };
+        // Phones and some networks cannot reach the certificate revocation (OCSP) servers, which makes the handshake fail
+        // even though the certificate is valid. Everything else about the certificate is still checked.
+        using var client = new SmtpClient { Timeout = 20000, CheckCertificateRevocation = false };
         await client.ConnectAsync(s.Host, port, security);
         await client.AuthenticateAsync(s.User, s.AppPassword.Replace(" ", ""));
         await client.SendAsync(message);
