@@ -161,3 +161,9 @@ Then **uninstall the app from the emulator**, run **Build > Clean Solution**, an
 ## Backups
 - Back up the folder regularly: copy without `bin`, `obj`, `.vs`, zip it, and keep a copy on USB or cloud.
 - Keep milestone zips in `D:\Downloads`.
+
+
+## Lists (latest change)
+- Classrooms no longer have a capacity (only faculty are checked, not students). Old saved rooms still load; the extra field is ignored.
+- IMS Rooms tab lists classrooms in collapsible sections, one per building (`RowGroup` in `Models\Groups.cs`).
+- IMS Schedules tab lists encoded schedules by school, then department, each collapsible (`SchoolGroup` and `RowGroup`).

@@ -18,23 +18,43 @@
                 <controls:LabeledEntry Caption="Building" Placeholder="e.g. Main" Text="{Binding Building, Mode=TwoWay}" />
                 <controls:LabeledEntry Caption="Floor" Placeholder="e.g. 2" Text="{Binding Floor, Mode=TwoWay}" />
                 <controls:LabeledEntry Caption="Room number" Placeholder="e.g. 202" Text="{Binding RoomNo, Mode=TwoWay}" />
-                <controls:LabeledEntry Caption="Capacity" Placeholder="e.g. 40" Text="{Binding Capacity, Mode=TwoWay}" />
                 <controls:Banners />
                 <Button Text="Add classroom" Command="{Binding SaveCommand}" IsEnabled="{Binding IsNotBusy}" />
               </VerticalStackLayout>
             </Border>
             <Border Style="{StaticResource Card}" Padding="20">
               <VerticalStackLayout Spacing="12">
-                <Label Text="Classrooms" Style="{StaticResource SectionTitle}" />
-                <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding Rows}">
+                <Label Text="Classrooms by building" Style="{StaticResource SectionTitle}" />
+                <Label Text="Tap a building to show or hide its rooms." FontSize="12" TextColor="{StaticResource Gray600}" />
+                <Label Text="No classrooms yet." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoRooms}" />
+                <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding Buildings}">
                   <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="models:ListRow">
-                      <VerticalStackLayout Spacing="3">
-                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
-                        <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
-
-
-                      </VerticalStackLayout>
+                    <DataTemplate x:DataType="models:RowGroup">
+                      <Border Style="{StaticResource Card}" Padding="12" BackgroundColor="{StaticResource Ivory}">
+                        <VerticalStackLayout Spacing="10">
+                          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                            <Label Grid.Column="0" Text="{Binding Arrow}" FontSize="12" TextColor="{StaticResource ForestMid}" VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="1">
+                              <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource DeepGreen}" />
+                              <Label Text="{Binding Subtitle}" FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasSubtitle}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2" Text="{Binding CountText}" FontSize="12" TextColor="{StaticResource Gray600}" VerticalOptions="Center" />
+                            <Grid.GestureRecognizers>
+                              <TapGestureRecognizer Command="{Binding ToggleCommand}" />
+                            </Grid.GestureRecognizers>
+                          </Grid>
+                          <VerticalStackLayout Spacing="10" IsVisible="{Binding IsExpanded}" BindableLayout.ItemsSource="{Binding Rows}">
+                            <BindableLayout.ItemTemplate>
+                              <DataTemplate x:DataType="models:ListRow">
+                                <VerticalStackLayout Spacing="2" Padding="22,0,0,0">
+                                  <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                  <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                </VerticalStackLayout>
+                              </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                          </VerticalStackLayout>
+                        </VerticalStackLayout>
+                      </Border>
                     </DataTemplate>
                   </BindableLayout.ItemTemplate>
                 </VerticalStackLayout>

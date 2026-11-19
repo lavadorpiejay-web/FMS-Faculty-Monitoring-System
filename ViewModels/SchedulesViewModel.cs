@@ -16,7 +16,7 @@ public partial class SchedulesViewModel : PageViewModelBase
 
     public SchedulesViewModel(ScheduleService service) => _service = service;
 
-    public ObservableCollection<ListRow> Rows { get; } = new();
+    public ObservableCollection<SchoolGroup> Schools { get; } = new();
     public IReadOnlyList<string> Days { get; } = ScheduleRules.DayNames;
     public IReadOnlyList<string> Times { get; } = ScheduleRules.Times;
 
@@ -29,7 +29,19 @@ public partial class SchedulesViewModel : PageViewModelBase
     [ObservableProperty] private string? _selectedDay;
     [ObservableProperty] private string? _selectedStart;
     [ObservableProperty] private string? _selectedEnd;
-    [ObservableProperty] private bool _hasRows;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNoRows))]
+    private bool _hasRows;
+
+    public bool HasNoRows => !HasRows;
+
+    // Catalog order first (so schools and departments follow AcademicCatalog), anything unknown last.
+    private static int CatalogOrder(IReadOnlyList<string> catalog, string name)
+    {
+        for (var i = 0; i < catalog.Count; i++)
+            if (string.Equals(catalog[i], name, StringComparison.OrdinalIgnoreCase)) return i;
+        return int.MaxValue;
+    }
 
     private static string SubjectLabel(Subject s) => $"{s.Code} - {s.Title}";
 
@@ -56,15 +68,39 @@ public partial class SchedulesViewModel : PageViewModelBase
         var roomLabels = _rooms.Keys.ToList();
         if (!RoomLabels.SequenceEqual(roomLabels)) RoomLabels = roomLabels;
 
+        // Keep the open/closed state of each school and department across reloads.
+        var openSchools = Schools.Where(g => g.IsExpanded).Select(g => g.Title).ToHashSet();
+        var openDepts = Schools.SelectMany(g => g.Departments).Where(d => d.IsExpanded).Select(d => d.Key).ToHashSet();
+
         var byId = rooms.ToDictionary(r => r.Id);
-        Rows.Clear();
-        foreach (var s in await _service.GetVisibleAsync())
-        {
-            byId.TryGetValue(s.ClassroomId, out var room);
-            Rows.Add(new ListRow(s.Id, $"{s.SubjectCode} - {s.SubjectTitle}",
-                $"{s.FacultyName} | {s.Day} {ScheduleRules.Range(s.Start, s.End)} | {ScheduleRules.RoomLabel(room)}", s.Department));
-        }
-        HasRows = Rows.Count > 0;
+        var schedules = await _service.GetVisibleAsync();
+
+        var schools = schedules
+            .GroupBy(s => s.School.Length > 0 ? s.School : "(No school)")
+            .OrderBy(g => CatalogOrder(AcademicCatalog.SchoolNames, g.Key))
+            .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(g =>
+            {
+                var depts = g.GroupBy(s => s.Department.Length > 0 ? s.Department : "(No department)")
+                    .OrderBy(d => CatalogOrder(AcademicCatalog.DepartmentsOf(g.Key), d.Key))
+                    .ThenBy(d => d.Key, StringComparer.OrdinalIgnoreCase)
+                    .Select(d =>
+                    {
+                        var key = $"{g.Key}|{d.Key}";
+                        var rows = d.Select(s =>
+                        {
+                            byId.TryGetValue(s.ClassroomId, out var room);
+                            return new ListRow(s.Id, $"{s.SubjectCode} - {s.SubjectTitle}",
+                                $"{s.FacultyName} | {s.Day} {ScheduleRules.Range(s.Start, s.End)} | {ScheduleRules.RoomLabel(room)}");
+                        }).ToList();
+                        return new RowGroup(key, d.Key, "", rows, openDepts.Contains(key));
+                    }).ToList();
+                return new SchoolGroup(g.Key, depts, openSchools.Contains(g.Key));
+            }).ToList();
+
+        Schools.Clear();
+        foreach (var school in schools) Schools.Add(school);
+        HasRows = Schools.Count > 0;
     }
 
     [RelayCommand]

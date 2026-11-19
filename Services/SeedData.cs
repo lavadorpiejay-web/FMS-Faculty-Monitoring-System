@@ -138,10 +138,10 @@ public static class SeedData
         var school = AcademicCatalog.Schools[0].Name;
         return new()
         {
-            new() { Id = "R-001", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Main", Floor = "1", RoomNo = "101", Capacity = 40 },
-            new() { Id = "R-002", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Main", Floor = "2", RoomNo = "202", Capacity = 35 },
-            new() { Id = "R-003", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Science", Floor = "1", RoomNo = "Lab 1", Capacity = 30 },
-            new() { Id = "R-004", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Engineering", Floor = "3", RoomNo = "301", Capacity = 45 },
+            new() { Id = "R-001", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Main", Floor = "1", RoomNo = "101" },
+            new() { Id = "R-002", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Main", Floor = "2", RoomNo = "202" },
+            new() { Id = "R-003", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Science", Floor = "1", RoomNo = "Lab 1" },
+            new() { Id = "R-004", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Engineering", Floor = "3", RoomNo = "301" },
         };
     }
 

@@ -26,19 +26,54 @@
             <Border Style="{StaticResource Card}" Padding="20">
               <VerticalStackLayout Spacing="12">
                 <Label Text="Encoded schedules" Style="{StaticResource SectionTitle}" />
-                                <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding Rows}">
+                <Label Text="Grouped by school, then department. Tap a heading to show or hide it." FontSize="12" TextColor="{StaticResource Gray600}" />
+                <Label Text="No schedules encoded yet." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoRows}" />
+                <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding Schools}">
                   <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="models:ListRow">
-                      <VerticalStackLayout Spacing="3">
-                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
-                        <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
-                        <Label Text="{Binding Extra}" FontSize="12" TextColor="{StaticResource ForestMid}" />
-                        <Grid ColumnDefinitions="*" ColumnSpacing="8">
-                          <Button Text="Remove" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
-                                  Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SchedulesViewModel}}, Path=RemoveCommand}"
-                                  CommandParameter="{Binding .}" />
-                        </Grid>
-                      </VerticalStackLayout>
+                    <DataTemplate x:DataType="models:SchoolGroup">
+                      <Border Style="{StaticResource Card}" Padding="12" BackgroundColor="{StaticResource Ivory}">
+                        <VerticalStackLayout Spacing="10">
+                          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                            <Label Grid.Column="0" Text="{Binding Arrow}" FontSize="12" TextColor="{StaticResource ForestMid}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="{Binding Title}" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource DeepGreen}" />
+                            <Label Grid.Column="2" Text="{Binding CountText}" FontSize="12" TextColor="{StaticResource Gray600}" VerticalOptions="Center" />
+                            <Grid.GestureRecognizers>
+                              <TapGestureRecognizer Command="{Binding ToggleCommand}" />
+                            </Grid.GestureRecognizers>
+                          </Grid>
+                          <VerticalStackLayout Spacing="10" IsVisible="{Binding IsExpanded}" BindableLayout.ItemsSource="{Binding Departments}">
+                            <BindableLayout.ItemTemplate>
+                              <DataTemplate x:DataType="models:RowGroup">
+                                <Border Style="{StaticResource Card}" Padding="10" BackgroundColor="White">
+                                  <VerticalStackLayout Spacing="10">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                      <Label Grid.Column="0" Text="{Binding Arrow}" FontSize="11" TextColor="{StaticResource ForestMid}" VerticalOptions="Center" />
+                                      <Label Grid.Column="1" Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                      <Label Grid.Column="2" Text="{Binding CountText}" FontSize="12" TextColor="{StaticResource Gray600}" VerticalOptions="Center" />
+                                      <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding ToggleCommand}" />
+                                      </Grid.GestureRecognizers>
+                                    </Grid>
+                                    <VerticalStackLayout Spacing="14" IsVisible="{Binding IsExpanded}" BindableLayout.ItemsSource="{Binding Rows}">
+                                      <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="models:ListRow">
+                                          <VerticalStackLayout Spacing="3">
+                                            <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
+                                            <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                            <Button Text="Remove" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SchedulesViewModel}}, Path=RemoveCommand}"
+                                                    CommandParameter="{Binding .}" />
+                                          </VerticalStackLayout>
+                                        </DataTemplate>
+                                      </BindableLayout.ItemTemplate>
+                                    </VerticalStackLayout>
+                                  </VerticalStackLayout>
+                                </Border>
+                              </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                          </VerticalStackLayout>
+                        </VerticalStackLayout>
+                      </Border>
                     </DataTemplate>
                   </BindableLayout.ItemTemplate>
                 </VerticalStackLayout>

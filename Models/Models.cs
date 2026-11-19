@@ -58,7 +58,6 @@ public sealed record Classroom
     public string Building { get; init; } = "";
     public string Floor { get; init; } = "";
     public string RoomNo { get; init; } = "";
-    public int Capacity { get; init; }
 }
 
 public sealed record CheckResult(string Title, string Detail, bool Passed)

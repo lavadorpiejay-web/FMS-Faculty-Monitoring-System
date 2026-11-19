@@ -121,15 +121,13 @@ public sealed class ScheduleService
         return new OperationResult(true, $"Removed {s.SubjectCode} ({s.FacultyName}).");
     }
 
-    public async Task<OperationResult> AddRoomAsync(string? campus, string? school, string building, string floor, string roomNo, string capacityText)
+    public async Task<OperationResult> AddRoomAsync(string? campus, string? school, string building, string floor, string roomNo)
     {
         if (!IsIms) return Fail("Only IMS Personnel can manage classrooms.");
         if (campus is null || !AcademicCatalog.Campuses.Contains(campus)) return Fail("Choose a campus.");
         if (!AcademicCatalog.IsValidSchool(school)) return Fail("Choose the school that owns the room (its Dean approves room changes).");
         building = building.Trim(); floor = floor.Trim(); roomNo = roomNo.Trim();
         if (building.Length == 0 || roomNo.Length == 0) return Fail("Enter the building and the room number.");
-        if (!int.TryParse(capacityText.Trim(), out var capacity) || capacity < 1 || capacity > 500)
-            return Fail("Capacity must be a number from 1 to 500.");
 
         await _storage.InitializeAsync();
         var rooms = await _storage.LoadAsync<Classroom>(JsonStorageService.ClassroomsFile);
@@ -139,10 +137,10 @@ public sealed class ScheduleService
             return Fail("That room already exists.");
 
         var next = rooms.Select(r => r.Id.StartsWith("R-") && int.TryParse(r.Id[2..], out var n) ? n : 0).DefaultIfEmpty(0).Max() + 1;
-        var room = new Classroom { Id = $"R-{next:000}", Campus = campus, School = school!, Building = building, Floor = floor, RoomNo = roomNo, Capacity = capacity };
+        var room = new Classroom { Id = $"R-{next:000}", Campus = campus, School = school!, Building = building, Floor = floor, RoomNo = roomNo };
         rooms.Add(room);
         await _storage.SaveAsync(JsonStorageService.ClassroomsFile, rooms);
-        await _audit.LogAsync("Classroom added", $"{ScheduleRules.RoomLabel(room)} (floor {(floor.Length > 0 ? floor : "-")}, capacity {capacity}, {school})");
+        await _audit.LogAsync("Classroom added", $"{ScheduleRules.RoomLabel(room)} (floor {(floor.Length > 0 ? floor : "-")}, {school})");
         return new OperationResult(true, $"Added {ScheduleRules.RoomLabel(room)}.");
     }
 }
