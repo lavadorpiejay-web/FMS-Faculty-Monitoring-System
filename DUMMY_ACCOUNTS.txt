@@ -52,6 +52,6 @@ Notes
 - Dummy accounts are already email-verified and approved. Their emails are <id>@fms.test (for example fac01@fms.test),
   which do not exist, so "Forgot password" for them only works in simulated email mode (the code is shown on screen).
 - To test the approval flow, register a new Faculty (pick a department, verify the email code), then sign in as that
-  department's Chairperson (chr01..chr07) and open the Approvals tab. READS IDs may be up to 10 characters.
+  department's Chairperson (chr01..chr07) and open the Approvals tab. A new READS Scholar (ID up to 10 characters) is approved by ims01 on the Approvals tab.
 - This file is for you. It is not shown anywhere in the app.
 - The password is also in Services\SeedData.cs. Keep the GitHub repository private.

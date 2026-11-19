@@ -50,7 +50,7 @@ public static class RolePolicy
             "IMS Personnel", "Manages the application and supervises READS Scholars.",
             "Infrastructure initialization",
             ReportsTo: "", Oversees: "The application and READS Scholars assigned to the IMS Office",
-            Allowed: new[] { "Application infrastructure", "Local JSON storage initialization check", "Oversight of READS Scholars in the IMS Office", "Assign READS Scholars to a school and department" },
+            Allowed: new[] { "Application infrastructure", "Local JSON storage initialization check", "Oversight of READS Scholars in the IMS Office", "Assign READS Scholars to a school and department", "Approve new READS Scholar accounts" },
             Restricted: new[] { "Active attendance logging", "Managing Faculty, Chairperson and Dean accounts", "Chairperson and Dean controls", "Administrative overrides on academic units" }),
 
         UserRole.Chairperson => new RoleInfo(

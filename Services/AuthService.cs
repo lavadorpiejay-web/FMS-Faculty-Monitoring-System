@@ -42,6 +42,7 @@ public sealed class LocalAuthService : IAuthService
     {
         UserRole.Faculty => UserRole.Chairperson,
         UserRole.Chairperson => UserRole.Dean,
+        UserRole.ReadsScholar => UserRole.ImsPersonnel,
         _ => null
     };
 

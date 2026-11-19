@@ -40,9 +40,12 @@ public partial class ApprovalsViewModel : ObservableObject
         var role = _session.Role;
         var who = role is null ? "accounts" : ApprovalService.WhatApproved(role.Value);
         Heading = $"{who} accounts waiting for approval";
-        Explanation = role == UserRole.Dean
-            ? "Chairpersons of your school who confirmed their email appear here. They cannot sign in until you approve them."
-            : "Faculty of your department who confirmed their email appear here. They cannot sign in until you approve them.";
+        Explanation = role switch
+        {
+            UserRole.Dean => "Chairpersons of your school who confirmed their email appear here. They cannot sign in until you approve them.",
+            UserRole.ImsPersonnel => "READS Scholars who confirmed their email appear here. They cannot sign in until you approve them.",
+            _ => "Faculty of your department who confirmed their email appear here. They cannot sign in until you approve them."
+        };
 
         Items.Clear();
         foreach (var p in await _approvals.GetPendingAsync()) Items.Add(p);

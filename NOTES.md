@@ -25,7 +25,7 @@ Last updated: 2026-10-25
 ## Verification and approval flow
 1. **Register**: the account is created but cannot sign in yet. A 6-digit code is emailed (valid 10 minutes, 5 wrong tries, 30 seconds between resends).
 2. **Verify email** screen: enter the code. Sign-in with an unverified email opens this screen again.
-3. **Approval** (after the email is verified): Faculty must be approved by the Chairperson of their department (Approvals tab). Chairpersons must be approved by the Dean of their school (Approvals tab). Dean, IMS Personnel and READS Scholar need no approval.
+3. **Approval** (after the email is verified): Faculty must be approved by the Chairperson of their department (Approvals tab). Chairpersons must be approved by the Dean of their school (Approvals tab). READS Scholars must be approved by IMS Personnel (Approvals tab; any IMS Personnel can approve any READS Scholar). Dean and IMS Personnel need no approval.
    - Until approved, the account cannot sign in and is hidden from directories. A pending Chairperson/Dean still holds the seat. A declined registration frees it and the person may register again.
 4. **Forgot password** (Login screen): enter the account email, get a 6-digit code by email, choose a new password (same mixed-character rule).
 Codes are stored as hashes only (`verifications.json`).
@@ -101,7 +101,7 @@ Accounts are written only on first launch and live in the app's private storage,
 10. Milestone 7: occupied-role warning, 5-character ID (READS up to 10), strong passwords, email verification codes, Chairperson/Dean approval of new accounts, Forgot password by email code.
 
 ## Open items / next
-- Approvals tab shows only Faculty (to Chairperson) and Chairpersons (to Dean); no separate notification yet when something is waiting.
+- Approvals tabs: Chairperson (Faculty), Dean (Chairpersons), IMS Personnel (READS Scholars). No separate notification yet when something is waiting.
 - READS Scholar and IMS Personnel schedule features (not started; READS and IMS still cannot access or add schedules).
 - READS Directory shows name, role and department only. Decide later whether to show more.
 - Add more schools and departments to the catalog.

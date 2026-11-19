@@ -25,6 +25,7 @@
     <TabBar x:Name="ImsPersonnelTabs" IsVisible="False">
         <ShellContent Title="Home" Route="ImsPersonnelHome" ContentTemplate="{DataTemplate views:DashboardPage}" />
         <ShellContent Title="Assign" Route="ImsPersonnelAssign" ContentTemplate="{DataTemplate views:AssignmentsPage}" />
+        <ShellContent Title="Approvals" Route="ImsPersonnelApprovals" ContentTemplate="{DataTemplate views:ApprovalsPage}" />
         <ShellContent Title="System checks" Route="ImsPersonnelStatus" ContentTemplate="{DataTemplate views:StatusPage}" />
         <ShellContent Title="Profile" Route="ImsPersonnelProfile" ContentTemplate="{DataTemplate views:ProfilePage}" />
     </TabBar>

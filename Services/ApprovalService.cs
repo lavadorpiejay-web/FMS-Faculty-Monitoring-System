@@ -3,7 +3,8 @@ using FacultyMonitoring.Models;
 namespace FacultyMonitoring.Services;
 
 /// <summary>
-/// A Chairperson approves the Faculty of their own department; a Dean approves the Chairpersons of their own school.
+/// A Chairperson approves the Faculty of their own department; a Dean approves the Chairpersons of their own school;
+/// IMS Personnel approve READS Scholars.
 /// Only accounts whose email is already verified are listed. The approver's school and department always come from
 /// the stored account, never from the screen.
 /// </summary>
@@ -18,8 +19,12 @@ public sealed class ApprovalService
         _storage = storage; _session = session; _email = email;
     }
 
-    public static string WhatApproved(UserRole approver) =>
-        approver == UserRole.Dean ? "Chairperson" : "Faculty";
+    public static string WhatApproved(UserRole approver) => approver switch
+    {
+        UserRole.Dean => "Chairperson",
+        UserRole.ImsPersonnel => "READS Scholar",
+        _ => "Faculty"
+    };
 
     private async Task<(List<UserAccount> Users, UserAccount? Me)> LoadAsync()
     {
@@ -28,7 +33,7 @@ public sealed class ApprovalService
         var current = _session.CurrentUser;
         var me = current is null ? null
             : users.FirstOrDefault(u => u.Id == current.Id && u.IsUsable &&
-                                        u.Role is UserRole.Chairperson or UserRole.Dean);
+                                        u.Role is UserRole.Chairperson or UserRole.Dean or UserRole.ImsPersonnel);
         return (users, me);
     }
 
@@ -36,7 +41,8 @@ public sealed class ApprovalService
         target.Status == ApprovalStatus.Pending && target.EmailVerified && target.IsActive &&
         ((me.Role == UserRole.Chairperson && target.Role == UserRole.Faculty &&
           target.School == me.School && target.Department == me.Department) ||
-         (me.Role == UserRole.Dean && target.Role == UserRole.Chairperson && target.School == me.School));
+         (me.Role == UserRole.Dean && target.Role == UserRole.Chairperson && target.School == me.School) ||
+         (me.Role == UserRole.ImsPersonnel && target.Role == UserRole.ReadsScholar));
 
     public async Task<IReadOnlyList<PendingApproval>> GetPendingAsync()
     {
@@ -45,14 +51,19 @@ public sealed class ApprovalService
         return users.Where(u => CanDecide(me, u))
             .OrderBy(u => u.FullName)
             .Select(u => new PendingApproval(u.Id, u.FullName, u.SisId, u.Email,
-                u.Role == UserRole.Chairperson ? $"Chairperson, {u.Department}" : $"Faculty, {u.Department}"))
+                u.Role switch
+                {
+                    UserRole.Chairperson => $"Chairperson, {u.Department}",
+                    UserRole.ReadsScholar => "READS Scholar",
+                    _ => $"Faculty, {u.Department}"
+                }))
             .ToList();
     }
 
     public async Task<(bool Ok, string Message)> DecideAsync(string userId, bool approve)
     {
         var (users, me) = await LoadAsync();
-        if (me is null) return (false, "Only a signed-in Chairperson or Dean can do this.");
+        if (me is null) return (false, "Only a signed-in Chairperson, Dean or IMS Personnel can do this.");
         var target = users.FirstOrDefault(u => u.Id == userId);
         if (target is null || !CanDecide(me, target)) return (false, "This request is no longer waiting for you.");
 
