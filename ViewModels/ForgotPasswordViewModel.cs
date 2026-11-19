@@ -89,7 +89,7 @@ public partial class ForgotPasswordViewModel : ObservableObject
             IsBusy = true;
             var send = await _verification.SendResetCodeAsync(Email);
             if (send.Simulated)
-                await Shell.Current.DisplayAlert("Simulated email (no mail account set up)", send.SimulatedMail, "OK");
+                await Shell.Current.DisplayAlertAsync("Simulated email (no mail account set up)", send.SimulatedMail, "OK");
             if (!send.Success) { ErrorMessage = send.Message; return; }
 
             Info = send.Message;
@@ -111,7 +111,7 @@ public partial class ForgotPasswordViewModel : ObservableObject
             var result = await _verification.ResetPasswordAsync(Email, Code, NewPassword, ConfirmPassword);
             if (!result.Success) { ErrorMessage = result.Message; return; }
 
-            await Shell.Current.DisplayAlert("Password changed", result.Message, "OK");
+            await Shell.Current.DisplayAlertAsync("Password changed", result.Message, "OK");
             await Shell.Current.GoToAsync("..");
         }
         finally { IsBusy = false; }

@@ -54,7 +54,7 @@ public partial class VerifyEmailViewModel : ObservableObject
             var result = await _verification.VerifyEmailAsync(Uri.UnescapeDataString(UserId), Code);
             if (!result.Success) { ErrorMessage = result.Message; return; }
 
-            await Shell.Current.DisplayAlert("Email verified", result.Message, "OK");
+            await Shell.Current.DisplayAlertAsync("Email verified", result.Message, "OK");
             await Shell.Current.GoToAsync("..");
         }
         finally { IsBusy = false; }
@@ -70,7 +70,7 @@ public partial class VerifyEmailViewModel : ObservableObject
             IsBusy = true;
             var send = await _verification.SendRegistrationCodeAsync(Uri.UnescapeDataString(UserId));
             if (send.Simulated)
-                await Shell.Current.DisplayAlert("Simulated email (no mail account set up)", send.SimulatedMail, "OK");
+                await Shell.Current.DisplayAlertAsync("Simulated email (no mail account set up)", send.SimulatedMail, "OK");
             if (!send.Success) ErrorMessage = send.Message;
             else Info = send.Simulated ? "A new code was generated." : send.Message;
         }

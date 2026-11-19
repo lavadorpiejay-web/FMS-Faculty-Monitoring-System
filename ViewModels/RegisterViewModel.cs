@@ -227,9 +227,9 @@ public partial class RegisterViewModel : ObservableObject
             var user = result.User!;
             var send = await _verification.SendRegistrationCodeAsync(user.Id);
             if (send.Simulated)
-                await Shell.Current.DisplayAlert("Simulated email (no mail account set up)", send.SimulatedMail, "OK");
+                await Shell.Current.DisplayAlertAsync("Simulated email (no mail account set up)", send.SimulatedMail, "OK");
             else if (!send.Success)
-                await Shell.Current.DisplayAlert("Code not sent", send.Message + "\nYou can ask for a new code on the next screen.", "OK");
+                await Shell.Current.DisplayAlertAsync("Code not sent", send.Message + "\nYou can ask for a new code on the next screen.", "OK");
 
             await Shell.Current.GoToAsync($"../VerifyEmail?userId={Uri.EscapeDataString(user.Id)}");
         }

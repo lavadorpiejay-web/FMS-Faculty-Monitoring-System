@@ -56,7 +56,7 @@ public partial class ApprovalsViewModel : ObservableObject
     private async Task DeclineAsync(PendingApproval? item)
     {
         if (item is null) return;
-        var yes = await Shell.Current.DisplayAlert("Decline registration",
+        var yes = await Shell.Current.DisplayAlertAsync("Decline registration",
             $"Decline {item.Name}? They will have to register again.", "Decline", "Cancel");
         if (yes) await DecideAsync(item, false);
     }
