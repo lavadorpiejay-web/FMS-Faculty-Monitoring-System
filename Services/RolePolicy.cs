@@ -33,10 +33,10 @@ public static class RolePolicy
     public static RoleInfo Describe(UserRole role) => role switch
     {
         UserRole.Faculty => new RoleInfo(
-            "Faculty", "Verify your account, layout and local data connection.",
+            "Faculty", "Teaches classes and requests schedule or room changes.",
             "Account and shell verification",
             ReportsTo: "Chairperson", Oversees: "",
-            Allowed: new[] { "View your class schedule", "Request schedule changes (Chairperson approves) and room changes (Dean approves)", "Account active-status check", "Local data connection check" },
+            Allowed: new[] { "View your class schedule", "Request schedule changes (Chairperson approves) and room changes (Dean approves)" },
             Restricted: new[] { "Attendance checking controls", "Managing other users", "Administrative controls" }),
 
         UserRole.ReadsScholar => new RoleInfo(
@@ -61,7 +61,7 @@ public static class RolePolicy
             Restricted: new[] { "Checker-level attendance permissions", "Dean-level controls" }),
 
         _ => new RoleInfo(
-            "Dean", "Executive-level view of platform deployment and readiness.",
+            "Dean", "Oversees the departments of your school.",
             "Platform readiness verification",
             ReportsTo: "", Oversees: "Chairpersons and Faculty",
             Allowed: new[] { "Approve or decline classroom change requests for rooms of your school", "Approve new Chairperson accounts", "Read-only list of the Chairpersons and Faculty in each department of your school" },

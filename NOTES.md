@@ -58,8 +58,8 @@ Currently only:
 
 More schools will be added later. IT, Computer Science and College of Computing were removed from the list on purpose.
 
-## What the "System checks" tab is
-The StatusPage runs per-role verification checks left over from the foundation milestone: signed-in session, local data files (users, faculty, subjects, classrooms) readable with record counts, and the Android platform. It shows a green check or red cross for each. It is useful to confirm the app's local storage works; it is not a feature for end users.
+## System checks (removed)
+The "System checks" tab was only needed for the 25% progress checklist. It was removed from every role in Milestone 11. The files (`StatusPage`, `StatusViewModel`, `ReadinessService`) are still in the project but nothing links to them; delete them later if you want.
 
 ## Key files
 - `Models\Models.cs`: UserAccount (with School and Department), FacultyMember, Subject, Classroom, RegistrationRequest, etc.
@@ -101,6 +101,8 @@ Accounts are written only on first launch and live in the app's private storage,
 10. Milestone 7: occupied-role warning, 5-character ID (READS up to 10), strong passwords, email verification codes, Chairperson/Dean approval of new accounts, Forgot password by email code.
 
 11. Milestone 8: the 50% checklist features: schedules and classrooms (IMS), READS duty and monitoring areas, schedule/room change requests with Chairperson/Dean approval and IMS apply, READS duty dashboard, digital attendance logging, irregularity reports, master schedule and audit trail. See "Schedules, duty and attendance" below.
+
+12. Milestone 11: removed the System checks tab for all roles. The Dean's Home tab now shows the departments of the Dean's school (the separate Departments tab was merged into it).
 
 ## Schedules, duty and attendance (Milestone 8)
 Who does what (matches the 50% checklist):
