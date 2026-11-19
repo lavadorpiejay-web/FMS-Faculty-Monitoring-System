@@ -171,9 +171,15 @@ Then **uninstall the app from the emulator**, run **Build > Clean Solution**, an
 - IMS Schedules tab lists encoded schedules by school, then department, each collapsible (`SchoolGroup` and `RowGroup`).
 
 ## Main Campus buildings and rooms (latest change)
-- Main Campus has four buildings, coded **MC** (Mount Carmel), **SN** (San Nicolas), **SA** (San Agustin), **SJ** (San Jose). Defined in `Services\CampusLayout.cs`; the building code is stored in `Classroom.Building`.
-- Assumed 10 classrooms per floor in each building (`CampusLayout.RoomsPerFloor`).
-- Room names: `<floor>-<two digits>`, for example `B-1-01` (upper basement), `B-2-01` (lower basement), `2-01` (2nd floor).
-- **SA** (School of Engineering and Architecture) is the only building switched on so far: B-1 and B-2 belong to the school; floor 2 is shared (empty `School`), because the school using it varies. A room change into a shared room is approved by the Dean of the requesting faculty's school.
-- **SN** uses floors 2 and 3 only; **SJ** uses floors 3 to 5 only; **MC** floors not decided. They are defined but `Enabled: false` until their owning schools are decided.
-- Seed data: SA rooms replace the old sample rooms; Engineering sample classes use SA basement rooms, other schools' sample classes use SA 2nd floor; rds01 monitors SA, rds02 monitors SA floor B-1. Needs a fresh install.
+- Main Campus has four buildings, coded **MC** (Mount Carmel), **SN** (San Nicolas), **SA** (San Agustin), **SJ** (San Jose). A building is a place where schools are situated; no school owns a building. Defined in `Services\CampusLayout.cs`; the building code is stored in `Classroom.Building`.
+- Floors used: MC floor 4; SN floors 2-3; SA B-1 (upper basement), B-2 (lower basement) and 2; SJ floors 3-5. Assumed 10 classrooms per floor (`CampusLayout.RoomsPerFloor`). Room names are `<floor>-<two digits>`, e.g. `B-1-01`, `2-01`, `4-01`.
+- Rooms are fixed and created from `CampusLayout` on first launch (90 rooms). Nothing adds a classroom by typing any more.
+- Each floor has an **assigned school** (`Classroom.School`): the Dean of that school approves room changes into those rooms. SA floors are assigned to the School of Engineering and Architecture; the other floors are unassigned until IMS sets them on the Rooms tab (an unassigned floor falls back to the requesting faculty's Dean).
+- **Rooms tab (IMS)**: pick building, floor, day and time to see each room as Occupied (with the class) or Vacant; set the school assigned to a floor.
+- **Schedules tab (IMS)**: classroom chosen as building, floor, room. One subject can have several days (tick Mon..Sun). One shared start/end time, or switch off "Same time for every day" to set each day's time. Each day is saved as its own schedule row (all days saved together or none). Removing removes one day at a time.
+- Seed data: Engineering sample classes use SA basement rooms, other schools' sample classes use SA floor 2; duties still use building SA (rds01 whole building, rds02 floor B-1). Needs a fresh install.
+
+## Planned next (agreed, not built yet)
+- Assign tab: READS Scholar is assigned to a school only (a school other than their own, to avoid favoritism); covers all departments.
+- Duty tab becomes the READS Scholar's own page: tick several days plus start/end to enter vacant times in one go (table); IMS no longer enters vacant times or duty areas.
+- Attendance tab: automatically lists the assigned school's classes during the Scholar's vacant times. Two checks per class: 5 minutes after start and 5 minutes before end. In room at first check = Present; not in room at first but in room at the end check = Late; not in room at end check = Absent (office does not matter). A faculty present at the first check is checked again at the end. Observation and notes are saved.

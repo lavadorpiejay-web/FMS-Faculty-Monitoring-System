@@ -143,7 +143,7 @@ public static class SeedData
                     rooms.Add(new Classroom
                     {
                         Id = $"R-{rooms.Count + 1:000}", Campus = AcademicCatalog.DefaultCampus,
-                        School = floor.School ?? "",   // empty = shared: the Dean of the requesting faculty's school approves
+                        School = floor.AssignedSchool ?? "",   // school assigned to the floor; empty = none yet (the requesting faculty's Dean approves)
                         Building = building.Code, Floor = floor.Floor, RoomNo = CampusLayout.RoomName(floor.Floor, n)
                     });
         return rooms;
@@ -152,7 +152,7 @@ public static class SeedData
     // ---- Sample schedule data (debug builds only) so every screen has something to show -------------------------------
     // Every department's dummy Faculty teaches its "<CODE>101" subject on Mondays.
     // School of Engineering and Architecture classes use the San Agustin basement rooms (B-1, then B-2);
-    // the other schools' sample classes use the shared San Agustin 2nd floor until their own buildings are enabled.
+    // the other schools' sample classes use the San Agustin 2nd floor (rooms there are shared between schools).
 
     public static List<ClassSchedule> Schedules()
     {
@@ -161,8 +161,8 @@ public static class SeedData
         var subjects = Subjects();
         var units = Units();
         var engineering = AcademicCatalog.Schools[0].Name;
-        var basement = rooms.Where(r => r.Building == "SA" && r.School == engineering).ToList();   // B-1 then B-2 (20 rooms)
-        var shared = rooms.Where(r => r.Building == "SA" && r.School.Length == 0).ToList();       // 2nd floor (10 rooms)
+        var basement = rooms.Where(r => r.Building == "SA" && r.Floor.StartsWith("B-")).ToList();   // B-1 then B-2 (20 rooms)
+        var shared = rooms.Where(r => r.Building == "SA" && r.Floor == "2").ToList();               // 2nd floor (10 rooms)
         var list = new List<ClassSchedule>();
         var engIndex = 0; var otherIndex = 0;
         for (var i = 0; i < units.Count; i++)

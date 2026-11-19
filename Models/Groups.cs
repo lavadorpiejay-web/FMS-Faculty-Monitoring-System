@@ -63,3 +63,15 @@ public partial class SchoolGroup : ObservableObject
     [RelayCommand]
     private void Toggle() => IsExpanded = !IsExpanded;
 }
+
+/// <summary>One weekday tick box on the Schedules form. Start and End (12-hour text) are used when the days have different times.</summary>
+public partial class DayChoice : ObservableObject
+{
+    public DayChoice(string name) => Name = name;
+    public string Name { get; }
+    public string ShortName => Name[..3];
+
+    [ObservableProperty] private bool _isSelected;
+    [ObservableProperty] private string? _start;
+    [ObservableProperty] private string? _end;
+}

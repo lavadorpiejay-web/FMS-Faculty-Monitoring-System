@@ -17,14 +17,44 @@
                 <controls:LabeledPicker Caption="Department" Title="Choose school first, then department" ItemsSource="{Binding DepartmentChoices}" SelectedItem="{Binding SelectedDepartment, Mode=TwoWay}" />
                 <controls:LabeledPicker Caption="Faculty member" Title="Choose department first, then faculty" ItemsSource="{Binding FacultyLabels}" SelectedItem="{Binding SelectedFaculty, Mode=TwoWay}" />
                 <controls:LabeledPicker Caption="Subject" Title="Choose faculty first, then subject" ItemsSource="{Binding SubjectLabels}" SelectedItem="{Binding SelectedSubject, Mode=TwoWay}" />
-                <controls:LabeledPicker Caption="Classroom" Title="Choose classroom" ItemsSource="{Binding RoomLabels}" SelectedItem="{Binding SelectedRoom, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Building" Title="Choose building" ItemsSource="{Binding BuildingChoices}" SelectedItem="{Binding SelectedBuilding, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Floor" Title="Choose building first, then floor" ItemsSource="{Binding FloorChoices}" SelectedItem="{Binding SelectedFloor, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Room" Title="Choose floor first, then room" ItemsSource="{Binding RoomChoices}" SelectedItem="{Binding SelectedRoom, Mode=TwoWay}" />
                 <VerticalStackLayout Spacing="4">
-                  <Label Text="Date (calendar)" FontSize="12" TextColor="{StaticResource Gray600}" />
-                  <DatePicker Date="{Binding SelectedDate, Mode=TwoWay}" Format="dddd, MMM d, yyyy" />
-                  <Label Text="{Binding RepeatText}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                  <Label Text="Class days (tick every day the class meets)" FontSize="12" TextColor="{StaticResource Gray600}" />
+                  <FlexLayout Wrap="Wrap" JustifyContent="Start" BindableLayout.ItemsSource="{Binding Days}">
+                    <BindableLayout.ItemTemplate>
+                      <DataTemplate x:DataType="models:DayChoice">
+                        <HorizontalStackLayout Spacing="2" Margin="0,0,12,0">
+                          <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                          <Label Text="{Binding ShortName}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                      </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                  </FlexLayout>
                 </VerticalStackLayout>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <Label Grid.Column="0" Text="Same time for every day" VerticalOptions="Center" />
+                  <Switch Grid.Column="1" IsToggled="{Binding SameTime, Mode=TwoWay}" />
+                </Grid>
                 <controls:LabeledPicker Caption="Start time" Title="Choose start" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedStart, Mode=TwoWay}" />
                 <controls:LabeledPicker Caption="End time" Title="Choose end" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedEnd, Mode=TwoWay}" />
+                <VerticalStackLayout Spacing="10" IsVisible="{Binding DifferentTimes}">
+                  <Label Text="Times for each ticked day (they start from the time above)" FontSize="12" TextColor="{StaticResource Gray600}" />
+                  <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding CustomDays}">
+                    <BindableLayout.ItemTemplate>
+                      <DataTemplate x:DataType="models:DayChoice">
+                        <VerticalStackLayout Spacing="4">
+                          <Label Text="{Binding Name}" FontAttributes="Bold" />
+                          <controls:LabeledPicker Caption="Start" Title="Choose start" SelectedItem="{Binding Start, Mode=TwoWay}"
+                                                  ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:SchedulesViewModel}}, Path=Times}" />
+                          <controls:LabeledPicker Caption="End" Title="Choose end" SelectedItem="{Binding End, Mode=TwoWay}"
+                                                  ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:SchedulesViewModel}}, Path=Times}" />
+                        </VerticalStackLayout>
+                      </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                  </VerticalStackLayout>
+                </VerticalStackLayout>
                 <controls:Banners />
                 <Button Text="Save schedule" Command="{Binding SaveCommand}" IsEnabled="{Binding IsNotBusy}" />
               </VerticalStackLayout>

@@ -11,10 +11,24 @@ public partial class SchedulesViewModel : PageViewModelBase
 {
     private readonly ScheduleService _service;
     private Dictionary<string, UserAccount> _faculty = new();
-    private Dictionary<string, Classroom> _rooms = new();
+    private List<Classroom> _rooms = new();
     private List<Subject> _subjects = new();
 
-    public SchedulesViewModel(ScheduleService service) => _service = service;
+    public SchedulesViewModel(ScheduleService service)
+    {
+        _service = service;
+        foreach (var name in ScheduleRules.DayNames)
+        {
+            var day = new DayChoice(name);
+            day.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(DayChoice.IsSelected)) RefreshCustomDays(); };
+            Days.Add(day);
+        }
+    }
+
+    /// <summary>The weekday tick boxes (Monday to Sunday).</summary>
+    public ObservableCollection<DayChoice> Days { get; } = new();
+    /// <summary>The ticked days, shown with their own time pickers when the days do not share one time.</summary>
+    public ObservableCollection<DayChoice> CustomDays { get; } = new();
 
     public ObservableCollection<SchoolGroup> Schools { get; } = new();
     public IReadOnlyList<string> SchoolChoices { get; } = AcademicCatalog.SchoolNames;
@@ -25,11 +39,17 @@ public partial class SchedulesViewModel : PageViewModelBase
     [ObservableProperty] private string? _selectedDepartment;
     [ObservableProperty] private IReadOnlyList<string> _facultyLabels = Array.Empty<string>();
     [ObservableProperty] private IReadOnlyList<string> _subjectLabels = Array.Empty<string>();
-    [ObservableProperty] private IReadOnlyList<string> _roomLabels = Array.Empty<string>();
+    [ObservableProperty] private IReadOnlyList<string> _buildingChoices = Array.Empty<string>();
+    [ObservableProperty] private IReadOnlyList<string> _floorChoices = Array.Empty<string>();
+    [ObservableProperty] private IReadOnlyList<string> _roomChoices = Array.Empty<string>();
+    [ObservableProperty] private string? _selectedBuilding;
+    [ObservableProperty] private string? _selectedFloor;
     [ObservableProperty] private string? _selectedFaculty;
     [ObservableProperty] private string? _selectedSubject;
     [ObservableProperty] private string? _selectedRoom;
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(RepeatText))] private DateTime _selectedDate = DateTime.Today;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DifferentTimes))]
+    private bool _sameTime = true;
     [ObservableProperty] private string? _selectedStart;
     [ObservableProperty] private string? _selectedEnd;
     [ObservableProperty]
@@ -38,8 +58,56 @@ public partial class SchedulesViewModel : PageViewModelBase
 
     public bool HasNoRows => !HasRows;
 
-    /// <summary>Schedules repeat weekly, so the chosen calendar date only decides the weekday.</summary>
-    public string RepeatText => $"Repeats every {SelectedDate.DayOfWeek}";
+    /// <summary>When off, every ticked day gets its own start and end time.</summary>
+    public bool DifferentTimes => !SameTime;
+
+    partial void OnSameTimeChanged(bool value) => RefreshCustomDays();
+
+    private void RefreshCustomDays()
+    {
+        CustomDays.Clear();
+        if (SameTime) return;
+        var picked = Days.Where(d => d.IsSelected).ToList();
+        foreach (var d in picked)
+        {
+            // A day with no time yet starts from the shared time, so the first day's time can be copied and adjusted.
+            d.Start ??= SelectedStart;
+            d.End ??= SelectedEnd;
+            CustomDays.Add(d);
+        }
+    }
+
+    // Classroom: building first, then floor, then room (rooms are fixed, never typed).
+    partial void OnSelectedBuildingChanged(string? value)
+    {
+        SelectedFloor = null;
+        FloorChoices = value is null ? Array.Empty<string>()
+            : _rooms.Where(r => r.Building == CampusLayout.BuildingCode(value)).Select(r => r.Floor).Distinct()
+                    .OrderBy(FloorKey).ToList();
+    }
+
+    partial void OnSelectedFloorChanged(string? value)
+    {
+        SelectedRoom = null;
+        RoomChoices = value is null || SelectedBuilding is null ? Array.Empty<string>()
+            : _rooms.Where(r => r.Building == CampusLayout.BuildingCode(SelectedBuilding) && r.Floor == value)
+                    .Select(r => r.RoomNo).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    // Floors sort as numbers; basements "B-1", "B-2" come first (lower basement before upper).
+    private static (int, string) FloorKey(string floor)
+    {
+        if (int.TryParse(floor, out var n)) return (n, "");
+        if (floor.StartsWith("B-", StringComparison.OrdinalIgnoreCase) && int.TryParse(floor[2..], out var b)) return (-b, "");
+        return (int.MaxValue, floor);
+    }
+
+    private static int BuildingOrder(string code)
+    {
+        for (var i = 0; i < CampusLayout.MainCampus.Count; i++)
+            if (CampusLayout.MainCampus[i].Code == code) return i;
+        return int.MaxValue;
+    }
 
     // Catalog order first (so schools and departments follow AcademicCatalog), anything unknown last.
     private static int CatalogOrder(IReadOnlyList<string> catalog, string name)
@@ -92,9 +160,10 @@ public partial class SchedulesViewModel : PageViewModelBase
         RefreshFacultyLabels();
 
         var rooms = await _service.GetRoomsAsync();
-        _rooms = rooms.ToDictionary(r => ScheduleRules.RoomLabel(r));
-        var roomLabels = _rooms.Keys.ToList();
-        if (!RoomLabels.SequenceEqual(roomLabels)) RoomLabels = roomLabels;
+        _rooms = rooms.Where(r => ScheduleRules.CampusOf(r) == AcademicCatalog.DefaultCampus).ToList();
+        var buildings = _rooms.Select(r => r.Building).Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(BuildingOrder).Select(CampusLayout.BuildingLabel).ToList();
+        if (!BuildingChoices.SequenceEqual(buildings)) BuildingChoices = buildings;
 
         // Keep the open/closed state of each school and department across reloads.
         var openSchools = Schools.Where(g => g.IsExpanded).Select(g => g.Title).ToHashSet();
@@ -138,7 +207,17 @@ public partial class SchedulesViewModel : PageViewModelBase
         ClearMessages();
         if (SelectedFaculty is null || !_faculty.TryGetValue(SelectedFaculty, out var faculty)) { ErrorMessage = "Choose a Faculty member."; return; }
         if (SelectedSubject is null) { ErrorMessage = "Choose a subject."; return; }
-        if (SelectedRoom is null || !_rooms.TryGetValue(SelectedRoom, out var room)) { ErrorMessage = "Choose a classroom."; return; }
+        if (SelectedBuilding is null || SelectedFloor is null || SelectedRoom is null) { ErrorMessage = "Choose the building, floor and room."; return; }
+        var buildingCode = CampusLayout.BuildingCode(SelectedBuilding);
+        var room = _rooms.FirstOrDefault(r => r.Building == buildingCode && r.Floor == SelectedFloor && r.RoomNo == SelectedRoom);
+        if (room is null) { ErrorMessage = "Choose a classroom."; return; }
+
+        var picked = Days.Where(d => d.IsSelected).ToList();
+        if (picked.Count == 0) { ErrorMessage = "Tick at least one day."; return; }
+        // Same time for every day, or each day's own time (a day left blank follows the shared time).
+        var days = picked.Select(d => (Day: ScheduleRules.ParseDay(d.Name),
+            Start: TimeFormat.To24h(SameTime ? SelectedStart : (d.Start ?? SelectedStart)),
+            End: TimeFormat.To24h(SameTime ? SelectedEnd : (d.End ?? SelectedEnd)))).ToList();
 
         var subject = _subjects.FirstOrDefault(s => s.Department == faculty.Department && SubjectLabel(s) == SelectedSubject);
         if (subject is null) { ErrorMessage = "Choose a subject."; return; }
@@ -146,8 +225,7 @@ public partial class SchedulesViewModel : PageViewModelBase
         try
         {
             IsBusy = true;
-            var result = await _service.AddAsync(faculty.Id, subject.Code, room.Id, SelectedDate.DayOfWeek.ToString(),
-                TimeFormat.To24h(SelectedStart), TimeFormat.To24h(SelectedEnd));
+            var result = await _service.AddManyAsync(faculty.Id, subject.Code, room.Id, days);
             Show(result);
             if (result.Success) await LoadAsync();
         }

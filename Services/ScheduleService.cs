@@ -121,26 +121,68 @@ public sealed class ScheduleService
         return new OperationResult(true, $"Removed {s.SubjectCode} ({s.FacultyName}).");
     }
 
-    public async Task<OperationResult> AddRoomAsync(string? campus, string? school, string building, string floor, string roomNo)
+    /// <summary>Several class days for one subject at once (for example Monday, Wednesday, Friday). Saved all together or not at all.</summary>
+    public async Task<OperationResult> AddManyAsync(string facultyUserId, string subjectCode, string classroomId,
+        IReadOnlyList<(DayOfWeek Day, string? Start, string? End)> days)
     {
-        if (!IsIms) return Fail("Only IMS Personnel can manage classrooms.");
-        if (campus is null || !AcademicCatalog.Campuses.Contains(campus)) return Fail("Choose a campus.");
-        if (!AcademicCatalog.IsValidSchool(school)) return Fail("Choose the school that owns the room (its Dean approves room changes).");
-        building = building.Trim(); floor = floor.Trim(); roomNo = roomNo.Trim();
-        if (building.Length == 0 || roomNo.Length == 0) return Fail("Enter the building and the room number.");
+        if (!IsIms) return Fail("Only IMS Personnel can encode schedules.");
+        if (days.Count == 0) return Fail("Choose at least one day.");
+        foreach (var d in days)
+        {
+            var timeError = ScheduleRules.CheckTimes(d.Start, d.End);
+            if (timeError is not null) return Fail($"{d.Day}: {timeError}");
+        }
+
+        await _storage.InitializeAsync();
+        var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
+        var faculty = users.FirstOrDefault(u => u.Id == facultyUserId && u.Role == UserRole.Faculty && u.IsUsable);
+        if (faculty is null) return Fail("That Faculty member was not found.");
+
+        var subject = (await GetSubjectsAsync()).FirstOrDefault(s => s.Code == subjectCode && s.Department == faculty.Department);
+        if (subject is null) return Fail("Choose a subject of the Faculty member's department.");
+
+        var room = (await GetRoomsAsync()).FirstOrDefault(r => r.Id == classroomId);
+        if (room is null) return Fail("Choose a classroom.");
+
+        var all = await _storage.LoadAsync<ClassSchedule>(JsonStorageService.SchedulesFile);
+        var added = new List<ClassSchedule>();
+        foreach (var d in days)
+        {
+            var candidate = new ClassSchedule
+            {
+                Id = ScheduleRules.NewId("S"), FacultyUserId = faculty.Id, FacultyName = faculty.FullName,
+                School = faculty.School, Department = faculty.Department,
+                SubjectCode = subject.Code, SubjectTitle = subject.Title, ClassroomId = room.Id,
+                Day = d.Day, Start = d.Start!, End = d.End!
+            };
+            var conflict = FindConflict(all.Concat(added), candidate);
+            if (conflict is not null) return Fail(conflict);
+            added.Add(candidate);
+        }
+
+        all.AddRange(added);
+        await _storage.SaveAsync(JsonStorageService.SchedulesFile, all);
+        var summary = string.Join(", ", added.Select(a => $"{a.Day.ToString()[..3]} {TimeFormat.Range(a.Start, a.End)}"));
+        await _audit.LogAsync("Schedule encoded", $"{faculty.FullName}: {subject.Code} {summary} in {ScheduleRules.RoomLabel(room)}");
+        return new OperationResult(true, $"Saved {subject.Code} for {faculty.FullName} ({added.Count} day{(added.Count == 1 ? "" : "s")}).");
+    }
+
+    /// <summary>IMS: set which school is assigned to a floor. That school's Dean approves room changes into the floor's rooms.</summary>
+    public async Task<OperationResult> SetFloorSchoolAsync(string campus, string building, string floor, string? school)
+    {
+        if (!IsIms) return Fail("Only IMS Personnel can change this.");
+        if (!AcademicCatalog.IsValidSchool(school)) return Fail("Choose a school.");
 
         await _storage.InitializeAsync();
         var rooms = await _storage.LoadAsync<Classroom>(JsonStorageService.ClassroomsFile);
-        if (rooms.Any(r => string.Equals(ScheduleRules.CampusOf(r), campus, StringComparison.OrdinalIgnoreCase)
-                           && string.Equals(r.Building, building, StringComparison.OrdinalIgnoreCase)
-                           && string.Equals(r.RoomNo, roomNo, StringComparison.OrdinalIgnoreCase)))
-            return Fail("That room already exists.");
+        var floorRooms = rooms.Where(r => string.Equals(ScheduleRules.CampusOf(r), campus, StringComparison.OrdinalIgnoreCase)
+                                          && string.Equals(r.Building, building, StringComparison.OrdinalIgnoreCase)
+                                          && string.Equals(r.Floor, floor, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (floorRooms.Count == 0) return Fail("That floor was not found.");
 
-        var next = rooms.Select(r => r.Id.StartsWith("R-") && int.TryParse(r.Id[2..], out var n) ? n : 0).DefaultIfEmpty(0).Max() + 1;
-        var room = new Classroom { Id = $"R-{next:000}", Campus = campus, School = school!, Building = building, Floor = floor, RoomNo = roomNo };
-        rooms.Add(room);
-        await _storage.SaveAsync(JsonStorageService.ClassroomsFile, rooms);
-        await _audit.LogAsync("Classroom added", $"{ScheduleRules.RoomLabel(room)} (floor {(floor.Length > 0 ? floor : "-")}, {school})");
-        return new OperationResult(true, $"Added {ScheduleRules.RoomLabel(room)}.");
+        var updated = rooms.Select(r => floorRooms.Any(f => f.Id == r.Id) ? r with { School = school! } : r).ToList();
+        await _storage.SaveAsync(JsonStorageService.ClassroomsFile, updated);
+        await _audit.LogAsync("Floor school assigned", $"{building} floor {floor}: {school}");
+        return new OperationResult(true, $"{building} floor {floor} is now assigned to {school}.");
     }
 }
