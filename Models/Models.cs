@@ -2,6 +2,12 @@ namespace FacultyMonitoring.Models;
 
 public enum UserRole { Faculty, ReadsScholar, ImsPersonnel, Chairperson, Dean }
 
+/// <summary>Faculty are approved by their Chairperson, Chairpersons by their Dean. Everyone else is approved automatically.</summary>
+public enum ApprovalStatus { Approved, Pending, Declined }
+
+/// <summary>Why a sign-in or registration step did not succeed, so the screens can offer the right next step.</summary>
+public enum AuthIssue { None, Invalid, EmailNotVerified, PendingApproval, Declined, Inactive, Locked }
+
 public sealed record UserAccount
 {
     public string Id { get; init; } = "";
@@ -14,6 +20,13 @@ public sealed record UserAccount
     public string AssignedDepartment { get; init; } = "";
     public UserRole Role { get; init; }
     public bool IsActive { get; init; } = true;
+    public string Email { get; init; } = "";
+    // Defaults keep older saved accounts and the debug dummy accounts working: verified and approved.
+    public bool EmailVerified { get; init; } = true;
+    public ApprovalStatus Status { get; init; } = ApprovalStatus.Approved;
+    /// <summary>True when the account may appear in directories and sign in: active, email verified and approved.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsUsable => IsActive && EmailVerified && Status == ApprovalStatus.Approved;
     public string PasswordHash { get; init; } = "";
     public string Salt { get; init; } = "";
 }
@@ -65,10 +78,26 @@ public sealed record DepartmentGroup(
 /// <summary>One line of the IMS Personnel "current assignments" list.</summary>
 public sealed record AssignmentRow(string Name, string Assignment);
 
-public sealed record AuthResult(bool Success, string Message, UserAccount? User);
+public sealed record AuthResult(bool Success, string Message, UserAccount? User, AuthIssue Issue = AuthIssue.None);
+
+public enum CodePurpose { VerifyEmail, ResetPassword }
+
+/// <summary>A one-time email code. Only a hash of the code is stored.</summary>
+public sealed record VerificationCode
+{
+    public string UserId { get; init; } = "";
+    public CodePurpose Purpose { get; init; }
+    public string CodeHash { get; init; } = "";
+    public DateTime SentUtc { get; init; }
+    public DateTime ExpiresUtc { get; init; }
+    public int Attempts { get; init; }
+}
+
+/// <summary>One account waiting for approval, shown to the Chairperson (Faculty) or Dean (Chairpersons).</summary>
+public sealed record PendingApproval(string UserId, string Name, string Id, string Email, string Detail);
 
 public sealed record RegistrationRequest(
-    string FullName, string SisId, string School, string Department,
+    string FullName, string SisId, string Email, string School, string Department,
     UserRole Role, string Password, string ConfirmPassword);
 
 public sealed record RoleInfo(

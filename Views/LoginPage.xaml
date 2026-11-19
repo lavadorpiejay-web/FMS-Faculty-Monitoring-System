@@ -58,6 +58,8 @@
                             IsEnabled="{Binding IsNotBusy}" AutomationId="SignInButton" />
                     <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
                                        Color="{StaticResource DeepGreen}" HeightRequest="24" />
+                    <Button Text="Forgot password?" Command="{Binding ForgotPasswordCommand}"
+                            Style="{StaticResource TextButton}" HorizontalOptions="Center" />
                     <Button Text="Create an account" Command="{Binding GoToRegisterCommand}"
                             Style="{StaticResource OutlineButton}" />
                 </VerticalStackLayout>

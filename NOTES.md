@@ -19,7 +19,21 @@ Last updated: 2026-10-25
 - ID: exactly 5 characters, no spaces (labelled just "ID").
 - Password: at least 8 characters with an uppercase letter, a lowercase letter, a number and a symbol.
 - A Chairperson seat (per department) or Dean seat (per school) that is already taken cannot be registered again.
+- READS Scholars are students, so their ID is 5 to 10 characters (student ID). Faculty, Chairperson, Dean and IMS Personnel use an employee ID of exactly 5 characters.
+- Every account needs an email address (one account per email).
 
+## Verification and approval flow
+1. **Register**: the account is created but cannot sign in yet. A 6-digit code is emailed (valid 10 minutes, 5 wrong tries, 30 seconds between resends).
+2. **Verify email** screen: enter the code. Sign-in with an unverified email opens this screen again.
+3. **Approval** (after the email is verified): Faculty must be approved by the Chairperson of their department (Approvals tab). Chairpersons must be approved by the Dean of their school (Approvals tab). Dean, IMS Personnel and READS Scholar need no approval.
+   - Until approved, the account cannot sign in and is hidden from directories. A pending Chairperson/Dean still holds the seat. A declined registration frees it and the person may register again.
+4. **Forgot password** (Login screen): enter the account email, get a 6-digit code by email, choose a new password (same mixed-character rule).
+Codes are stored as hashes only (`verifications.json`).
+
+### Email setup
+- Real email needs a mail account. Copy `Resources\Raw\emailsettings.sample.json` to `Resources\Raw\emailsettings.json` and fill it in (Gmail: turn on 2-step verification, then create an "App password" and paste the 16 characters). `emailsettings.json` is ignored by git on purpose because it holds a password, so on each computer you create it again.
+- Without that file the app runs in **simulated email** mode: nothing is sent and a pop-up shows the email text (with the code) so the whole flow can still be tested.
+- Code: `Services\EmailService.cs` (sending), `VerificationService.cs` (codes, verify, reset), `ApprovalService.cs` (approvals).
 ## Roles (hierarchy: Dean > Chairperson > Faculty; IMS Personnel > READS Scholar)
 | Role | Registers with | Notes |
 |---|---|---|
@@ -66,7 +80,7 @@ The StatusPage runs per-role verification checks left over from the foundation m
 - `rds01` to `rds05`: READS Scholars, all start unassigned (IMS Personnel assigns them on the Assign tab)
 - `dean1`: Dean of the School of Engineering and Architecture
 - `chr01` to `chr07` and `fac01` to `fac07`: Chairperson and Faculty of each department, in catalog order (01 Electrical, 02 Computer, 03 Civil, 04 Industrial, 05 Mechanical, 06 Architecture, 07 Electronics)
-- IDs are exactly 5 characters. Because every department and school already has a dummy Chairperson and Dean in debug builds, registering a Chairperson or Dean shows the "role is occupied" warning.
+- Dummy accounts are already email-verified and approved. Their emails are fake (`<id>@fms.test`), so Forgot password for them only works in simulated email mode. IDs are exactly 5 characters (READS dummies are 5 too). Because every department and school already has a dummy Chairperson and Dean in debug builds, registering a Chairperson or Dean shows the "role is occupied" warning.
 
 Accounts are generated from `Services\AcademicCatalog.cs`, so a new school or department automatically gets a dummy Dean, Chairperson and Faculty.
 
@@ -84,8 +98,10 @@ Accounts are written only on first launch and live in the app's private storage,
 7. Milestone 4c: FMS app icon (clock-and-pen logo), app name shown as "FMS", the Status / System / Platform / Storage tab renamed "System checks" for every role.
 8. Milestone 5: Dean sees every department of their school with its Chairperson(s) and Faculty; Chairperson sees the Faculty of their department (both read-only).
 9. Milestone 6: dummy accounts (debug builds only) for every school, department, READS Scholar and IMS Personnel.
+10. Milestone 7: occupied-role warning, 5-character ID (READS up to 10), strong passwords, email verification codes, Chairperson/Dean approval of new accounts, Forgot password by email code.
 
 ## Open items / next
+- Approvals tab shows only Faculty (to Chairperson) and Chairpersons (to Dean); no separate notification yet when something is waiting.
 - READS Scholar and IMS Personnel schedule features (not started; READS and IMS still cannot access or add schedules).
 - READS Directory shows name, role and department only. Decide later whether to show more.
 - Add more schools and departments to the catalog.

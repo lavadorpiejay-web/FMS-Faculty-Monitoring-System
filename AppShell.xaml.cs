@@ -12,6 +12,8 @@ public partial class AppShell : Shell
         InitializeComponent();
         _session = session;
         Routing.RegisterRoute("Register", typeof(Views.RegisterPage));
+        Routing.RegisterRoute("VerifyEmail", typeof(Views.VerifyEmailPage));
+        Routing.RegisterRoute("ForgotPassword", typeof(Views.ForgotPasswordPage));
         Navigating += OnNavigating;
     }
 

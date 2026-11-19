@@ -8,7 +8,12 @@ namespace FacultyMonitoring.ViewModels;
 public partial class RegisterViewModel : ObservableObject
 {
     private readonly IAuthService _auth;
-    public RegisterViewModel(IAuthService auth) => _auth = auth;
+    private readonly VerificationService _verification;
+    public RegisterViewModel(IAuthService auth, VerificationService verification)
+    {
+        _auth = auth;
+        _verification = verification;
+    }
 
     public IReadOnlyList<string> RoleLabels { get; } =
         RolePolicy.AllRoles.Select(r => RolePolicy.Describe(r).DisplayName).ToList();
@@ -22,12 +27,24 @@ public partial class RegisterViewModel : ObservableObject
     [ObservableProperty] private bool _nameTaken;
     [ObservableProperty] private bool _sisTaken;
 
-    public int MaxSisIdLength => LocalAuthService.MaxSisIdLength;
+    [ObservableProperty] private string _email = "";
+    [ObservableProperty] private bool _emailTaken;
+
+    // READS Scholars use a student ID (up to 10 characters); everyone else an employee ID of exactly 5.
+    public int IdMaxLength => LocalAuthService.MaxIdLength(CurrentRole);
+    public string IdHint => LocalAuthService.IdRule(CurrentRole);
+
+    // Who must approve this account after the email is verified.
+    public bool HasApprovalNote => ApprovalNote.Length > 0;
+    public string ApprovalNote => LocalAuthService.ApproverOf(CurrentRole ?? UserRole.Dean) is { } approver
+        ? $"After you confirm your email, your {RolePolicy.Describe(approver).DisplayName} must approve your account before you can sign in."
+        : "";
 
     private CancellationTokenSource? _duplicateCts;
 
     partial void OnFullNameChanged(string value) => _ = CheckDuplicatesAsync();
     partial void OnSisIdChanged(string value) => _ = CheckDuplicatesAsync();
+    partial void OnEmailChanged(string value) => _ = CheckDuplicatesAsync();
 
     private async Task CheckDuplicatesAsync()
     {
@@ -36,10 +53,11 @@ public partial class RegisterViewModel : ObservableObject
         try
         {
             await Task.Delay(300, cts.Token);               // wait until the user pauses typing
-            var result = await _auth.CheckDuplicatesAsync(FullName, SisId);
+            var result = await _auth.CheckDuplicatesAsync(FullName, SisId, Email);
             if (cts.IsCancellationRequested) return;
             NameTaken = result.NameTaken;
             SisTaken = result.SisTaken;
+            EmailTaken = result.EmailTaken;
         }
         catch (OperationCanceledException) { }
         catch (Exception) { /* the label is only a hint; Register still checks again */ }
@@ -141,6 +159,10 @@ public partial class RegisterViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(NeedsSchool))]
     [NotifyPropertyChangedFor(nameof(NeedsDepartment))]
     [NotifyPropertyChangedFor(nameof(IsOfficeRole))]
+    [NotifyPropertyChangedFor(nameof(IdMaxLength))]
+    [NotifyPropertyChangedFor(nameof(IdHint))]
+    [NotifyPropertyChangedFor(nameof(ApprovalNote))]
+    [NotifyPropertyChangedFor(nameof(HasApprovalNote))]
     private string? _selectedRoleLabel;
 
     [ObservableProperty]
@@ -171,7 +193,7 @@ public partial class RegisterViewModel : ObservableObject
 
     public void Reset()
     {
-        FullName = SisId = Password = ConfirmPassword = ErrorMessage = "";
+        FullName = SisId = Email = Password = ConfirmPassword = ErrorMessage = "";
         SelectedSchool = null;
         SelectedDepartment = null;
         SelectedRoleLabel = null;
@@ -196,14 +218,20 @@ public partial class RegisterViewModel : ObservableObject
         {
             IsBusy = true;
             var result = await _auth.RegisterAsync(new RegistrationRequest(
-                FullName, SisId, NeedsSchool ? SelectedSchool ?? "" : "", NeedsDepartment ? SelectedDepartment ?? "" : "",
+                FullName, SisId, Email, NeedsSchool ? SelectedSchool ?? "" : "", NeedsDepartment ? SelectedDepartment ?? "" : "",
                 role.Value, Password, ConfirmPassword));
 
             if (!result.Success) { ErrorMessage = result.Message; return; }
 
-            await Shell.Current.DisplayAlert("Account created",
-                $"You can now sign in with ID \"{SisId.Trim()}\".", "OK");
-            await Shell.Current.GoToAsync("..");
+            // The account exists but is not usable until the email is confirmed: send the code now.
+            var user = result.User!;
+            var send = await _verification.SendRegistrationCodeAsync(user.Id);
+            if (send.Simulated)
+                await Shell.Current.DisplayAlert("Simulated email (no mail account set up)", send.SimulatedMail, "OK");
+            else if (!send.Success)
+                await Shell.Current.DisplayAlert("Code not sent", send.Message + "\nYou can ask for a new code on the next screen.", "OK");
+
+            await Shell.Current.GoToAsync($"../VerifyEmail?userId={Uri.EscapeDataString(user.Id)}");
         }
         finally { IsBusy = false; }
     }

@@ -17,6 +17,7 @@ public static class RolePolicy
 
     public static bool IsRouteAllowed(UserRole? role, string location)
     {
+        location = location.Split('?')[0];                              // ignore query strings such as VerifyEmail?userId=...
         var segments = location.Split('/', StringSplitOptions.RemoveEmptyEntries)
                                .Where(s => !s.StartsWith("IMPL_", StringComparison.Ordinal))
                                .ToList();
@@ -24,7 +25,8 @@ public static class RolePolicy
 
         var first = segments[0];
         if (first == "..") return true;                                 // back navigation
-        if (first == "Login" || first == "Register") return role is null; // only when signed out
+        // Only when signed out.
+        if (first is "Login" or "Register" or "VerifyEmail" or "ForgotPassword") return role is null;
         return role is not null && first.StartsWith(role.Value.ToString(), StringComparison.Ordinal);
     }
 

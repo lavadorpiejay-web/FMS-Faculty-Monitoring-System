@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Mail account settings (contains a password). Copy emailsettings.sample.json to emailsettings.json and fill it in.
+FacultyMonitoring/Resources/Raw/emailsettings.json
+Resources/Raw/emailsettings.json

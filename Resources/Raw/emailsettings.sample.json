@@ -1,0 +1,7 @@
+{
+  "Host": "smtp.gmail.com",
+  "Port": 587,
+  "User": "your.sender.address@gmail.com",
+  "AppPassword": "PUT_YOUR_16_CHARACTER_APP_PASSWORD_HERE",
+  "FromName": "FMS Faculty Monitoring System"
+}

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.ApprovalsPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             xmlns:models="clr-namespace:FacultyMonitoring.Models"
+             x:DataType="vm:ApprovalsViewModel"
+             Title="Approvals">
+    <controls:DraggableScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="{Binding Heading}" FontSize="20" FontAttributes="Bold"
+                       TextColor="{StaticResource DeepGreen}" />
+                <Label Text="{Binding Explanation}" FontSize="13" TextColor="{StaticResource Gray600}" />
+            </VerticalStackLayout>
+
+            <Border IsVisible="{Binding HasMessage}" BackgroundColor="{StaticResource GoldSoft}"
+                    StrokeThickness="0" Padding="12,10">
+                <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+                <Label Text="{Binding Message}" FontSize="13" />
+            </Border>
+
+            <Border Style="{StaticResource Card}" IsVisible="{Binding IsEmpty}">
+                <Label Text="Nobody is waiting for approval." FontSize="14" TextColor="{StaticResource Gray600}" />
+            </Border>
+
+            <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding Items}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="models:PendingApproval">
+                        <Border Style="{StaticResource Card}">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="16" />
+                                <Label Text="{Binding Detail}" FontSize="13" TextColor="{StaticResource Gray600}" />
+                                <Label Text="{Binding Id, StringFormat='ID: {0}'}" FontSize="13" TextColor="{StaticResource Gray600}" />
+                                <Label Text="{Binding Email}" FontSize="13" TextColor="{StaticResource Gray600}" />
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                    <Button Text="Approve"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ApprovalsViewModel}}, Path=ApproveCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    <Button Grid.Column="1" Text="Decline" Style="{StaticResource OutlineButton}"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ApprovalsViewModel}}, Path=DeclineCommand}"
+                                            CommandParameter="{Binding .}" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </controls:DraggableScrollView>
+</ContentPage>

@@ -52,6 +52,9 @@ public partial class LoginViewModel : ObservableObject
     private Task GoToRegisterAsync() => Shell.Current.GoToAsync("Register");
 
     [RelayCommand]
+    private Task ForgotPasswordAsync() => Shell.Current.GoToAsync("ForgotPassword");
+
+    [RelayCommand]
     private void TogglePassword() => IsPasswordHidden = !IsPasswordHidden;
 
     [RelayCommand]
@@ -75,6 +78,9 @@ public partial class LoginViewModel : ObservableObject
             if (!result.Success || result.User is null)
             {
                 ErrorMessage = result.Message;
+                // Right password but the email was never confirmed: go enter (or re-request) the code.
+                if (result.Issue == Models.AuthIssue.EmailNotVerified && result.User is not null)
+                    await Shell.Current.GoToAsync($"VerifyEmail?userId={Uri.EscapeDataString(result.User.Id)}");
                 return;
             }
 

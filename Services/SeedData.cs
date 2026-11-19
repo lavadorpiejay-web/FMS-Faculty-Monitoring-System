@@ -58,7 +58,7 @@ public static class SeedData
     private static UserAccount User(string id, string sis, string name, string school, string dept, UserRole role,
         (string Hash, string Salt) pw, string assignedSchool = "", string assignedDept = "") => new()
     {
-        Id = id, SisId = sis, FullName = name, School = school, Department = dept, Role = role,
+        Id = id, SisId = sis, Email = $"{sis}@fms.test", FullName = name, School = school, Department = dept, Role = role,
         AssignedSchool = assignedSchool, AssignedDepartment = assignedDept, PasswordHash = pw.Hash, Salt = pw.Salt
     };
 #endif
@@ -110,7 +110,7 @@ public static class SeedData
         {
             Id = $"F-{u.Code}", UserId = $"U-FAC-{u.Code}", EmployeeNo = $"EMP-{u.Code.ToUpperInvariant()}",
             FullName = $"Faculty {u.Code.ToUpperInvariant()} (dummy)", School = u.School, Department = u.Department,
-            Email = $"faculty.{u.Code}@example.edu"
+            Email = $"fac{Units().IndexOf(u) + 1:00}@fms.test"
         }).ToList();
 #else
         return new();

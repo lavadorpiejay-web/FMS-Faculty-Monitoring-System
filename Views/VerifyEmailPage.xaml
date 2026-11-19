@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.VerifyEmailPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             x:DataType="vm:VerifyEmailViewModel"
+             Title="Verify your email">
+    <controls:DraggableScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <Border Style="{StaticResource Card}" Padding="20">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Check your email" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{Binding Info}" IsVisible="{Binding HasInfo}" FontSize="14"
+                           TextColor="{StaticResource Gray600}" />
+
+                    <Label Text="6-digit code" Style="{StaticResource SectionTitle}" FontSize="13" />
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                        <Entry Text="{Binding Code}" Placeholder="123456" Keyboard="Numeric" MaxLength="6"
+                               ReturnType="Go" ReturnCommand="{Binding VerifyCommand}" />
+                    </Border>
+
+                    <Border IsVisible="{Binding HasError}" BackgroundColor="{StaticResource ErrorSoft}"
+                            StrokeThickness="0" Padding="12,10">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+                        <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource ErrorRed}" FontSize="13" />
+                    </Border>
+
+                    <Button Text="Verify" Command="{Binding VerifyCommand}" IsEnabled="{Binding IsNotBusy}" />
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                                       Color="{StaticResource DeepGreen}" HeightRequest="24" />
+                    <Button Text="Send a new code" Command="{Binding ResendCommand}" IsEnabled="{Binding IsNotBusy}"
+                            Style="{StaticResource OutlineButton}" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </controls:DraggableScrollView>
+</ContentPage>

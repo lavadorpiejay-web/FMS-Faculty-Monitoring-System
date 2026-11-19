@@ -32,6 +32,13 @@ public sealed class DirectoryService
         _session = session;
     }
 
+    // Faculty whose account is still unverified or waiting for approval are not listed yet.
+    private static List<FacultyMember> Visible(List<FacultyMember> faculty, List<UserAccount> users)
+    {
+        var usable = users.Where(u => u.IsUsable).Select(u => u.Id).ToHashSet();
+        return faculty.Where(f => f.UserId is null || usable.Contains(f.UserId)).ToList();
+    }
+
     public async Task<DirectoryResult> LoadForCurrentScholarAsync()
     {
         var current = _session.CurrentUser;
@@ -47,16 +54,16 @@ public sealed class DirectoryService
 
         var school = me.AssignedSchool;
         var dept = me.AssignedDepartment;
-        var faculty = await _storage.LoadAsync<FacultyMember>(JsonStorageService.FacultyFile);
+        var faculty = Visible(await _storage.LoadAsync<FacultyMember>(JsonStorageService.FacultyFile), users);
 
         var deans = users
-            .Where(u => u.IsActive && u.Role == UserRole.Dean && u.School == school)
+            .Where(u => u.IsUsable && u.Role == UserRole.Dean && u.School == school)
             .OrderBy(u => u.FullName)
             .Select(u => new DirectoryEntry(u.FullName, $"Dean, {u.School}"))
             .ToList();
 
         var chairs = users
-            .Where(u => u.IsActive && u.Role == UserRole.Chairperson && u.School == school && u.Department == dept)
+            .Where(u => u.IsUsable && u.Role == UserRole.Chairperson && u.School == school && u.Department == dept)
             .OrderBy(u => u.FullName)
             .Select(u => new DirectoryEntry(u.FullName, $"Chairperson, {u.Department}"))
             .ToList();
@@ -82,11 +89,11 @@ public sealed class DirectoryService
         var me = users.FirstOrDefault(u => u.Id == current.Id && u.IsActive && u.Role == UserRole.Dean);
         if (me is null || !AcademicCatalog.IsValidSchool(me.School)) return invalid;
 
-        var faculty = await _storage.LoadAsync<FacultyMember>(JsonStorageService.FacultyFile);
+        var faculty = Visible(await _storage.LoadAsync<FacultyMember>(JsonStorageService.FacultyFile), users);
 
         var groups = AcademicCatalog.DepartmentsOf(me.School).Select(dept => new DepartmentGroup(
             dept,
-            users.Where(u => u.IsActive && u.Role == UserRole.Chairperson && u.School == me.School && u.Department == dept)
+            users.Where(u => u.IsUsable && u.Role == UserRole.Chairperson && u.School == me.School && u.Department == dept)
                  .OrderBy(u => u.FullName)
                  .Select(u => new DirectoryEntry(u.FullName, $"Chairperson, {dept}")).ToList(),
             faculty.Where(f => f.School == me.School && f.Department == dept)
@@ -109,7 +116,7 @@ public sealed class DirectoryService
         var me = users.FirstOrDefault(u => u.Id == current.Id && u.IsActive && u.Role == UserRole.Chairperson);
         if (me is null || !AcademicCatalog.IsValidDepartment(me.School, me.Department)) return invalid;
 
-        var faculty = await _storage.LoadAsync<FacultyMember>(JsonStorageService.FacultyFile);
+        var faculty = Visible(await _storage.LoadAsync<FacultyMember>(JsonStorageService.FacultyFile), users);
         var members = faculty
             .Where(f => f.School == me.School && f.Department == me.Department)
             .OrderBy(f => f.FullName)

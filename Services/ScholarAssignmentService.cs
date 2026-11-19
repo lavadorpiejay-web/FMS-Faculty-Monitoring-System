@@ -30,7 +30,7 @@ public sealed class ScholarAssignmentService
         await _storage.InitializeAsync();
         var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
         return users
-            .Where(u => u.Role == UserRole.ReadsScholar && u.IsActive)
+            .Where(u => u.Role == UserRole.ReadsScholar && u.IsUsable)
             .OrderBy(u => u.FullName)
             .Select(u => new ScholarInfo(u.Id, u.FullName, $"{u.FullName} ({u.SisId})", u.AssignedSchool, u.AssignedDepartment))
             .ToList();

@@ -11,6 +11,7 @@ public sealed class JsonStorageService
     public const string FacultyFile = "faculty.json";
     public const string SubjectsFile = "subjects.json";
     public const string ClassroomsFile = "classrooms.json";
+    public const string VerificationsFile = "verifications.json";
 
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
@@ -39,6 +40,7 @@ public sealed class JsonStorageService
             if (!Exists(FacultyFile))    await WriteAsync(FacultyFile, SeedData.Faculty());
             if (!Exists(SubjectsFile))   await WriteAsync(SubjectsFile, SeedData.Subjects());
             if (!Exists(ClassroomsFile)) await WriteAsync(ClassroomsFile, SeedData.Classrooms());
+            if (!Exists(VerificationsFile)) await WriteAsync(VerificationsFile, new List<VerificationCode>());
 
             _initialized = true;
         }
