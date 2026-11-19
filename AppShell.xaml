@@ -24,29 +24,24 @@
     </TabBar>
 
     <TabBar x:Name="ImsPersonnelTabs" IsVisible="False">
-        <ShellContent Title="Home" Route="ImsPersonnelHome" ContentTemplate="{DataTemplate views:DashboardPage}" />
+        <ShellContent Title="Home" Route="ImsPersonnelHome" ContentTemplate="{DataTemplate views:ApprovalsHomePage}" />
         <ShellContent Title="Schedules" Route="ImsPersonnelSchedules" ContentTemplate="{DataTemplate views:SchedulesPage}" />
         <ShellContent Title="Rooms" Route="ImsPersonnelRooms" ContentTemplate="{DataTemplate views:RoomsPage}" />
         <ShellContent Title="Duty" Route="ImsPersonnelDuty" ContentTemplate="{DataTemplate views:DutyPage}" />
-        <ShellContent Title="Changes" Route="ImsPersonnelChanges" ContentTemplate="{DataTemplate views:ChangesPage}" />
         <ShellContent Title="Master" Route="ImsPersonnelMaster" ContentTemplate="{DataTemplate views:MasterPage}" />
         <ShellContent Title="Assign" Route="ImsPersonnelAssign" ContentTemplate="{DataTemplate views:AssignmentsPage}" />
-        <ShellContent Title="Approvals" Route="ImsPersonnelApprovals" ContentTemplate="{DataTemplate views:ApprovalsPage}" />
         <ShellContent Title="Profile" Route="ImsPersonnelProfile" ContentTemplate="{DataTemplate views:ProfilePage}" />
     </TabBar>
 
     <TabBar x:Name="ChairpersonTabs" IsVisible="False">
-        <ShellContent Title="Home" Route="ChairpersonHome" ContentTemplate="{DataTemplate views:DashboardPage}" />
+        <ShellContent Title="Home" Route="ChairpersonHome" ContentTemplate="{DataTemplate views:ApprovalsHomePage}" />
         <ShellContent Title="Faculty" Route="ChairpersonFaculty" ContentTemplate="{DataTemplate views:DepartmentFacultyPage}" />
-        <ShellContent Title="Approvals" Route="ChairpersonApprovals" ContentTemplate="{DataTemplate views:ApprovalsPage}" />
-        <ShellContent Title="Requests" Route="ChairpersonRequests" ContentTemplate="{DataTemplate views:RequestsPage}" />
         <ShellContent Title="Profile" Route="ChairpersonProfile" ContentTemplate="{DataTemplate views:ProfilePage}" />
     </TabBar>
 
     <TabBar x:Name="DeanTabs" IsVisible="False">
-        <ShellContent Title="Home" Route="DeanHome" ContentTemplate="{DataTemplate views:SchoolDirectoryPage}" />
-        <ShellContent Title="Approvals" Route="DeanApprovals" ContentTemplate="{DataTemplate views:ApprovalsPage}" />
-        <ShellContent Title="Requests" Route="DeanRequests" ContentTemplate="{DataTemplate views:RequestsPage}" />
+        <ShellContent Title="Home" Route="DeanHome" ContentTemplate="{DataTemplate views:ApprovalsHomePage}" />
+        <ShellContent Title="Departments" Route="DeanDepartments" ContentTemplate="{DataTemplate views:SchoolDirectoryPage}" />
         <ShellContent Title="Profile" Route="DeanProfile" ContentTemplate="{DataTemplate views:ProfilePage}" />
     </TabBar>
 </Shell>

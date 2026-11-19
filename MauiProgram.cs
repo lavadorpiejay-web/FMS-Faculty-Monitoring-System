@@ -51,6 +51,7 @@ public static class MauiProgram
         builder.Services.AddTransient<VerifyEmailViewModel>();
         builder.Services.AddTransient<ForgotPasswordViewModel>();
         builder.Services.AddTransient<ApprovalsViewModel>();
+        builder.Services.AddTransient<ApprovalsHomeViewModel>();
         builder.Services.AddTransient<SchedulesViewModel>();
         builder.Services.AddTransient<RoomsViewModel>();
         builder.Services.AddTransient<DutyViewModel>();
@@ -72,6 +73,7 @@ public static class MauiProgram
         builder.Services.AddTransient<VerifyEmailPage>();
         builder.Services.AddTransient<ForgotPasswordPage>();
         builder.Services.AddTransient<ApprovalsPage>();
+        builder.Services.AddTransient<ApprovalsHomePage>();
         builder.Services.AddTransient<SchedulesPage>();
         builder.Services.AddTransient<RoomsPage>();
         builder.Services.AddTransient<DutyPage>();

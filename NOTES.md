@@ -25,7 +25,7 @@ Last updated: 2026-11-19
 ## Verification and approval flow
 1. **Register**: the account is created but cannot sign in yet. A 6-digit code is emailed (valid 10 minutes, 5 wrong tries, 30 seconds between resends).
 2. **Verify email** screen: enter the code. Sign-in with an unverified email opens this screen again.
-3. **Approval** (after the email is verified): Faculty must be approved by the Chairperson of their department (Approvals tab). Chairpersons must be approved by the Dean of their school (Approvals tab). READS Scholars must be approved by IMS Personnel (Approvals tab; any IMS Personnel can approve any READS Scholar). Dean and IMS Personnel need no approval.
+3. **Approval** (after the email is verified): Faculty must be approved by the Chairperson of their department (Home tab). Chairpersons must be approved by the Dean of their school (Home tab). READS Scholars must be approved by IMS Personnel (Home tab; any IMS Personnel can approve any READS Scholar). Dean and IMS Personnel need no approval.
    - Until approved, the account cannot sign in and is hidden from directories. A pending Chairperson/Dean still holds the seat. A declined registration frees it and the person may register again.
 4. **Forgot password** (Login screen): enter the account email, get a 6-digit code by email, choose a new password (same mixed-character rule).
 Codes are stored as hashes only (`verifications.json`).
@@ -102,13 +102,14 @@ Accounts are written only on first launch and live in the app's private storage,
 
 11. Milestone 8: the 50% checklist features: schedules and classrooms (IMS), READS duty and monitoring areas, schedule/room change requests with Chairperson/Dean approval and IMS apply, READS duty dashboard, digital attendance logging, irregularity reports, master schedule and audit trail. See "Schedules, duty and attendance" below.
 
-12. Milestone 11: removed the System checks tab for all roles. The Dean's Home tab now shows the departments of the Dean's school (the separate Departments tab was merged into it).
+12. Milestone 11: removed the System checks tab for all roles.
+13. Milestone 12: the Home page of Chairperson, Dean and IMS Personnel is now one combined approvals page (`Views\ApprovalsHomePage.xaml`, `ViewModels\ApprovalsHomeViewModel.cs`). Chairperson: Faculty accounts + schedule change requests. Dean: Chairperson accounts + classroom change requests. IMS Personnel: READS Scholar accounts + approved changes to apply to the master schedule. The separate Approvals, Requests and Changes tabs are gone. The Dean has a Departments tab again. Faculty and READS Scholar Home are unchanged (READS keeps its attendance confirmation prompt and duplicate/conflict checks on the Attendance tab). The old `ApprovalsPage`, `RequestsPage` and `ChangesPage` files are still in the project but no tab links to them.
 
 ## Schedules, duty and attendance (Milestone 8)
 Who does what (matches the 50% checklist):
-- **IMS Personnel**: *Schedules* tab (encode faculty, subject, room, day, time; no room or Faculty clash), *Rooms* tab (campus, owning school, building, floor, room, capacity), *Duty* tab (record each READS Scholar's vacant times, then assign duty day/time inside them plus campus, school, optional department/building/floor; Edit modifies or reassigns), *Changes* tab (approved requests waiting to be applied, with a note about READS duties that may need review), *Master* tab (all schedules with duty assignments, recent attendance, irregularity reports and the change history).
+- **IMS Personnel**: *Schedules* tab (encode faculty, subject, room, day, time; no room or Faculty clash), *Rooms* tab (campus, owning school, building, floor, room, capacity), *Duty* tab (record each READS Scholar's vacant times, then assign duty day/time inside them plus campus, school, optional department/building/floor; Edit modifies or reassigns), *Home* tab (approved requests waiting to be applied, with a note about READS duties that may need review, plus READS Scholar account approvals), *Master* tab (all schedules with duty assignments, recent attendance, irregularity reports and the change history).
 - **Faculty**: *Schedule* tab: own classes, and requests for a schedule change (day, time, subject) or a room change.
-- **Chairperson**: *Requests* tab approves/declines schedule changes of the department. **Dean**: *Requests* tab approves/declines room changes for rooms owned by the school.
+- **Chairperson**: *Home* tab approves/declines schedule changes of the department. **Dean**: *Home* tab approves/declines room changes for rooms owned by the school.
 - **READS Scholar**: *Duty* tab (current, upcoming, completed today) and *Attendance* tab (classes inside the monitoring area during duty hours, Present/Late/Absent with a confirmation prompt, irregularity reports, own recent entries).
 
 Rules enforced in code (`Services\AttendanceService.cs`, `DutyService.cs`, `ChangeRequestService.cs`, `ScheduleService.cs`, `ScheduleRules.cs`):
@@ -124,15 +125,15 @@ Rules enforced in code (`Services\AttendanceService.cs`, `DutyService.cs`, `Chan
 
 Quick test path (debug build, password in DUMMY_ACCOUNTS.txt):
 1. `ims01`: Schedules, Duty and Master show the seeded data. Duty: add a vacant time, assign a duty, edit it.
-2. `fac02`: Schedule tab, request a room change. `dean1`: Requests tab, approve it. `ims01`: Changes tab, apply it.
-3. `fac02`: request a time change. `chr02`: Requests tab, approve. `ims01`: Changes tab, apply.
+2. `fac02`: Schedule tab, request a room change. `dean1`: Home tab, approve it. `ims01`: Home tab, apply it.
+3. `fac02`: request a time change. `chr02`: Home tab, approve. `ims01`: Home tab, apply.
 4. `rds02`: Attendance tab, turn on the test clock (Monday 08:30), log the Computer Engineering class, try again (duplicate refused), report an irregularity.
 5. `rds01`: same day, log a class; `ims01`: Master tab shows the entries.
 
 ## Open items / next
 - Not compiled or run by the assistant that wrote Milestone 8: build it in Visual Studio and report any error text.
-- IMS has 10 tabs; Android shows the first four and a "More" tab. Consider merging Rooms into Schedules and moving System checks into Profile.
-- No push notification yet: IMS sees approved changes on the Changes tab and Chairperson/Dean see requests on the Requests tab.
+- IMS now has 8 tabs (Home, Schedules, Rooms, Duty, Master, Assign, Profile, plus More on Android). Consider merging Rooms into Schedules.
+- No push notification yet: IMS sees approved changes on its Home tab and Chairperson/Dean see requests on their Home tab.
 - READS Scholars' vacant times are entered by IMS (READS cannot enter their own yet).
 - Class schedules repeat weekly; there is no semester calendar, holiday or one-off date handling.
 - READS Directory shows name, role and department only. Decide later whether to show more.
