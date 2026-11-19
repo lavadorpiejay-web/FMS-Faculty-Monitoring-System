@@ -133,10 +133,75 @@ public static class SeedData
         return subjects;
     }
 
-    public static List<Classroom> Classrooms() => new()
+    public static List<Classroom> Classrooms()
     {
-        new() { Id = "R-001", Building = "Main", RoomNo = "101", Capacity = 40 },
-        new() { Id = "R-002", Building = "Main", RoomNo = "202", Capacity = 35 },
-        new() { Id = "R-003", Building = "Science", RoomNo = "Lab 1", Capacity = 30 },
-    };
+        var school = AcademicCatalog.Schools[0].Name;
+        return new()
+        {
+            new() { Id = "R-001", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Main", Floor = "1", RoomNo = "101", Capacity = 40 },
+            new() { Id = "R-002", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Main", Floor = "2", RoomNo = "202", Capacity = 35 },
+            new() { Id = "R-003", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Science", Floor = "1", RoomNo = "Lab 1", Capacity = 30 },
+            new() { Id = "R-004", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Engineering", Floor = "3", RoomNo = "301", Capacity = 45 },
+        };
+    }
+
+    // ---- Sample schedule data (debug builds only) so every screen has something to show -------------------------------
+    // Every department's dummy Faculty teaches its "<CODE>101" subject on Mondays. Rooms R-001..R-004 are used in turn.
+
+    public static List<ClassSchedule> Schedules()
+    {
+#if DEBUG
+        var rooms = Classrooms();
+        var subjects = Subjects();
+        var units = Units();
+        var list = new List<ClassSchedule>();
+        for (var i = 0; i < units.Count; i++)
+        {
+            var u = units[i];
+            var subject = subjects.First(s => s.Department == u.Department);
+            var startMinutes = 8 * 60 + (i / rooms.Count) * 90;       // first four classes 8:00, next ones 9:30
+            list.Add(new ClassSchedule
+            {
+                Id = $"S-seed-{u.Code}", FacultyUserId = $"U-FAC-{u.Code}", FacultyName = $"Faculty {u.Code.ToUpperInvariant()} (dummy)",
+                School = u.School, Department = u.Department, SubjectCode = subject.Code, SubjectTitle = subject.Title,
+                ClassroomId = rooms[i % rooms.Count].Id, Day = DayOfWeek.Monday,
+                Start = $"{startMinutes / 60:00}:{startMinutes % 60:00}", End = $"{(startMinutes + 90) / 60:00}:{(startMinutes + 90) % 60:00}"
+            });
+        }
+        return list;
+#else
+        return new();
+#endif
+    }
+
+    // rds01 monitors the whole School of Engineering and Architecture on the Main Campus on Mondays 8:00-11:00.
+    // rds02 monitors only the Computer Engineering classes held in the "Main" building, Mondays 8:00-9:30.
+    public static List<DutyAssignment> Duties()
+    {
+#if DEBUG
+        var school = AcademicCatalog.Schools[0].Name;
+        return new()
+        {
+            new() { Id = "D-seed-1", ReadsUserId = "U-READS-1", ReadsName = "READS Scholar 1 (dummy)", Campus = AcademicCatalog.DefaultCampus,
+                    School = school, Department = "", Building = "", Floor = "", Day = DayOfWeek.Monday, Start = "08:00", End = "11:00" },
+            new() { Id = "D-seed-2", ReadsUserId = "U-READS-2", ReadsName = "READS Scholar 2 (dummy)", Campus = AcademicCatalog.DefaultCampus,
+                    School = school, Department = "Department of Computer Engineering", Building = "Main", Floor = "", Day = DayOfWeek.Monday, Start = "08:00", End = "09:30" },
+        };
+#else
+        return new();
+#endif
+    }
+
+    public static List<VacantSlot> Vacancies()
+    {
+#if DEBUG
+        return new()
+        {
+            new() { Id = "V-seed-1", ReadsUserId = "U-READS-1", Day = DayOfWeek.Monday, Start = "07:30", End = "12:00" },
+            new() { Id = "V-seed-2", ReadsUserId = "U-READS-2", Day = DayOfWeek.Monday, Start = "07:30", End = "12:00" },
+        };
+#else
+        return new();
+#endif
+    }
 }

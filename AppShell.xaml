@@ -11,12 +11,15 @@
     <!-- One tab area per role. Only the signed-in role's area is visible. -->
     <TabBar x:Name="FacultyTabs" IsVisible="False">
         <ShellContent Title="Home" Route="FacultyHome" ContentTemplate="{DataTemplate views:DashboardPage}" />
+        <ShellContent Title="Schedule" Route="FacultySchedule" ContentTemplate="{DataTemplate views:FacultySchedulePage}" />
         <ShellContent Title="System checks" Route="FacultyStatus" ContentTemplate="{DataTemplate views:StatusPage}" />
         <ShellContent Title="Profile" Route="FacultyProfile" ContentTemplate="{DataTemplate views:ProfilePage}" />
     </TabBar>
 
     <TabBar x:Name="ReadsScholarTabs" IsVisible="False">
         <ShellContent Title="Home" Route="ReadsScholarHome" ContentTemplate="{DataTemplate views:DashboardPage}" />
+        <ShellContent Title="Duty" Route="ReadsScholarDuty" ContentTemplate="{DataTemplate views:MyDutyPage}" />
+        <ShellContent Title="Attendance" Route="ReadsScholarAttendance" ContentTemplate="{DataTemplate views:AttendanceLogPage}" />
         <ShellContent Title="Directory" Route="ReadsScholarDirectory" ContentTemplate="{DataTemplate views:DirectoryPage}" />
         <ShellContent Title="System checks" Route="ReadsScholarStatus" ContentTemplate="{DataTemplate views:StatusPage}" />
         <ShellContent Title="Profile" Route="ReadsScholarProfile" ContentTemplate="{DataTemplate views:ProfilePage}" />
@@ -24,6 +27,11 @@
 
     <TabBar x:Name="ImsPersonnelTabs" IsVisible="False">
         <ShellContent Title="Home" Route="ImsPersonnelHome" ContentTemplate="{DataTemplate views:DashboardPage}" />
+        <ShellContent Title="Schedules" Route="ImsPersonnelSchedules" ContentTemplate="{DataTemplate views:SchedulesPage}" />
+        <ShellContent Title="Rooms" Route="ImsPersonnelRooms" ContentTemplate="{DataTemplate views:RoomsPage}" />
+        <ShellContent Title="Duty" Route="ImsPersonnelDuty" ContentTemplate="{DataTemplate views:DutyPage}" />
+        <ShellContent Title="Changes" Route="ImsPersonnelChanges" ContentTemplate="{DataTemplate views:ChangesPage}" />
+        <ShellContent Title="Master" Route="ImsPersonnelMaster" ContentTemplate="{DataTemplate views:MasterPage}" />
         <ShellContent Title="Assign" Route="ImsPersonnelAssign" ContentTemplate="{DataTemplate views:AssignmentsPage}" />
         <ShellContent Title="Approvals" Route="ImsPersonnelApprovals" ContentTemplate="{DataTemplate views:ApprovalsPage}" />
         <ShellContent Title="System checks" Route="ImsPersonnelStatus" ContentTemplate="{DataTemplate views:StatusPage}" />
@@ -34,6 +42,7 @@
         <ShellContent Title="Home" Route="ChairpersonHome" ContentTemplate="{DataTemplate views:DashboardPage}" />
         <ShellContent Title="Faculty" Route="ChairpersonFaculty" ContentTemplate="{DataTemplate views:DepartmentFacultyPage}" />
         <ShellContent Title="Approvals" Route="ChairpersonApprovals" ContentTemplate="{DataTemplate views:ApprovalsPage}" />
+        <ShellContent Title="Requests" Route="ChairpersonRequests" ContentTemplate="{DataTemplate views:RequestsPage}" />
         <ShellContent Title="System checks" Route="ChairpersonStatus" ContentTemplate="{DataTemplate views:StatusPage}" />
         <ShellContent Title="Profile" Route="ChairpersonProfile" ContentTemplate="{DataTemplate views:ProfilePage}" />
     </TabBar>
@@ -42,6 +51,7 @@
         <ShellContent Title="Home" Route="DeanHome" ContentTemplate="{DataTemplate views:DashboardPage}" />
         <ShellContent Title="Departments" Route="DeanDepartments" ContentTemplate="{DataTemplate views:SchoolDirectoryPage}" />
         <ShellContent Title="Approvals" Route="DeanApprovals" ContentTemplate="{DataTemplate views:ApprovalsPage}" />
+        <ShellContent Title="Requests" Route="DeanRequests" ContentTemplate="{DataTemplate views:RequestsPage}" />
         <ShellContent Title="System checks" Route="DeanStatus" ContentTemplate="{DataTemplate views:StatusPage}" />
         <ShellContent Title="Profile" Route="DeanProfile" ContentTemplate="{DataTemplate views:ProfilePage}" />
     </TabBar>

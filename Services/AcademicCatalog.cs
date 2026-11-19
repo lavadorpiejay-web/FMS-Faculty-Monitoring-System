@@ -7,6 +7,14 @@ public static class AcademicCatalog
    
     public const string ImsOffice = "IMS Office";
 
+    public const string DefaultCampus = "Main Campus";
+
+    /// <summary>Campuses READS Scholars can be assigned to. Edit this list to match the university.</summary>
+    public static readonly IReadOnlyList<string> Campuses = new List<string>
+    {
+        "Main Campus", "Basak Campus", "Talamban Campus", "Banilad Campus",
+    };
+
     public static readonly IReadOnlyList<School> Schools = new List<School>
     {
         new("School of Engineering and Architecture", new[]

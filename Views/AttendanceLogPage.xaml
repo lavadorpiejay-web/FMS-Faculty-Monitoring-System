@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.AttendanceLogPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             xmlns:models="clr-namespace:FacultyMonitoring.Models"
+             x:DataType="vm:AttendanceLogViewModel"
+             Title="Attendance">
+    <controls:DraggableScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Attendance logging" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" />
+                <Label Text="{Binding ClockText}" FontSize="13" TextColor="{StaticResource Gray600}" />
+                <Label Text="Only classes inside your monitoring area and duty hours are listed."
+                       FontSize="13" TextColor="{StaticResource Gray600}" />
+            </VerticalStackLayout>
+
+            <controls:Banners />
+
+            <Border Style="{StaticResource Card}" IsVisible="{Binding IsDebug}" BackgroundColor="{StaticResource GoldSoft}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Test clock (debug builds only)" Style="{StaticResource SectionTitle}" />
+                    <Label Text="Pretend it is a day and time that falls inside a duty window, to try logging at any hour."
+                           FontSize="13" TextColor="{StaticResource Gray600}" />
+                    <HorizontalStackLayout Spacing="10">
+                        <Switch IsToggled="{Binding UseTestClock, Mode=TwoWay}" VerticalOptions="Center" />
+                        <Label Text="Use test clock" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                    <controls:LabeledPicker Caption="Test day" Title="Choose day" ItemsSource="{Binding Days}" SelectedItem="{Binding TestDay, Mode=TwoWay}" />
+                    <controls:LabeledPicker Caption="Test time" Title="Choose time" ItemsSource="{Binding Times}" SelectedItem="{Binding TestTime, Mode=TwoWay}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Classes in your monitoring area today" Style="{StaticResource SectionTitle}" />
+                    <Label Text="No classes in your assigned area and duty hours today." IsVisible="{Binding HasNoClasses}"
+                           FontSize="13" TextColor="{StaticResource Gray600}" />
+                    <VerticalStackLayout Spacing="14" BindableLayout.ItemsSource="{Binding Rows}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:MonitorRow">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
+                                    <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                    <Label Text="{Binding State}" FontSize="12" TextColor="{StaticResource ForestMid}" />
+                                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8" IsEnabled="{Binding CanLog}">
+                                        <Button Text="Present" HeightRequest="40" FontSize="13"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AttendanceLogViewModel}}, Path=PresentCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        <Button Grid.Column="1" Text="Late" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AttendanceLogViewModel}}, Path=LateCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        <Button Grid.Column="2" Text="Absent" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AttendanceLogViewModel}}, Path=AbsentCommand}"
+                                                CommandParameter="{Binding .}" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Padding="20">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Report an irregularity" Style="{StaticResource SectionTitle}" />
+                    <Label Text="For example a faculty member who is not in the assigned room, or a class held in a room that was not approved."
+                           FontSize="13" TextColor="{StaticResource Gray600}" />
+                    <controls:LabeledPicker Caption="Class" Title="Choose a class from the list above" ItemsSource="{Binding ReportClassLabels}" SelectedItem="{Binding SelectedReportClass, Mode=TwoWay}" />
+                    <controls:LabeledPicker Caption="What did you observe?" Title="Choose" ItemsSource="{Binding ReportKinds}" SelectedItem="{Binding SelectedReportKind, Mode=TwoWay}" />
+                    <controls:LabeledPicker Caption="Room where the class was held" Title="Choose the room you saw" ItemsSource="{Binding RoomLabels}"
+                                            SelectedItem="{Binding SelectedObservedRoom, Mode=TwoWay}" IsVisible="{Binding AskRoom}" />
+                    <controls:LabeledEntry Caption="Notes (optional)" Placeholder="Anything IMS should know" Text="{Binding Notes, Mode=TwoWay}" />
+                    <Button Text="Submit report" Command="{Binding ReportCommand}" IsEnabled="{Binding IsNotBusy}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="My recent entries" Style="{StaticResource SectionTitle}" />
+                    <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding RecentLogs}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:ListRow">
+                                <VerticalStackLayout Spacing="1">
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                    <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </controls:DraggableScrollView>
+</ContentPage>

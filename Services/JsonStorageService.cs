@@ -12,6 +12,13 @@ public sealed class JsonStorageService
     public const string SubjectsFile = "subjects.json";
     public const string ClassroomsFile = "classrooms.json";
     public const string VerificationsFile = "verifications.json";
+    public const string SchedulesFile = "schedules.json";
+    public const string DutiesFile = "duties.json";
+    public const string VacanciesFile = "vacancies.json";
+    public const string RequestsFile = "requests.json";
+    public const string AttendanceFile = "attendance.json";
+    public const string IrregularitiesFile = "irregularities.json";
+    public const string AuditFile = "audit.json";
 
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
@@ -41,6 +48,13 @@ public sealed class JsonStorageService
             if (!Exists(SubjectsFile))   await WriteAsync(SubjectsFile, SeedData.Subjects());
             if (!Exists(ClassroomsFile)) await WriteAsync(ClassroomsFile, SeedData.Classrooms());
             if (!Exists(VerificationsFile)) await WriteAsync(VerificationsFile, new List<VerificationCode>());
+            if (!Exists(SchedulesFile))  await WriteAsync(SchedulesFile, SeedData.Schedules());
+            if (!Exists(DutiesFile))     await WriteAsync(DutiesFile, SeedData.Duties());
+            if (!Exists(VacanciesFile))  await WriteAsync(VacanciesFile, SeedData.Vacancies());
+            if (!Exists(RequestsFile))   await WriteAsync(RequestsFile, new List<ChangeRequest>());
+            if (!Exists(AttendanceFile)) await WriteAsync(AttendanceFile, new List<AttendanceLog>());
+            if (!Exists(IrregularitiesFile)) await WriteAsync(IrregularitiesFile, new List<IrregularityReport>());
+            if (!Exists(AuditFile))      await WriteAsync(AuditFile, new List<AuditEntry>());
 
             _initialized = true;
         }

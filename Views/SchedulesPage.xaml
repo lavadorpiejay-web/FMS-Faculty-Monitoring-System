@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.SchedulesPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             xmlns:models="clr-namespace:FacultyMonitoring.Models"
+             x:DataType="vm:SchedulesViewModel"
+             Title="Schedules">
+    <controls:DraggableScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <Border Style="{StaticResource Card}" Padding="20">
+              <VerticalStackLayout Spacing="12">
+                <Label Text="Encode a faculty schedule" Style="{StaticResource SectionTitle}" />
+                <Label Text="The initial schedule is the baseline READS checkers monitor. Two classes cannot share a room or a Faculty member at the same time." FontSize="13" TextColor="{StaticResource Gray600}" />
+                <controls:LabeledPicker Caption="Faculty member" Title="Choose Faculty" ItemsSource="{Binding FacultyLabels}" SelectedItem="{Binding SelectedFaculty, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Subject" Title="Choose faculty first, then subject" ItemsSource="{Binding SubjectLabels}" SelectedItem="{Binding SelectedSubject, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Classroom" Title="Choose classroom" ItemsSource="{Binding RoomLabels}" SelectedItem="{Binding SelectedRoom, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Day" Title="Choose day" ItemsSource="{Binding Days}" SelectedItem="{Binding SelectedDay, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Start time" Title="Choose start" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedStart, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="End time" Title="Choose end" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedEnd, Mode=TwoWay}" />
+                <controls:Banners />
+                <Button Text="Save schedule" Command="{Binding SaveCommand}" IsEnabled="{Binding IsNotBusy}" />
+              </VerticalStackLayout>
+            </Border>
+            <Border Style="{StaticResource Card}" Padding="20">
+              <VerticalStackLayout Spacing="12">
+                <Label Text="Encoded schedules" Style="{StaticResource SectionTitle}" />
+                                <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding Rows}">
+                  <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="models:ListRow">
+                      <VerticalStackLayout Spacing="3">
+                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
+                        <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                        <Label Text="{Binding Extra}" FontSize="12" TextColor="{StaticResource ForestMid}" />
+                        <Grid ColumnDefinitions="*" ColumnSpacing="8">
+                          <Button Text="Remove" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
+                                  Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SchedulesViewModel}}, Path=RemoveCommand}"
+                                  CommandParameter="{Binding .}" />
+                        </Grid>
+                      </VerticalStackLayout>
+                    </DataTemplate>
+                  </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+              </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </controls:DraggableScrollView>
+</ContentPage>

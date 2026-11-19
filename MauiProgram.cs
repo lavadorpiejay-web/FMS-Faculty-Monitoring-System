@@ -28,6 +28,12 @@ public static class MauiProgram
         builder.Services.AddSingleton<ReadinessService>();
         builder.Services.AddSingleton<DirectoryService>();
         builder.Services.AddSingleton<ScholarAssignmentService>();
+        builder.Services.AddSingleton<ClockService>();
+        builder.Services.AddSingleton<AuditService>();
+        builder.Services.AddSingleton<ScheduleService>();
+        builder.Services.AddSingleton<DutyService>();
+        builder.Services.AddSingleton<ChangeRequestService>();
+        builder.Services.AddSingleton<AttendanceService>();
 
         // Shell
         builder.Services.AddSingleton<AppShell>();
@@ -45,6 +51,15 @@ public static class MauiProgram
         builder.Services.AddTransient<VerifyEmailViewModel>();
         builder.Services.AddTransient<ForgotPasswordViewModel>();
         builder.Services.AddTransient<ApprovalsViewModel>();
+        builder.Services.AddTransient<SchedulesViewModel>();
+        builder.Services.AddTransient<RoomsViewModel>();
+        builder.Services.AddTransient<DutyViewModel>();
+        builder.Services.AddTransient<ChangesViewModel>();
+        builder.Services.AddTransient<MasterViewModel>();
+        builder.Services.AddTransient<FacultyScheduleViewModel>();
+        builder.Services.AddTransient<RequestsViewModel>();
+        builder.Services.AddTransient<MyDutyViewModel>();
+        builder.Services.AddTransient<AttendanceLogViewModel>();
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<RegisterPage>();
         builder.Services.AddTransient<DashboardPage>();
@@ -57,6 +72,15 @@ public static class MauiProgram
         builder.Services.AddTransient<VerifyEmailPage>();
         builder.Services.AddTransient<ForgotPasswordPage>();
         builder.Services.AddTransient<ApprovalsPage>();
+        builder.Services.AddTransient<SchedulesPage>();
+        builder.Services.AddTransient<RoomsPage>();
+        builder.Services.AddTransient<DutyPage>();
+        builder.Services.AddTransient<ChangesPage>();
+        builder.Services.AddTransient<MasterPage>();
+        builder.Services.AddTransient<FacultySchedulePage>();
+        builder.Services.AddTransient<RequestsPage>();
+        builder.Services.AddTransient<MyDutyPage>();
+        builder.Services.AddTransient<AttendanceLogPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

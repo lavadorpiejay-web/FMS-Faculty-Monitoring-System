@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.DutyPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             xmlns:models="clr-namespace:FacultyMonitoring.Models"
+             x:DataType="vm:DutyViewModel"
+             Title="Duty">
+    <controls:DraggableScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <Border Style="{StaticResource Card}" Padding="20">
+              <VerticalStackLayout Spacing="12">
+                <Label Text="Vacant time and duty hours" Style="{StaticResource SectionTitle}" />
+                <Label Text="Pick a Scholar, a day and a time. Record the Scholar's vacant (no-class) times first; a duty must fit inside one of them." FontSize="13" TextColor="{StaticResource Gray600}" />
+                <controls:LabeledPicker Caption="READS Scholar" Title="Choose a READS Scholar" ItemsSource="{Binding ScholarLabels}" SelectedItem="{Binding SelectedScholar, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Day" Title="Choose day" ItemsSource="{Binding Days}" SelectedItem="{Binding SelectedDay, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Start time" Title="Choose start" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedStart, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="End time" Title="Choose end" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedEnd, Mode=TwoWay}" />
+                <controls:Banners />
+                <Button Text="Save as vacant time" Command="{Binding AddVacancyCommand}" IsEnabled="{Binding IsNotBusy}" Style="{StaticResource OutlineButton}" />
+              </VerticalStackLayout>
+            </Border>
+            <Border Style="{StaticResource Card}" Padding="20">
+              <VerticalStackLayout Spacing="12">
+                <Label Text="Vacant times of the selected Scholar" Style="{StaticResource SectionTitle}" />
+                <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding VacantRows}">
+                  <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="models:ListRow">
+                      <VerticalStackLayout Spacing="3">
+                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
+                        <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+
+                        <Grid ColumnDefinitions="*" ColumnSpacing="8">
+                          <Button Text="Remove" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
+                                  Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DutyViewModel}}, Path=RemoveVacancyCommand}"
+                                  CommandParameter="{Binding .}" />
+                        </Grid>
+                      </VerticalStackLayout>
+                    </DataTemplate>
+                  </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+              </VerticalStackLayout>
+            </Border>
+            <Border Style="{StaticResource Card}" Padding="20">
+              <VerticalStackLayout Spacing="12">
+                <Label Text="Monitoring area" Style="{StaticResource SectionTitle}" />
+                <Label Text="Uses the Scholar, day and time chosen above. The Scholar will only see classes inside this area during these hours." FontSize="13" TextColor="{StaticResource Gray600}" />
+                <controls:LabeledPicker Caption="Campus" Title="Choose campus" ItemsSource="{Binding Campuses}" SelectedItem="{Binding SelectedCampus, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="School (college)" Title="Choose school" ItemsSource="{Binding Schools}" SelectedItem="{Binding SelectedSchool, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Department" Title="Choose school first" ItemsSource="{Binding Departments}" SelectedItem="{Binding SelectedDepartment, Mode=TwoWay}" />
+                <controls:LabeledEntry Caption="Building (optional)" Placeholder="Leave empty for all buildings" Text="{Binding Building, Mode=TwoWay}" />
+                <controls:LabeledEntry Caption="Floor (optional)" Placeholder="Leave empty for all floors" Text="{Binding Floor, Mode=TwoWay}" />
+                <controls:Banners />
+                <Button Text="{Binding SaveText}" Command="{Binding SaveDutyCommand}" IsEnabled="{Binding IsNotBusy}" />
+                <Button Text="Cancel editing" Command="{Binding CancelEditCommand}" Style="{StaticResource OutlineButton}" IsVisible="{Binding IsEditing}" />
+              </VerticalStackLayout>
+            </Border>
+            <Border Style="{StaticResource Card}" Padding="20">
+              <VerticalStackLayout Spacing="12">
+                <Label Text="Duty assignments" Style="{StaticResource SectionTitle}" />
+                <Label Text="Tap Edit to change a duty, or choose another Scholar before saving to reassign it." FontSize="13" TextColor="{StaticResource Gray600}" />
+                <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding DutyRows}">
+                  <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="models:ListRow">
+                      <VerticalStackLayout Spacing="3">
+                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
+                        <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                          <Button Text="Edit" HeightRequest="40" FontSize="13"
+                                  Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DutyViewModel}}, Path=EditDutyCommand}"
+                                  CommandParameter="{Binding .}" />
+                          <Button Grid.Column="1" Text="Remove" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
+                                  Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DutyViewModel}}, Path=RemoveDutyCommand}"
+                                  CommandParameter="{Binding .}" />
+                        </Grid>
+                      </VerticalStackLayout>
+                    </DataTemplate>
+                  </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+              </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </controls:DraggableScrollView>
+</ContentPage>

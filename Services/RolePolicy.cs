@@ -36,35 +36,35 @@ public static class RolePolicy
             "Faculty", "Verify your account, layout and local data connection.",
             "Account and shell verification",
             ReportsTo: "Chairperson", Oversees: "",
-            Allowed: new[] { "Teaching-related interfaces", "Account active-status check", "Local data connection check" },
+            Allowed: new[] { "View your class schedule", "Request schedule changes (Chairperson approves) and room changes (Dean approves)", "Account active-status check", "Local data connection check" },
             Restricted: new[] { "Attendance checking controls", "Managing other users", "Administrative controls" }),
 
         UserRole.ReadsScholar => new RoleInfo(
-            "READS Scholar", "Working student assigned to a university office; checks faculty attendance (active logging is not yet enabled in this build).",
+            "READS Scholar", "Working student who checks faculty attendance in the monitoring area and duty hours assigned by IMS Personnel.",
             "Infrastructure initialization",
             ReportsTo: "IMS Personnel (when assigned to the IMS Office)", Oversees: "",
-            Allowed: new[] { "Foundation framework for attendance checking", "Local JSON storage initialization check", "Read-only directory of the Dean, Chairperson and Faculty in your assigned department" },
-            Restricted: new[] { "Active attendance logging", "Managing other users", "Administrative overrides" }),
+            Allowed: new[] { "Duty dashboard: current, upcoming and completed assignments", "Digital attendance logging (Present, Late, Absent) for classes in your monitoring area", "Report attendance irregularities", "Read-only directory of the Dean, Chairperson and Faculty in your assigned department" },
+            Restricted: new[] { "Classes outside your assigned area and duty hours", "Managing other users", "Administrative overrides" }),
 
         UserRole.ImsPersonnel => new RoleInfo(
             "IMS Personnel", "Manages the application and supervises READS Scholars.",
             "Infrastructure initialization",
             ReportsTo: "", Oversees: "The application and READS Scholars assigned to the IMS Office",
-            Allowed: new[] { "Application infrastructure", "Local JSON storage initialization check", "Oversight of READS Scholars in the IMS Office", "Assign READS Scholars to a school and department", "Approve new READS Scholar accounts" },
+            Allowed: new[] { "Encode faculty schedules and classrooms", "Apply approved schedule and room changes", "Assign READS duty schedules and monitoring areas", "Master schedule, duty, attendance and audit oversight", "Assign READS Scholars to a school and department", "Approve new READS Scholar accounts" },
             Restricted: new[] { "Active attendance logging", "Managing Faculty, Chairperson and Dean accounts", "Chairperson and Dean controls", "Administrative overrides on academic units" }),
 
         UserRole.Chairperson => new RoleInfo(
             "Chairperson", "Department-level infrastructure views for your academic unit.",
             "System initialization check",
             ReportsTo: "Dean", Oversees: "Faculty",
-            Allowed: new[] { "Chairperson-level infrastructure views", "Department data mapping verification", "Read-only list of the Faculty in your department" },
+            Allowed: new[] { "Approve or decline Faculty schedule change requests", "Approve new Faculty accounts", "Read-only list of the Faculty in your department" },
             Restricted: new[] { "Checker-level attendance permissions", "Dean-level controls" }),
 
         _ => new RoleInfo(
             "Dean", "Executive-level view of platform deployment and readiness.",
             "Platform readiness verification",
             ReportsTo: "", Oversees: "Chairpersons and Faculty",
-            Allowed: new[] { "Executive-level parameters", "Security and Android compatibility verification", "Read-only list of the Chairpersons and Faculty in each department of your school" },
+            Allowed: new[] { "Approve or decline classroom change requests for rooms of your school", "Approve new Chairperson accounts", "Read-only list of the Chairpersons and Faculty in each department of your school" },
             Restricted: new[] { "Day-to-day attendance logging" })
     };
 }
