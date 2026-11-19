@@ -82,8 +82,9 @@ public sealed class AttendanceService
             var covering = duties.Where(d => ScheduleRules.DutyCovers(d, s, room) && ScheduleRules.Overlaps(d.Start, d.End, s.Start, s.End)).ToList();
             if (covering.Count == 0) continue;
 
-            var title = $"{s.SubjectCode} {ScheduleRules.Range(s.Start, s.End)} - {s.FacultyName}";
-            var detail = $"{s.SubjectTitle} | {ScheduleRules.RoomLabel(room)}";
+            // The room and its schedule come first: that is what the Scholar is sent to check.
+            var title = $"{ScheduleRules.RoomLabel(room)} | {s.SubjectCode} {ScheduleRules.Range(s.Start, s.End)}";
+            var detail = $"{s.SubjectTitle} | Scheduled: {s.FacultyName}";
             var logged = logs.FirstOrDefault(l => l.ScheduleId == s.Id && l.Date == dateText);
 
             string state;
@@ -94,7 +95,7 @@ public sealed class AttendanceService
             else if (!covering.Any(d => ScheduleRules.NowWithin(now, d.Start, d.End))) state = "In session, but your duty window is not active";
             else { state = "In session - ready to log"; canLog = true; }
 
-            rows.Add((s.Start, new MonitorRow(s.Id, title, detail, state, canLog)));
+            rows.Add((s.Start + "|" + title, new MonitorRow(s.Id, title, detail, state, canLog)));
         }
         return rows.OrderBy(r => r.Start).Select(r => r.Row).ToList();
     }

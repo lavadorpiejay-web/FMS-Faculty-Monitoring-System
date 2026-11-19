@@ -70,19 +70,22 @@ public static class ScheduleRules
 
     private static bool Same(string a, string b) => string.Equals(a.Trim(), b.Trim(), StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>True when the class is held inside the duty's monitoring area (campus, school, department, building, floor).</summary>
+    /// <summary>
+    /// True when the class room is inside the duty's monitoring area: campus, then building and floor when they are set.
+    /// It looks only at the classroom the schedule is held in, never at who teaches it or which school or department
+    /// the teacher belongs to. (The schedule parameter is kept so existing callers do not change.)
+    /// </summary>
     public static bool DutyCovers(DutyAssignment duty, ClassSchedule schedule, Classroom? room) =>
         room is not null
         && Same(duty.Campus, CampusOf(room))
-        && duty.School == schedule.School
-        && (duty.Department.Length == 0 || duty.Department == schedule.Department)
         && (duty.Building.Length == 0 || Same(duty.Building, room.Building))
         && (duty.Floor.Length == 0 || Same(duty.Floor, room.Floor));
 
     public static string AreaText(DutyAssignment d)
     {
-        var parts = new List<string> { d.Department.Length > 0 ? d.Department : d.School };
+        var parts = new List<string>();
         if (d.Building.Length > 0) parts.Add($"Building {d.Building}");
+        else if (d.Floor.Length == 0) parts.Add("All buildings");
         if (d.Floor.Length > 0) parts.Add($"Floor {d.Floor}");
         return string.Join(", ", parts);
     }

@@ -174,18 +174,19 @@ public static class SeedData
 #endif
     }
 
-    // rds01 monitors the whole School of Engineering and Architecture on the Main Campus on Mondays 8:00-11:00.
-    // rds02 monitors only the Computer Engineering classes held in the "Main" building, Mondays 8:00-9:30.
+    // Monitoring areas are places, not departments: a READS Scholar sees the classes scheduled in the rooms of the area,
+    // whoever teaches them.
+    // rds01 monitors the "Main" building (rooms 101 and 202) on the Main Campus, Mondays 8:00-11:00.
+    // rds02 monitors floor 3 of the "Engineering" building on the Main Campus, Mondays 8:00-9:30.
     public static List<DutyAssignment> Duties()
     {
 #if DEBUG
-        var school = AcademicCatalog.Schools[0].Name;
         return new()
         {
             new() { Id = "D-seed-1", ReadsUserId = "U-READS-1", ReadsName = "READS Scholar 1 (dummy)", Campus = AcademicCatalog.DefaultCampus,
-                    School = school, Department = "", Building = "", Floor = "", Day = DayOfWeek.Monday, Start = "08:00", End = "11:00" },
+                    Building = "Main", Floor = "", Day = DayOfWeek.Monday, Start = "08:00", End = "11:00" },
             new() { Id = "D-seed-2", ReadsUserId = "U-READS-2", ReadsName = "READS Scholar 2 (dummy)", Campus = AcademicCatalog.DefaultCampus,
-                    School = school, Department = "Department of Computer Engineering", Building = "Main", Floor = "", Day = DayOfWeek.Monday, Start = "08:00", End = "09:30" },
+                    Building = "Engineering", Floor = "3", Day = DayOfWeek.Monday, Start = "08:00", End = "09:30" },
         };
 #else
         return new();

@@ -89,20 +89,39 @@ public sealed class DutyService
     }
 
     /// <summary>Creates a duty (dutyId null) or modifies / reassigns an existing one.</summary>
-    public async Task<OperationResult> SaveDutyAsync(string? dutyId, string readsUserId, string? campus, string? school,
-        string? department, string building, string floor, string dayName, string? start, string? end)
+    public async Task<OperationResult> SaveDutyAsync(string? dutyId, string readsUserId, string? campus,
+        string building, string floor, string dayName, string? start, string? end)
     {
         if (!IsIms) return Fail("Only IMS Personnel can assign duties.");
         var timeError = ScheduleRules.CheckTimes(start, end);
         if (timeError is not null) return Fail(timeError);
         if (campus is null || !AcademicCatalog.Campuses.Contains(campus)) return Fail("Choose a campus.");
-        if (!AcademicCatalog.IsValidSchool(school)) return Fail("Choose a school (college).");
-        var dept = department is null || department == ScheduleRules.WholeSchool ? "" : department;
-        if (dept.Length > 0 && !AcademicCatalog.IsValidDepartment(school, dept)) return Fail("Choose one of the school's departments.");
+        building = (building ?? "").Trim();
+        floor = (floor ?? "").Trim();
 
         await _storage.InitializeAsync();
         var scholar = await FindScholarAsync(readsUserId);
         if (scholar is null) return Fail("That READS Scholar was not found.");
+
+        // The monitoring area is a place: check it against the classrooms that actually exist, so a typo cannot silently match nothing.
+        var campusRooms = (await _storage.LoadAsync<Classroom>(JsonStorageService.ClassroomsFile))
+            .Where(r => string.Equals(ScheduleRules.CampusOf(r), campus, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (campusRooms.Count == 0) return Fail($"No classrooms are recorded for {campus} yet. Add them on the Rooms tab first.");
+        var rooms = campusRooms;
+        if (building.Length > 0)
+        {
+            rooms = campusRooms.Where(r => string.Equals(r.Building.Trim(), building, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (rooms.Count == 0)
+            {
+                var known = campusRooms.Select(r => r.Building.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(b => b);
+                return Fail($"No classroom in building \"{building}\" on {campus}. Buildings there: {string.Join(", ", known)}.");
+            }
+        }
+        if (floor.Length > 0 && !rooms.Any(r => string.Equals(r.Floor.Trim(), floor, StringComparison.OrdinalIgnoreCase)))
+        {
+            var floors = rooms.Select(r => r.Floor.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(f => f);
+            return Fail($"No classroom on floor \"{floor}\" there. Floors: {string.Join(", ", floors)}.");
+        }
 
         var day = ScheduleRules.ParseDay(dayName);
         var vacancies = await _storage.LoadAsync<VacantSlot>(JsonStorageService.VacanciesFile);
@@ -116,7 +135,7 @@ public sealed class DutyService
         var duty = new DutyAssignment
         {
             Id = dutyId ?? ScheduleRules.NewId("D"), ReadsUserId = readsUserId, ReadsName = scholar.FullName,
-            Campus = campus, School = school!, Department = dept, Building = building.Trim(), Floor = floor.Trim(),
+            Campus = campus, Building = building, Floor = floor,
             Day = day, Start = start!, End = end!
         };
 

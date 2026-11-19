@@ -22,16 +22,12 @@ public partial class DutyViewModel : PageViewModelBase
     public ObservableCollection<ListRow> DutyRows { get; } = new();
 
     public IReadOnlyList<string> Campuses { get; } = AcademicCatalog.Campuses;
-    public IReadOnlyList<string> Schools { get; } = AcademicCatalog.SchoolNames;
     public IReadOnlyList<string> Days { get; } = ScheduleRules.DayNames;
     public IReadOnlyList<string> Times { get; } = ScheduleRules.Times;
 
     [ObservableProperty] private IReadOnlyList<string> _scholarLabels = Array.Empty<string>();
-    [ObservableProperty] private IReadOnlyList<string> _departments = Array.Empty<string>();
     [ObservableProperty] private string? _selectedScholar;
     [ObservableProperty] private string? _selectedCampus;
-    [ObservableProperty] private string? _selectedSchool;
-    [ObservableProperty] private string? _selectedDepartment;
     [ObservableProperty] private string _building = "";
     [ObservableProperty] private string _floor = "";
     [ObservableProperty] private string? _selectedDay;
@@ -44,14 +40,6 @@ public partial class DutyViewModel : PageViewModelBase
 
     public bool IsEditing => EditingDutyId is not null;
     public string SaveText => IsEditing ? "Update duty" : "Assign duty";
-
-    partial void OnSelectedSchoolChanged(string? value)
-    {
-        var list = new List<string> { ScheduleRules.WholeSchool };
-        list.AddRange(AcademicCatalog.DepartmentsOf(value));
-        Departments = list;
-        SelectedDepartment = ScheduleRules.WholeSchool;
-    }
 
     partial void OnSelectedScholarChanged(string? value) => _ = RefreshVacanciesAsync();
 
@@ -125,8 +113,8 @@ public partial class DutyViewModel : PageViewModelBase
         try
         {
             IsBusy = true;
-            var result = await _service.SaveDutyAsync(EditingDutyId, scholar.UserId, SelectedCampus, SelectedSchool,
-                SelectedDepartment, Building, Floor, SelectedDay, SelectedStart, SelectedEnd);
+            var result = await _service.SaveDutyAsync(EditingDutyId, scholar.UserId, SelectedCampus,
+                Building, Floor, SelectedDay, SelectedStart, SelectedEnd);
             Show(result);
             if (!result.Success) return;
             EditingDutyId = null;
@@ -144,8 +132,6 @@ public partial class DutyViewModel : PageViewModelBase
         var label = _scholars.FirstOrDefault(s => s.Value.UserId == d.ReadsUserId).Key;
         if (label is not null) SelectedScholar = label;     // change the Scholar to reassign the duty
         SelectedCampus = d.Campus;
-        SelectedSchool = d.School;                           // also resets the department list
-        SelectedDepartment = d.Department.Length > 0 ? d.Department : ScheduleRules.WholeSchool;
         Building = d.Building;
         Floor = d.Floor;
         SelectedDay = d.Day.ToString();

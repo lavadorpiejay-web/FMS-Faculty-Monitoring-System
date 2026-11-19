@@ -45,11 +45,9 @@
             <Border Style="{StaticResource Card}" Padding="20">
               <VerticalStackLayout Spacing="12">
                 <Label Text="Monitoring area" Style="{StaticResource SectionTitle}" />
-                <Label Text="Uses the Scholar, day and time chosen above. The Scholar will only see classes inside this area during these hours." FontSize="13" TextColor="{StaticResource Gray600}" />
+                <Label Text="Uses the Scholar, day and time chosen above. The area is a place: the Scholar sees every class scheduled in the rooms of this campus, building and floor during these hours, whoever teaches it." FontSize="13" TextColor="{StaticResource Gray600}" />
                 <controls:LabeledPicker Caption="Campus" Title="Choose campus" ItemsSource="{Binding Campuses}" SelectedItem="{Binding SelectedCampus, Mode=TwoWay}" />
-                <controls:LabeledPicker Caption="School (college)" Title="Choose school" ItemsSource="{Binding Schools}" SelectedItem="{Binding SelectedSchool, Mode=TwoWay}" />
-                <controls:LabeledPicker Caption="Department" Title="Choose school first" ItemsSource="{Binding Departments}" SelectedItem="{Binding SelectedDepartment, Mode=TwoWay}" />
-                <controls:LabeledEntry Caption="Building (optional)" Placeholder="Leave empty for all buildings" Text="{Binding Building, Mode=TwoWay}" />
+                <controls:LabeledEntry Caption="Building (optional)" Placeholder="Leave empty for the whole campus" Text="{Binding Building, Mode=TwoWay}" />
                 <controls:LabeledEntry Caption="Floor (optional)" Placeholder="Leave empty for all floors" Text="{Binding Floor, Mode=TwoWay}" />
                 <controls:Banners />
                 <Button Text="{Binding SaveText}" Command="{Binding SaveDutyCommand}" IsEnabled="{Binding IsNotBusy}" />

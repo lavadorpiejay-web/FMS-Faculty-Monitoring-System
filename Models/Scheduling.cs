@@ -21,7 +21,8 @@ public sealed record ClassSchedule
     public string End { get; init; } = "09:00";
 }
 
-/// <summary>A READS Scholar's weekly duty: where (monitoring area) and when. Empty Department/Building/Floor = no restriction.</summary>
+/// <summary>A READS Scholar's weekly duty: where (monitoring area: campus, building, floor) and when. Empty Building/Floor = no restriction.
+/// School and Department are no longer used for matching; they stay so older saved duties still load.</summary>
 public sealed record DutyAssignment
 {
     public string Id { get; init; } = "";
