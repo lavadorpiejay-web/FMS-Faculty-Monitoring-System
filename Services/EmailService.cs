@@ -1,10 +1,11 @@
-using System.Net;
-using System.Net.Mail;
 using System.Text.Json;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
 
 namespace FacultyMonitoring.Services;
 
-/// <param name="Sent">The email really left the app (SMTP accepted it).</param>
+/// <param name="Sent">The email really left the app (the mail server accepted it).</param>
 /// <param name="Simulated">No mail account is set up, so nothing was sent; the caller shows the message on screen instead.</param>
 public sealed record EmailSendResult(bool Sent, bool Simulated, string Message);
 
@@ -28,8 +29,10 @@ public sealed class EmailSettings
 }
 
 /// <summary>
-/// Sends real email through SMTP when Resources\Raw\emailsettings.json is filled in.
-/// Without it the app runs in "simulated email" mode: nothing is sent and the code is shown on screen,
+/// Sends real email through SMTP (MailKit) when Resources\Raw\emailsettings.json is filled in.
+/// It tries the configured port first (587 = STARTTLS) and, if that fails, port 465 (SSL from the start),
+/// because some networks only let one of them through.
+/// Without the settings file the app runs in "simulated email" mode: nothing is sent and the code is shown on screen,
 /// so the whole flow can still be tested.
 /// </summary>
 public sealed class EmailService : IEmailService
@@ -49,31 +52,48 @@ public sealed class EmailService : IEmailService
         return _settings;
     }
 
+    private static async Task SendOnceAsync(EmailSettings s, int port, SecureSocketOptions security, MimeMessage message)
+    {
+        using var client = new SmtpClient { Timeout = 20000 };
+        await client.ConnectAsync(s.Host, port, security);
+        await client.AuthenticateAsync(s.User, s.AppPassword.Replace(" ", ""));
+        await client.SendAsync(message);
+        await client.DisconnectAsync(true);
+    }
+
     public async Task<EmailSendResult> SendAsync(string to, string subject, string body)
     {
         var s = await LoadSettingsAsync();
         if (!s.IsConfigured)
             return new EmailSendResult(false, true, $"To: {to}\nSubject: {subject}\n\n{body}");
 
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(s.FromName, s.User));
+        message.To.Add(MailboxAddress.Parse(to));
+        message.Subject = subject;
+        message.Body = new TextPart("plain") { Text = body };
+
+        string first, second = "";
         try
         {
-#pragma warning disable SYSLIB0014
-            using var client = new SmtpClient(s.Host, s.Port)
-            {
-                EnableSsl = true,
-                Credentials = new NetworkCredential(s.User, s.AppPassword),
-                Timeout = 20000
-            };
-#pragma warning restore SYSLIB0014
-            using var mail = new MailMessage { From = new MailAddress(s.User, s.FromName), Subject = subject, Body = body };
-            mail.To.Add(to);
-            await client.SendMailAsync(mail);
+            await SendOnceAsync(s, s.Port, s.Port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls, message);
             return new EmailSendResult(true, false, "Email sent.");
         }
-        catch (Exception)
+        catch (Exception ex) { first = $"port {s.Port}: {ex.GetType().Name}: {ex.Message}"; }
+
+        // A wrong password will not get better on another port, but a blocked TLS handshake can.
+        if (s.Port != 465)
         {
-            return new EmailSendResult(false, false,
-                "The email could not be sent. Check your internet connection and the mail settings, then try again.");
+            try
+            {
+                await SendOnceAsync(s, 465, SecureSocketOptions.SslOnConnect, message);
+                return new EmailSendResult(true, false, "Email sent.");
+            }
+            catch (Exception ex) { second = $"port 465: {ex.GetType().Name}: {ex.Message}"; }
         }
+
+        return new EmailSendResult(false, false,
+            "The email could not be sent. Check your internet connection and the mail settings, then try again.\n\nReason:\n" +
+            first + (second.Length > 0 ? "\n" + second : ""));
     }
 }
