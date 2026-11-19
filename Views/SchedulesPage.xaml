@@ -13,10 +13,16 @@
               <VerticalStackLayout Spacing="12">
                 <Label Text="Encode a faculty schedule" Style="{StaticResource SectionTitle}" />
                 <Label Text="The initial schedule is the baseline READS checkers monitor. Two classes cannot share a room or a Faculty member at the same time." FontSize="13" TextColor="{StaticResource Gray600}" />
-                <controls:LabeledPicker Caption="Faculty member" Title="Choose Faculty" ItemsSource="{Binding FacultyLabels}" SelectedItem="{Binding SelectedFaculty, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="School" Title="Choose school" ItemsSource="{Binding SchoolChoices}" SelectedItem="{Binding SelectedSchool, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Department" Title="Choose school first, then department" ItemsSource="{Binding DepartmentChoices}" SelectedItem="{Binding SelectedDepartment, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Faculty member" Title="Choose department first, then faculty" ItemsSource="{Binding FacultyLabels}" SelectedItem="{Binding SelectedFaculty, Mode=TwoWay}" />
                 <controls:LabeledPicker Caption="Subject" Title="Choose faculty first, then subject" ItemsSource="{Binding SubjectLabels}" SelectedItem="{Binding SelectedSubject, Mode=TwoWay}" />
                 <controls:LabeledPicker Caption="Classroom" Title="Choose classroom" ItemsSource="{Binding RoomLabels}" SelectedItem="{Binding SelectedRoom, Mode=TwoWay}" />
-                <controls:LabeledPicker Caption="Day" Title="Choose day" ItemsSource="{Binding Days}" SelectedItem="{Binding SelectedDay, Mode=TwoWay}" />
+                <VerticalStackLayout Spacing="4">
+                  <Label Text="Date (calendar)" FontSize="12" TextColor="{StaticResource Gray600}" />
+                  <DatePicker Date="{Binding SelectedDate, Mode=TwoWay}" Format="dddd, MMM d, yyyy" />
+                  <Label Text="{Binding RepeatText}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                </VerticalStackLayout>
                 <controls:LabeledPicker Caption="Start time" Title="Choose start" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedStart, Mode=TwoWay}" />
                 <controls:LabeledPicker Caption="End time" Title="Choose end" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedEnd, Mode=TwoWay}" />
                 <controls:Banners />

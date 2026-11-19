@@ -66,9 +66,9 @@ public sealed class ScheduleService
                                          && ScheduleRules.Overlaps(s.Start, s.End, candidate.Start, candidate.End)))
         {
             if (s.ClassroomId == candidate.ClassroomId)
-                return $"That room is already used by {s.SubjectCode} ({s.FacultyName}) on {s.Day}, {ScheduleRules.Range(s.Start, s.End)}.";
+                return $"That room is already used by {s.SubjectCode} ({s.FacultyName}) on {s.Day}, {TimeFormat.Range(s.Start, s.End)}.";
             if (s.FacultyUserId == candidate.FacultyUserId)
-                return $"{candidate.FacultyName} already teaches {s.SubjectCode} on {s.Day}, {ScheduleRules.Range(s.Start, s.End)}.";
+                return $"{candidate.FacultyName} already teaches {s.SubjectCode} on {s.Day}, {TimeFormat.Range(s.Start, s.End)}.";
         }
         return null;
     }

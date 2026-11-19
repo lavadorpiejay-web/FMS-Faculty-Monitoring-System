@@ -28,9 +28,14 @@ public partial class RoomsViewModel : PageViewModelBase
 
     public bool HasNoRooms => !HasRooms;
 
-    // Floors sort as numbers when they are numbers ("2" before "10"), otherwise as text.
-    private static (int, string) FloorKey(string floor) =>
-        int.TryParse(floor, out var n) ? (n, "") : (int.MaxValue, floor);
+    // Floors sort as numbers when they are numbers ("2" before "10"). Basements "B-1", "B-2" come first, going down
+    // (lower basement before upper basement, below the ground floors). Anything else sorts last as text.
+    private static (int, string) FloorKey(string floor)
+    {
+        if (int.TryParse(floor, out var n)) return (n, "");
+        if (floor.StartsWith("B-", StringComparison.OrdinalIgnoreCase) && int.TryParse(floor[2..], out var b)) return (-b, "");
+        return (int.MaxValue, floor);
+    }
 
     private static int CampusOrder(string campus)
     {
@@ -55,7 +60,7 @@ public partial class RoomsViewModel : PageViewModelBase
                 var key = $"{g.Key.Campus}|{g.Key.Building}".ToLowerInvariant();
                 var rows = g.OrderBy(r => FloorKey(r.Floor)).ThenBy(r => r.RoomNo, StringComparer.OrdinalIgnoreCase)
                     .Select(r => new ListRow(r.Id, $"Room {r.RoomNo}",
-                        $"Floor {(r.Floor.Length > 0 ? r.Floor : "-")} | {(r.School.Length > 0 ? r.School : "no school set")}"))
+                        $"Floor {(r.Floor.Length > 0 ? r.Floor : "-")} | {(r.School.Length > 0 ? r.School : "shared between schools")}"))
                     .ToList();
                 return new RowGroup(key, g.Key.Building, g.Key.Campus, rows, open.Contains(key));
             })

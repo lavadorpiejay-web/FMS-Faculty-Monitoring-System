@@ -133,20 +133,26 @@ public static class SeedData
         return subjects;
     }
 
+    /// <summary>Main Campus classrooms from <see cref="CampusLayout"/>: RoomsPerFloor rooms on every floor of every enabled building.</summary>
     public static List<Classroom> Classrooms()
     {
-        var school = AcademicCatalog.Schools[0].Name;
-        return new()
-        {
-            new() { Id = "R-001", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Main", Floor = "1", RoomNo = "101" },
-            new() { Id = "R-002", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Main", Floor = "2", RoomNo = "202" },
-            new() { Id = "R-003", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Science", Floor = "1", RoomNo = "Lab 1" },
-            new() { Id = "R-004", Campus = AcademicCatalog.DefaultCampus, School = school, Building = "Engineering", Floor = "3", RoomNo = "301" },
-        };
+        var rooms = new List<Classroom>();
+        foreach (var building in CampusLayout.MainCampus.Where(b => b.Enabled))
+            foreach (var floor in building.Floors)
+                for (var n = 1; n <= CampusLayout.RoomsPerFloor; n++)
+                    rooms.Add(new Classroom
+                    {
+                        Id = $"R-{rooms.Count + 1:000}", Campus = AcademicCatalog.DefaultCampus,
+                        School = floor.School ?? "",   // empty = shared: the Dean of the requesting faculty's school approves
+                        Building = building.Code, Floor = floor.Floor, RoomNo = CampusLayout.RoomName(floor.Floor, n)
+                    });
+        return rooms;
     }
 
     // ---- Sample schedule data (debug builds only) so every screen has something to show -------------------------------
-    // Every department's dummy Faculty teaches its "<CODE>101" subject on Mondays. Rooms R-001..R-004 are used in turn.
+    // Every department's dummy Faculty teaches its "<CODE>101" subject on Mondays.
+    // School of Engineering and Architecture classes use the San Agustin basement rooms (B-1, then B-2);
+    // the other schools' sample classes use the shared San Agustin 2nd floor until their own buildings are enabled.
 
     public static List<ClassSchedule> Schedules()
     {
@@ -154,17 +160,25 @@ public static class SeedData
         var rooms = Classrooms();
         var subjects = Subjects();
         var units = Units();
+        var engineering = AcademicCatalog.Schools[0].Name;
+        var basement = rooms.Where(r => r.Building == "SA" && r.School == engineering).ToList();   // B-1 then B-2 (20 rooms)
+        var shared = rooms.Where(r => r.Building == "SA" && r.School.Length == 0).ToList();       // 2nd floor (10 rooms)
         var list = new List<ClassSchedule>();
+        var engIndex = 0; var otherIndex = 0;
         for (var i = 0; i < units.Count; i++)
         {
             var u = units[i];
             var subject = subjects.First(s => s.Department == u.Department);
-            var startMinutes = 8 * 60 + (i / rooms.Count) * 90;       // first four classes 8:00, next ones 9:30
+            var isEng = u.School == engineering;
+            var pool = isEng ? basement : shared;
+            var n = isEng ? engIndex++ : otherIndex++;
+            var room = pool[n % pool.Count];
+            var startMinutes = 8 * 60 + (n / pool.Count) * 90;       // first pool-full of classes at 8:00, the next at 9:30
             list.Add(new ClassSchedule
             {
                 Id = $"S-seed-{u.Code}", FacultyUserId = $"U-FAC-{u.Code}", FacultyName = $"Faculty {u.Code.ToUpperInvariant()} (dummy)",
                 School = u.School, Department = u.Department, SubjectCode = subject.Code, SubjectTitle = subject.Title,
-                ClassroomId = rooms[i % rooms.Count].Id, Day = DayOfWeek.Monday,
+                ClassroomId = room.Id, Day = DayOfWeek.Monday,
                 Start = $"{startMinutes / 60:00}:{startMinutes % 60:00}", End = $"{(startMinutes + 90) / 60:00}:{(startMinutes + 90) % 60:00}"
             });
         }
@@ -176,17 +190,17 @@ public static class SeedData
 
     // Monitoring areas are places, not departments: a READS Scholar sees the classes scheduled in the rooms of the area,
     // whoever teaches them.
-    // rds01 monitors the "Main" building (rooms 101 and 202) on the Main Campus, Mondays 8:00-11:00.
-    // rds02 monitors floor 3 of the "Engineering" building on the Main Campus, Mondays 8:00-9:30.
+    // rds01 monitors the whole San Agustin building ("SA") on the Main Campus, Mondays 8:00-11:00.
+    // rds02 monitors the upper basement (floor "B-1") of San Agustin on the Main Campus, Mondays 8:00-9:30.
     public static List<DutyAssignment> Duties()
     {
 #if DEBUG
         return new()
         {
             new() { Id = "D-seed-1", ReadsUserId = "U-READS-1", ReadsName = "READS Scholar 1 (dummy)", Campus = AcademicCatalog.DefaultCampus,
-                    Building = "Main", Floor = "", Day = DayOfWeek.Monday, Start = "08:00", End = "11:00" },
+                    Building = "SA", Floor = "", Day = DayOfWeek.Monday, Start = "08:00", End = "11:00" },
             new() { Id = "D-seed-2", ReadsUserId = "U-READS-2", ReadsName = "READS Scholar 2 (dummy)", Campus = AcademicCatalog.DefaultCampus,
-                    Building = "Engineering", Floor = "3", Day = DayOfWeek.Monday, Start = "08:00", End = "09:30" },
+                    Building = "SA", Floor = "B-1", Day = DayOfWeek.Monday, Start = "08:00", End = "09:30" },
         };
 #else
         return new();

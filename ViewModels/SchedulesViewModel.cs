@@ -17,16 +17,19 @@ public partial class SchedulesViewModel : PageViewModelBase
     public SchedulesViewModel(ScheduleService service) => _service = service;
 
     public ObservableCollection<SchoolGroup> Schools { get; } = new();
-    public IReadOnlyList<string> Days { get; } = ScheduleRules.DayNames;
-    public IReadOnlyList<string> Times { get; } = ScheduleRules.Times;
+    public IReadOnlyList<string> SchoolChoices { get; } = AcademicCatalog.SchoolNames;
+    public IReadOnlyList<string> Times { get; } = ScheduleRules.Times.Select(TimeFormat.To12h).ToList();
 
+    [ObservableProperty] private IReadOnlyList<string> _departmentChoices = Array.Empty<string>();
+    [ObservableProperty] private string? _selectedSchool;
+    [ObservableProperty] private string? _selectedDepartment;
     [ObservableProperty] private IReadOnlyList<string> _facultyLabels = Array.Empty<string>();
     [ObservableProperty] private IReadOnlyList<string> _subjectLabels = Array.Empty<string>();
     [ObservableProperty] private IReadOnlyList<string> _roomLabels = Array.Empty<string>();
     [ObservableProperty] private string? _selectedFaculty;
     [ObservableProperty] private string? _selectedSubject;
     [ObservableProperty] private string? _selectedRoom;
-    [ObservableProperty] private string? _selectedDay;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(RepeatText))] private DateTime _selectedDate = DateTime.Today;
     [ObservableProperty] private string? _selectedStart;
     [ObservableProperty] private string? _selectedEnd;
     [ObservableProperty]
@@ -34,6 +37,9 @@ public partial class SchedulesViewModel : PageViewModelBase
     private bool _hasRows;
 
     public bool HasNoRows => !HasRows;
+
+    /// <summary>Schedules repeat weekly, so the chosen calendar date only decides the weekday.</summary>
+    public string RepeatText => $"Repeats every {SelectedDate.DayOfWeek}";
 
     // Catalog order first (so schools and departments follow AcademicCatalog), anything unknown last.
     private static int CatalogOrder(IReadOnlyList<string> catalog, string name)
@@ -44,6 +50,29 @@ public partial class SchedulesViewModel : PageViewModelBase
     }
 
     private static string SubjectLabel(Subject s) => $"{s.Code} - {s.Title}";
+
+    // Faculty are chosen school first, then department, then the person.
+    partial void OnSelectedSchoolChanged(string? value)
+    {
+        SelectedDepartment = null;
+        DepartmentChoices = value is null ? Array.Empty<string>() : AcademicCatalog.DepartmentsOf(value).ToList();
+        RefreshFacultyLabels();
+    }
+
+    partial void OnSelectedDepartmentChanged(string? value)
+    {
+        SelectedFaculty = null;
+        RefreshFacultyLabels();
+    }
+
+    private void RefreshFacultyLabels()
+    {
+        var labels = SelectedSchool is null || SelectedDepartment is null
+            ? new List<string>()
+            : _faculty.Where(kv => kv.Value.School == SelectedSchool && kv.Value.Department == SelectedDepartment)
+                      .Select(kv => kv.Key).ToList();
+        if (!FacultyLabels.SequenceEqual(labels)) FacultyLabels = labels;
+    }
 
     // The subject list follows the chosen Faculty member's department.
     partial void OnSelectedFacultyChanged(string? value)
@@ -60,8 +89,7 @@ public partial class SchedulesViewModel : PageViewModelBase
 
         _faculty = new Dictionary<string, UserAccount>();
         foreach (var u in await _service.GetFacultyAsync()) _faculty.TryAdd($"{u.FullName} ({u.SisId})", u);
-        var facultyLabels = _faculty.Keys.ToList();
-        if (!FacultyLabels.SequenceEqual(facultyLabels)) FacultyLabels = facultyLabels;
+        RefreshFacultyLabels();
 
         var rooms = await _service.GetRoomsAsync();
         _rooms = rooms.ToDictionary(r => ScheduleRules.RoomLabel(r));
@@ -91,7 +119,7 @@ public partial class SchedulesViewModel : PageViewModelBase
                         {
                             byId.TryGetValue(s.ClassroomId, out var room);
                             return new ListRow(s.Id, $"{s.SubjectCode} - {s.SubjectTitle}",
-                                $"{s.FacultyName} | {s.Day} {ScheduleRules.Range(s.Start, s.End)} | {ScheduleRules.RoomLabel(room)}");
+                                $"{s.FacultyName} | {s.Day} {TimeFormat.Range(s.Start, s.End)} | {ScheduleRules.RoomLabel(room)}");
                         }).ToList();
                         return new RowGroup(key, d.Key, "", rows, openDepts.Contains(key));
                     }).ToList();
@@ -111,7 +139,6 @@ public partial class SchedulesViewModel : PageViewModelBase
         if (SelectedFaculty is null || !_faculty.TryGetValue(SelectedFaculty, out var faculty)) { ErrorMessage = "Choose a Faculty member."; return; }
         if (SelectedSubject is null) { ErrorMessage = "Choose a subject."; return; }
         if (SelectedRoom is null || !_rooms.TryGetValue(SelectedRoom, out var room)) { ErrorMessage = "Choose a classroom."; return; }
-        if (SelectedDay is null) { ErrorMessage = "Choose a day."; return; }
 
         var subject = _subjects.FirstOrDefault(s => s.Department == faculty.Department && SubjectLabel(s) == SelectedSubject);
         if (subject is null) { ErrorMessage = "Choose a subject."; return; }
@@ -119,7 +146,8 @@ public partial class SchedulesViewModel : PageViewModelBase
         try
         {
             IsBusy = true;
-            var result = await _service.AddAsync(faculty.Id, subject.Code, room.Id, SelectedDay, SelectedStart, SelectedEnd);
+            var result = await _service.AddAsync(faculty.Id, subject.Code, room.Id, SelectedDate.DayOfWeek.ToString(),
+                TimeFormat.To24h(SelectedStart), TimeFormat.To24h(SelectedEnd));
             Show(result);
             if (result.Success) await LoadAsync();
         }
