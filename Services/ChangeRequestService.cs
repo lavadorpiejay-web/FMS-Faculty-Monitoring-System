@@ -4,7 +4,8 @@ namespace FacultyMonitoring.Services;
 
 /// <summary>
 /// Faculty ask for a schedule change (approved by their department's Chairperson) or a room change (approved by the Dean of the
-/// school that owns the room). Once approved, IMS Personnel see it in their Changes list and apply it to the master schedule.
+/// requesting Faculty's school; rooms belong to no school). Once approved, IMS Personnel check the room availability and either
+/// approve and apply it to the master schedule or decline it. A room change therefore needs both the Dean and IMS Personnel.
 /// </summary>
 public sealed class ChangeRequestService
 {
@@ -111,7 +112,7 @@ public sealed class ChangeRequestService
             request = new ChangeRequest
             {
                 Kind = kind, ProposedClassroomId = room.Id, ApproverRole = UserRole.Dean,
-                ApproverSchool = room.School.Length > 0 ? room.School : s.School,
+                ApproverSchool = s.School,   // rooms belong to no school: the requesting Faculty's own Dean approves
                 Summary = $"Room: {ScheduleRules.RoomLabel(oldRoom)} to {ScheduleRules.RoomLabel(room)}"
             };
             var conflict = ScheduleService.FindConflict(schedules, Apply(s, request, subjects));
@@ -129,12 +130,12 @@ public sealed class ChangeRequestService
         await _audit.LogAsync("Change requested", $"{me.FullName}: {request.ScheduleLabel}. {request.Summary}");
 
         var who = kind == ChangeKind.Schedule ? "your Chairperson" : "the Dean";
-        return new OperationResult(true, $"Request sent to {who} for approval.");
+        return new OperationResult(true, $"Request sent to {who} for approval. IMS Personnel then check the availability and give the final approval.");
     }
 
     // ------------------------------------------------------ Chairperson / Dean
 
-    /// <summary>Chairperson: schedule requests of the department. Dean: room requests for rooms of the school.</summary>
+    /// <summary>Chairperson: schedule requests of the department. Dean: room requests of the Faculty of the school.</summary>
     public async Task<List<ChangeRequest>> GetPendingForMeAsync()
     {
         var me = _session.CurrentUser;
@@ -167,7 +168,7 @@ public sealed class ChangeRequestService
         await _audit.LogAsync(approve ? "Change approved" : "Change declined", $"{all[i].RequesterName}: {all[i].ScheduleLabel}. {all[i].Summary}");
 
         return new OperationResult(true, approve
-            ? "Approved. IMS Personnel have been notified and will update the schedule."
+            ? "Approved. IMS Personnel will now check the availability and give the final approval."
             : "Declined. The Faculty member will see the decision.");
     }
 
@@ -184,6 +185,38 @@ public sealed class ChangeRequestService
     {
         if (_session.Role != UserRole.ImsPersonnel) return 0;
         return (await LoadAsync()).Count(r => r.Status == ChangeStatus.Pending);
+    }
+
+    /// <summary>IMS Personnel: what the availability check says about an approved request (room free, no Faculty clash), shown before they decide.</summary>
+    public async Task<string> GetAvailabilityNoteAsync(ChangeRequest request)
+    {
+        if (_session.Role != UserRole.ImsPersonnel) return "";
+        await _storage.InitializeAsync();
+        var schedules = await _storage.LoadAsync<ClassSchedule>(JsonStorageService.SchedulesFile);
+        var s = schedules.FirstOrDefault(x => x.Id == request.ScheduleId);
+        if (s is null) return "Availability: the schedule no longer exists.";
+        var subjects = await _storage.LoadAsync<Subject>(JsonStorageService.SubjectsFile);
+        var conflict = ScheduleService.FindConflict(schedules, Apply(s, request, subjects));
+        return conflict is null
+            ? (request.Kind == ChangeKind.Room ? "Availability: the room is vacant at that time." : "Availability: no clash with another class.")
+            : "Availability: NOT available. " + conflict;
+    }
+
+    /// <summary>IMS Personnel: decline an approved request, for example when the room is not available. The Faculty member sees the decision.</summary>
+    public async Task<OperationResult> DeclineAsync(string requestId)
+    {
+        var me = _session.CurrentUser;
+        if (me is null || me.Role != UserRole.ImsPersonnel) return Fail("Only IMS Personnel can decline here.");
+
+        var requests = await LoadAsync();
+        var ri = requests.FindIndex(r => r.Id == requestId && r.Status == ChangeStatus.Approved);
+        if (ri < 0) return Fail("That request is not waiting for IMS Personnel.");
+
+        var request = requests[ri];
+        requests[ri] = request with { Status = ChangeStatus.Declined, DecidedUtc = DateTime.UtcNow, DecidedByName = $"{me.FullName} (IMS Personnel)" };
+        await _storage.SaveAsync(JsonStorageService.RequestsFile, requests);
+        await _audit.LogAsync("Change declined by IMS", $"{request.RequesterName}: {request.ScheduleLabel}. {request.Summary}");
+        return new OperationResult(true, "Declined. The Faculty member will see the decision.");
     }
 
     public async Task<OperationResult> ApplyAsync(string requestId)

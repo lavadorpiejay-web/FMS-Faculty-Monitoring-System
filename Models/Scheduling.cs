@@ -146,6 +146,14 @@ public sealed record AuditEntry
 /// <summary>A generic two-line list item. Id is what a Remove / Edit / Approve button acts on.</summary>
 public sealed record ListRow(string Id, string Title, string Detail, string Extra = "");
 
+/// <summary>One row of the IMS Rooms table: a room on a day, in a time, either Vacant or used by a class.</summary>
+public sealed record RoomAvailabilityRow(string Room, string Day, string Time, string Availability, string Faculty,
+    string Subject, string SchoolDepartment, bool IsVacant)
+{
+    public Microsoft.Maui.Graphics.Color StatusColor => IsVacant
+        ? Microsoft.Maui.Graphics.Colors.ForestGreen : Microsoft.Maui.Graphics.Colors.Firebrick;
+}
+
 /// <summary>A class a READS Scholar can see during duty, with whether it can be logged right now.</summary>
 /// <summary>Stage: 0 = nothing to do now, 1 = first check (5 minutes after the start) is open, 2 = end check (5 minutes before the end) is open.</summary>
 public sealed record MonitorRow(string ScheduleId, string Title, string Detail, string State, bool CanLog, int Stage = 0)

@@ -10,7 +10,7 @@ namespace FacultyMonitoring.ViewModels;
 public partial class FacultyScheduleViewModel : PageViewModelBase
 {
     private const string ScheduleKind = "Schedule change (approved by your Chairperson)";
-    private const string RoomKind = "Room change (approved by the Dean)";
+    private const string RoomKind = "Room change (approved by the Dean, then IMS Personnel)";
 
     private readonly ScheduleService _schedules;
     private readonly ChangeRequestService _requests;
@@ -82,7 +82,12 @@ public partial class FacultyScheduleViewModel : PageViewModelBase
         RequestRows.Clear();
         foreach (var r in await _requests.GetMineAsync())
         {
-            var decided = r.Status == ChangeStatus.Pending ? "waiting for approval" : r.Status.ToString().ToLowerInvariant();
+            var decided = r.Status switch
+            {
+                ChangeStatus.Pending => r.Kind == ChangeKind.Room ? "waiting for the Dean" : "waiting for your Chairperson",
+                ChangeStatus.Approved => "approved, waiting for IMS Personnel",
+                _ => r.Status.ToString().ToLowerInvariant()
+            };
             RequestRows.Add(new ListRow(r.Id, $"{r.ScheduleLabel} - {decided}",
                 $"{(r.Kind == ChangeKind.Room ? "Room" : "Schedule")} change: {r.Summary}\nReason: {r.Reason}",
                 r.DecidedByName.Length > 0 ? $"Decided by {r.DecidedByName}" : ""));

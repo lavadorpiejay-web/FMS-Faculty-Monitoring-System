@@ -71,10 +71,15 @@
                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ApprovalsHomeViewModel}}, Path=DeclineRequestCommand}"
                                                 CommandParameter="{Binding .}" />
                                     </Grid>
-                                    <Button Text="Apply to schedule" HeightRequest="40" FontSize="13"
-                                            IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:ApprovalsHomeViewModel}}, Path=IsIms}"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ApprovalsHomeViewModel}}, Path=ApplyChangeCommand}"
-                                            CommandParameter="{Binding .}" />
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8"
+                                          IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:ApprovalsHomeViewModel}}, Path=IsIms}">
+                                        <Button Text="Approve and apply" HeightRequest="40" FontSize="13"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ApprovalsHomeViewModel}}, Path=ApplyChangeCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        <Button Grid.Column="1" Text="Decline" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ApprovalsHomeViewModel}}, Path=ImsDeclineCommand}"
+                                                CommandParameter="{Binding .}" />
+                                    </Grid>
                                 </VerticalStackLayout>
                             </DataTemplate>
                         </BindableLayout.ItemTemplate>

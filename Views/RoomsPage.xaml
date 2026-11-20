@@ -12,38 +12,82 @@
             <Border Style="{StaticResource Card}" Padding="20">
               <VerticalStackLayout Spacing="12">
                 <Label Text="Room availability" Style="{StaticResource SectionTitle}" />
-                <Label Text="Main Campus classrooms are fixed. Choose a building, floor, day and time to see which rooms are occupied or vacant. To use a room, add a schedule on the Schedules tab." FontSize="13" TextColor="{StaticResource Gray600}" />
+                <Label Text="Main Campus classrooms are fixed and belong to no school. Choose a building, an optional floor, the days and the time to see which rooms are occupied or vacant. To use a room, add a schedule on the Schedules tab." FontSize="13" TextColor="{StaticResource Gray600}" />
                 <controls:LabeledPicker Caption="Building" Title="Choose building" ItemsSource="{Binding BuildingChoices}" SelectedItem="{Binding SelectedBuilding, Mode=TwoWay}" />
                 <controls:LabeledPicker Caption="Floor (optional)" Title="Choose building first, then floor" ItemsSource="{Binding FloorChoices}" SelectedItem="{Binding SelectedFloor, Mode=TwoWay}" />
-                <controls:LabeledPicker Caption="Day" Title="Choose day" ItemsSource="{Binding Days}" SelectedItem="{Binding SelectedDay, Mode=TwoWay}" />
-                <controls:LabeledPicker Caption="From" Title="Choose start" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedStart, Mode=TwoWay}" />
-                <controls:LabeledPicker Caption="To" Title="Choose end" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedEnd, Mode=TwoWay}" />
+                <VerticalStackLayout Spacing="4">
+                  <Label Text="Days (tick every day to check)" FontSize="12" TextColor="{StaticResource Gray600}" />
+                  <FlexLayout Wrap="Wrap" JustifyContent="Start" BindableLayout.ItemsSource="{Binding Days}">
+                    <BindableLayout.ItemTemplate>
+                      <DataTemplate x:DataType="models:DayChoice">
+                        <HorizontalStackLayout Spacing="2" Margin="0,0,12,0">
+                          <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                          <Label Text="{Binding ShortName}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                      </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                  </FlexLayout>
+                </VerticalStackLayout>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <Label Grid.Column="0" Text="Same time for every day" VerticalOptions="Center" />
+                  <Switch Grid.Column="1" IsToggled="{Binding SameTime, Mode=TwoWay}" />
+                </Grid>
+                <controls:LabeledPicker Caption="Start time" Title="Choose start" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedStart, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="End time" Title="Choose end" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedEnd, Mode=TwoWay}" />
+                <VerticalStackLayout Spacing="10" IsVisible="{Binding DifferentTimes}">
+                  <Label Text="Times for each ticked day (they start from the time above)" FontSize="12" TextColor="{StaticResource Gray600}" />
+                  <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding CustomDays}">
+                    <BindableLayout.ItemTemplate>
+                      <DataTemplate x:DataType="models:DayChoice">
+                        <VerticalStackLayout Spacing="4">
+                          <Label Text="{Binding Name}" FontAttributes="Bold" />
+                          <controls:LabeledPicker Caption="Start" Title="Choose start" SelectedItem="{Binding Start, Mode=TwoWay}"
+                                                  ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:RoomsViewModel}}, Path=Times}" />
+                          <controls:LabeledPicker Caption="End" Title="Choose end" SelectedItem="{Binding End, Mode=TwoWay}"
+                                                  ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:RoomsViewModel}}, Path=Times}" />
+                        </VerticalStackLayout>
+                      </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                  </VerticalStackLayout>
+                </VerticalStackLayout>
               </VerticalStackLayout>
             </Border>
-            <Border Style="{StaticResource Card}" Padding="20" IsVisible="{Binding FloorSelected}">
-              <VerticalStackLayout Spacing="12">
-                <Label Text="School assigned to this floor" Style="{StaticResource SectionTitle}" />
-                <Label Text="The Dean of this school approves room changes into this floor's rooms." FontSize="13" TextColor="{StaticResource Gray600}" />
-                <controls:LabeledPicker Caption="School" Title="Choose school" ItemsSource="{Binding Schools}" SelectedItem="{Binding FloorSchool, Mode=TwoWay}" />
-                <controls:Banners />
-                <Button Text="Save assigned school" Command="{Binding SaveFloorSchoolCommand}" IsEnabled="{Binding IsNotBusy}" />
-              </VerticalStackLayout>
-            </Border>
+
             <Border Style="{StaticResource Card}" Padding="20">
               <VerticalStackLayout Spacing="12">
                 <Label Text="Rooms" Style="{StaticResource SectionTitle}" />
                 <Label Text="{Binding Summary}" FontSize="13" TextColor="{StaticResource Gray600}" />
                 <Label Text="Choose a building to list its rooms." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoRooms}" />
-                <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding RoomRows}">
-                  <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="models:ListRow">
-                      <VerticalStackLayout Spacing="2">
-                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
-                        <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
-                      </VerticalStackLayout>
-                    </DataTemplate>
-                  </BindableLayout.ItemTemplate>
-                </VerticalStackLayout>
+                <Label Text="Swipe the table sideways to see every column." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasRooms}" />
+                <ScrollView Orientation="Horizontal" IsVisible="{Binding HasRooms}">
+                  <VerticalStackLayout Spacing="0">
+                    <Grid ColumnDefinitions="80,90,160,90,150,210,260" ColumnSpacing="8" Padding="4,8" BackgroundColor="{StaticResource Ivory}">
+                      <Label Grid.Column="0" Text="Room" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
+                      <Label Grid.Column="1" Text="Day" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
+                      <Label Grid.Column="2" Text="Time" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
+                      <Label Grid.Column="3" Text="Availability" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
+                      <Label Grid.Column="4" Text="Faculty" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
+                      <Label Grid.Column="5" Text="Subject" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
+                      <Label Grid.Column="6" Text="School / Department" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
+                    </Grid>
+                    <VerticalStackLayout Spacing="0" BindableLayout.ItemsSource="{Binding Table}">
+                      <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:RoomAvailabilityRow">
+                          <Grid ColumnDefinitions="80,90,160,90,150,210,260" ColumnSpacing="8" Padding="4,8">
+                            <Label Grid.Column="0" Text="{Binding Room}" FontSize="13" FontAttributes="Bold" />
+                            <Label Grid.Column="1" Text="{Binding Day}" FontSize="13" />
+                            <Label Grid.Column="2" Text="{Binding Time}" FontSize="13" />
+                            <Label Grid.Column="3" Text="{Binding Availability}" FontSize="13" FontAttributes="Bold" TextColor="{Binding StatusColor}" />
+                            <Label Grid.Column="4" Text="{Binding Faculty}" FontSize="13" />
+                            <Label Grid.Column="5" Text="{Binding Subject}" FontSize="13" />
+                            <Label Grid.Column="6" Text="{Binding SchoolDepartment}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                            <BoxView Grid.ColumnSpan="7" HeightRequest="1" VerticalOptions="End" Color="{StaticResource Gray200}" />
+                          </Grid>
+                        </DataTemplate>
+                      </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                  </VerticalStackLayout>
+                </ScrollView>
               </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>

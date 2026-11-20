@@ -154,7 +154,7 @@ public static class SeedData
                     rooms.Add(new Classroom
                     {
                         Id = $"R-{rooms.Count + 1:000}", Campus = AcademicCatalog.DefaultCampus,
-                        School = floor.AssignedSchool ?? "",   // school assigned to the floor; empty = none yet (the requesting faculty's Dean approves)
+                        // Rooms belong to no school: schools share buildings and floors, so the requesting Faculty's own Dean approves a room change.
                         Building = building.Code, Floor = floor.Floor, RoomNo = CampusLayout.RoomName(floor.Floor, n)
                     });
         return rooms;

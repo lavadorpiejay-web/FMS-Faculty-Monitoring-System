@@ -9,8 +9,8 @@ namespace FacultyMonitoring.ViewModels;
 /// <summary>
 /// Home page of the three roles that approve things.
 /// Chairperson: Faculty accounts + schedule change requests of the department.
-/// Dean: Chairperson accounts + classroom change requests for the school's rooms.
-/// IMS Personnel: READS Scholar accounts + approved changes waiting to be applied to the master schedule.
+/// Dean: Chairperson accounts + classroom change requests of the school's Faculty.
+/// IMS Personnel: READS Scholar accounts + approved changes waiting for their availability check and final approval.
 /// All rules stay in ApprovalService and ChangeRequestService; this page only shows their lists and calls them.
 /// </summary>
 public partial class ApprovalsHomeViewModel : PageViewModelBase
@@ -77,13 +77,14 @@ public partial class ApprovalsHomeViewModel : PageViewModelBase
         Requests.Clear();
         if (role == UserRole.ImsPersonnel)
         {
-            RequestsExplanation = "Faculty requests approved by a Chairperson or Dean. Apply them to update the master schedule.";
+            RequestsExplanation = "Faculty requests already approved by a Chairperson or Dean. Check the availability, then approve them to update the master schedule, or decline them.";
             RequestsEmptyText = "No approved changes are waiting.";
             foreach (var r in await _changes.GetApprovedForImsAsync())
             {
                 var by = r.ApproverRole == UserRole.Dean ? "Dean" : "Chairperson";
+                var check = await _changes.GetAvailabilityNoteAsync(r);
                 Requests.Add(new ListRow(r.Id, $"{r.RequesterName}: {r.ScheduleLabel}",
-                    $"{r.Summary}\nApproved by {by} {r.DecidedByName}",
+                    $"{r.Summary}\nApproved by {by} {r.DecidedByName}\n{check}",
                     r.Kind == ChangeKind.Room ? "Room change" : "Schedule change"));
             }
             RequestsHeading = Requests.Count == 0 ? "Approved changes" : $"Approved changes ({Requests.Count})";
@@ -97,8 +98,8 @@ public partial class ApprovalsHomeViewModel : PageViewModelBase
         {
             var dean = role == UserRole.Dean;
             RequestsExplanation = dean
-                ? "Faculty asking to move a class into a room that belongs to your school. After you approve, IMS Personnel update the master schedule."
-                : "Faculty of your department asking to change the day, time or subject of a class. After you approve, IMS Personnel update the master schedule.";
+                ? "Faculty of your school asking to move a class into another room. After you approve, IMS Personnel check the room availability and give the final approval."
+                : "Faculty of your department asking to change the day, time or subject of a class. After you approve, IMS Personnel check the availability and give the final approval.";
             RequestsEmptyText = "No requests are waiting for you.";
             foreach (var r in await _changes.GetPendingForMeAsync())
                 Requests.Add(new ListRow(r.Id, $"{r.RequesterName}: {r.ScheduleLabel}", $"{r.Summary}\nReason: {r.Reason}",
@@ -169,7 +170,24 @@ public partial class ApprovalsHomeViewModel : PageViewModelBase
         finally { IsBusy = false; }
     }
 
-    /// <summary>IMS Personnel: apply an approved change to the master schedule.</summary>
+    /// <summary>IMS Personnel: decline an approved change (for example the room is not available).</summary>
+    [RelayCommand]
+    private async Task ImsDeclineAsync(ListRow? row)
+    {
+        if (row is null || IsBusy) return;
+        var yes = await Shell.Current.DisplayAlertAsync("Decline request", $"Decline the request of {row.Title}?", "Decline", "Cancel");
+        if (!yes) return;
+        try
+        {
+            IsBusy = true;
+            ClearMessages();
+            Show(await _changes.DeclineAsync(row.Id));
+            await RefreshAsync();
+        }
+        finally { IsBusy = false; }
+    }
+
+    /// <summary>IMS Personnel: give the final approval and apply an approved change to the master schedule.</summary>
     [RelayCommand]
     private async Task ApplyChangeAsync(ListRow? row)
     {

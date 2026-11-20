@@ -166,23 +166,4 @@ public sealed class ScheduleService
         await _audit.LogAsync("Schedule encoded", $"{faculty.FullName}: {subject.Code} {summary} in {ScheduleRules.RoomLabel(room)}");
         return new OperationResult(true, $"Saved {subject.Code} for {faculty.FullName} ({added.Count} day{(added.Count == 1 ? "" : "s")}).");
     }
-
-    /// <summary>IMS: set which school is assigned to a floor. That school's Dean approves room changes into the floor's rooms.</summary>
-    public async Task<OperationResult> SetFloorSchoolAsync(string campus, string building, string floor, string? school)
-    {
-        if (!IsIms) return Fail("Only IMS Personnel can change this.");
-        if (!AcademicCatalog.IsValidSchool(school)) return Fail("Choose a school.");
-
-        await _storage.InitializeAsync();
-        var rooms = await _storage.LoadAsync<Classroom>(JsonStorageService.ClassroomsFile);
-        var floorRooms = rooms.Where(r => string.Equals(ScheduleRules.CampusOf(r), campus, StringComparison.OrdinalIgnoreCase)
-                                          && string.Equals(r.Building, building, StringComparison.OrdinalIgnoreCase)
-                                          && string.Equals(r.Floor, floor, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (floorRooms.Count == 0) return Fail("That floor was not found.");
-
-        var updated = rooms.Select(r => floorRooms.Any(f => f.Id == r.Id) ? r with { School = school! } : r).ToList();
-        await _storage.SaveAsync(JsonStorageService.ClassroomsFile, updated);
-        await _audit.LogAsync("Floor school assigned", $"{building} floor {floor}: {school}");
-        return new OperationResult(true, $"{building} floor {floor} is now assigned to {school}.");
-    }
 }

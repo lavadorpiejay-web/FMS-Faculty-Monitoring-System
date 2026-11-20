@@ -1,49 +1,71 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using FacultyMonitoring.Models;
 using FacultyMonitoring.Services;
 
 namespace FacultyMonitoring.ViewModels;
 
 /// <summary>
-/// IMS Personnel: classrooms are fixed (Main Campus buildings MC, SN, SA, SJ). Pick a building, floor, day and time to see which rooms
-/// are occupied or vacant according to the encoded schedules. IMS can also set the school assigned to a floor.
+/// IMS Personnel: classrooms are fixed (Main Campus buildings MC, SN, SA, SJ) and belong to no school.
+/// Pick a building, an optional floor, the days (tick boxes) and the time (one shared time or one per day, exactly like the Schedules tab)
+/// to get a table of every room on every chosen day: Vacant, or Occupied with the Faculty, the subject and the school / department using it.
 /// </summary>
 public partial class RoomsViewModel : PageViewModelBase
 {
+    private const int MaxRows = 400;
+
     private readonly ScheduleService _service;
     private List<Classroom> _rooms = new();
     private List<ClassSchedule> _schedules = new();
+    private bool _suspend;
 
     public RoomsViewModel(ScheduleService service)
     {
         _service = service;
-        SelectedDay = DateTime.Today.DayOfWeek.ToString();
-        SelectedStart = "8:00 AM";
-        SelectedEnd = "9:00 AM";
+        foreach (var name in ScheduleRules.DayNames)
+        {
+            var day = new DayChoice(name);
+            day.PropertyChanged += (_, e) =>
+            {
+                if (_suspend) return;
+                if (e.PropertyName == nameof(DayChoice.IsSelected)) RefreshCustomDays();
+                else if (e.PropertyName is nameof(DayChoice.Start) or nameof(DayChoice.End)) Refresh();
+            };
+            Days.Add(day);
+        }
+
+        _selectedStart = "8:00 AM";
+        _selectedEnd = "9:00 AM";
+        // Start with today ticked, as before.
+        Days.First(d => d.Name == DateTime.Today.DayOfWeek.ToString()).IsSelected = true;
     }
 
-    public ObservableCollection<ListRow> RoomRows { get; } = new();
-    public IReadOnlyList<string> Days { get; } = ScheduleRules.DayNames;
-    public IReadOnlyList<string> Times { get; } = ScheduleRules.Times.Select(TimeFormat.To12h).ToList();
-    public IReadOnlyList<string> Schools { get; } = AcademicCatalog.SchoolNames;
+    /// <summary>The weekday tick boxes (Monday to Sunday).</summary>
+    public ObservableCollection<DayChoice> Days { get; } = new();
+    /// <summary>The ticked days, shown with their own time pickers when the days do not share one time.</summary>
+    public ObservableCollection<DayChoice> CustomDays { get; } = new();
 
+    public IReadOnlyList<string> Times { get; } = ScheduleRules.Times.Select(TimeFormat.To12h).ToList();
+
+    [ObservableProperty] private IReadOnlyList<RoomAvailabilityRow> _table = Array.Empty<RoomAvailabilityRow>();
     [ObservableProperty] private IReadOnlyList<string> _buildingChoices = Array.Empty<string>();
     [ObservableProperty] private IReadOnlyList<string> _floorChoices = Array.Empty<string>();
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(FloorSelected))] private string? _selectedBuilding;
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(FloorSelected))] private string? _selectedFloor;
-    [ObservableProperty] private string? _selectedDay;
+    [ObservableProperty] private string? _selectedBuilding;
+    [ObservableProperty] private string? _selectedFloor;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DifferentTimes))]
+    private bool _sameTime = true;
     [ObservableProperty] private string? _selectedStart;
     [ObservableProperty] private string? _selectedEnd;
-    [ObservableProperty] private string? _floorSchool;
     [ObservableProperty] private string _summary = "";
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasNoRooms))]
     private bool _hasRooms;
 
     public bool HasNoRooms => !HasRooms;
-    public bool FloorSelected => SelectedBuilding is not null && SelectedFloor is not null;
+
+    /// <summary>When off, every ticked day gets its own start and end time.</summary>
+    public bool DifferentTimes => !SameTime;
 
     // Floors sort as numbers ("2" before "10"). Basements "B-1", "B-2" come first, lower basement before upper basement.
     private static (int, string) FloorKey(string floor)
@@ -83,81 +105,97 @@ public partial class RoomsViewModel : PageViewModelBase
         Refresh();
     }
 
-    partial void OnSelectedFloorChanged(string? value)
+    partial void OnSelectedFloorChanged(string? value) => Refresh();
+    partial void OnSelectedStartChanged(string? value) => Refresh();
+    partial void OnSelectedEndChanged(string? value) => Refresh();
+    partial void OnSameTimeChanged(bool value) => RefreshCustomDays();
+
+    private void RefreshCustomDays()
     {
-        string? school = null;
-        if (value is not null && SelectedBuilding is not null)
+        _suspend = true;
+        try
         {
-            var room = _rooms.FirstOrDefault(r => r.Building == CampusLayout.BuildingCode(SelectedBuilding) && r.Floor == value);
-            if (room is not null && room.School.Length > 0) school = room.School;
+            CustomDays.Clear();
+            if (!SameTime)
+            {
+                foreach (var d in Days.Where(d => d.IsSelected))
+                {
+                    // A day with no time yet starts from the shared time, so it can be copied and adjusted.
+                    d.Start ??= SelectedStart;
+                    d.End ??= SelectedEnd;
+                    CustomDays.Add(d);
+                }
+            }
         }
-        FloorSchool = school;
+        finally { _suspend = false; }
         Refresh();
     }
 
-    partial void OnSelectedDayChanged(string? value) => Refresh();
-    partial void OnSelectedStartChanged(string? value) => Refresh();
-    partial void OnSelectedEndChanged(string? value) => Refresh();
+    private void Clear(string summary)
+    {
+        Table = Array.Empty<RoomAvailabilityRow>();
+        HasRooms = false;
+        Summary = summary;
+    }
 
-    /// <summary>Lists the rooms of the chosen building (and floor) as Occupied or Vacant in the chosen day and time window.</summary>
+    private static string SchoolDepartment(ClassSchedule s) =>
+        string.Join("\n", new[] { s.School, s.Department }.Where(x => x.Length > 0));
+
+    /// <summary>Builds the table: every room of the chosen building (and floor) on every ticked day, Vacant or Occupied in that day's time.</summary>
     private void Refresh()
     {
-        RoomRows.Clear();
-        Summary = "";
-        if (SelectedBuilding is null) { HasRooms = false; return; }
+        if (SelectedBuilding is null) { Clear(""); return; }
+
+        var picked = Days.Where(d => d.IsSelected).ToList();
+        if (picked.Count == 0) { Clear("Tick at least one day."); return; }
+
+        // Same time for every day, or each day's own time (a day left blank follows the shared time).
+        var windows = new List<(DayOfWeek Day, string Name, string Start, string End)>();
+        foreach (var d in picked)
+        {
+            var start = TimeFormat.To24h(SameTime ? SelectedStart : (d.Start ?? SelectedStart));
+            var end = TimeFormat.To24h(SameTime ? SelectedEnd : (d.End ?? SelectedEnd));
+            if (start is null || end is null) { Clear($"Choose a start and end time for {d.Name}."); return; }
+            var error = ScheduleRules.CheckTimes(start, end);
+            if (error is not null) { Clear($"{d.Name}: {error}"); return; }
+            windows.Add((ScheduleRules.ParseDay(d.Name), d.Name, start, end));
+        }
 
         var code = CampusLayout.BuildingCode(SelectedBuilding);
-        var start = TimeFormat.To24h(SelectedStart);
-        var end = TimeFormat.To24h(SelectedEnd);
-        var windowOk = SelectedDay is not null && start is not null && end is not null && ScheduleRules.CheckTimes(start, end) is null;
-        var day = windowOk ? ScheduleRules.ParseDay(SelectedDay!) : (DayOfWeek?)null;
-
         var rooms = _rooms.Where(r => r.Building == code && (SelectedFloor is null || r.Floor == SelectedFloor))
             .OrderBy(r => FloorKey(r.Floor)).ThenBy(r => r.RoomNo, StringComparer.OrdinalIgnoreCase).ToList();
 
-        var occupied = 0;
+        var rows = new List<RoomAvailabilityRow>();
+        int occupied = 0, vacant = 0;
         foreach (var r in rooms)
         {
-            var clash = day is null ? null
-                : _schedules.Where(s => s.ClassroomId == r.Id && s.Day == day && ScheduleRules.Overlaps(s.Start, s.End, start!, end!))
-                            .OrderBy(s => s.Start).ToList();
-            var floorText = $"Floor {r.Floor}";
-            if (clash is null)
-                RoomRows.Add(new ListRow(r.Id, r.RoomNo, floorText));
-            else if (clash.Count == 0)
-                RoomRows.Add(new ListRow(r.Id, $"{r.RoomNo}  -  Vacant", floorText));
-            else
+            var label = $"{r.Building} {r.RoomNo}";
+            foreach (var w in windows)
             {
+                var clash = _schedules
+                    .Where(s => s.ClassroomId == r.Id && s.Day == w.Day && ScheduleRules.Overlaps(s.Start, s.End, w.Start, w.End))
+                    .OrderBy(s => s.Start).ToList();
+                if (clash.Count == 0)
+                {
+                    vacant++;
+                    rows.Add(new RoomAvailabilityRow(label, w.Name, TimeFormat.Range(w.Start, w.End), "Vacant", "-", "-", "-", true));
+                    continue;
+                }
                 occupied++;
-                var c = clash[0];
-                RoomRows.Add(new ListRow(r.Id, $"{r.RoomNo}  -  Occupied",
-                    $"{floorText} | {c.SubjectCode} ({c.FacultyName}), {TimeFormat.Range(c.Start, c.End)}"
-                    + (clash.Count > 1 ? $" and {clash.Count - 1} more" : "")));
+                foreach (var c in clash)
+                    rows.Add(new RoomAvailabilityRow(label, w.Name, TimeFormat.Range(c.Start, c.End), "Occupied", c.FacultyName,
+                        $"{c.SubjectCode} - {c.SubjectTitle}", SchoolDepartment(c), false));
             }
         }
 
-        HasRooms = RoomRows.Count > 0;
-        Summary = day is null
-            ? "Choose a day and a valid start and end time to see which rooms are occupied."
-            : $"{occupied} occupied, {rooms.Count - occupied} vacant on {SelectedDay}, {TimeFormat.Range(start, end)}.";
-    }
-
-    [RelayCommand]
-    private async Task SaveFloorSchoolAsync()
-    {
-        if (IsBusy) return;
-        ClearMessages();
-        if (SelectedBuilding is null || SelectedFloor is null) { ErrorMessage = "Choose a building and a floor first."; return; }
-        try
+        var summary = $"{occupied} room-day{(occupied == 1 ? "" : "s")} occupied, {vacant} vacant, for the chosen day and time.";
+        if (rows.Count > MaxRows)
         {
-            IsBusy = true;
-            var result = await _service.SetFloorSchoolAsync(Campus, CampusLayout.BuildingCode(SelectedBuilding), SelectedFloor, FloorSchool);
-            Show(result);
-            if (!result.Success) return;
-            var building = SelectedBuilding; var floor = SelectedFloor;
-            await LoadAsync();
-            SelectedBuilding = building; SelectedFloor = floor;
+            rows = rows.Take(MaxRows).ToList();
+            summary += $" Showing the first {MaxRows} rows; choose a floor or fewer days to narrow the table.";
         }
-        finally { IsBusy = false; }
+        Table = rows;
+        HasRooms = rows.Count > 0;
+        Summary = summary;
     }
 }

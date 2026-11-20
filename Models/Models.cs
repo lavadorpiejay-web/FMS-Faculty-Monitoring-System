@@ -56,7 +56,7 @@ public sealed record Classroom
 {
     public string Id { get; init; } = "";
     public string Campus { get; init; } = "";      // empty on older saved rooms = the default campus
-    public string School { get; init; } = "";      // school whose Dean approves room changes; empty = the requesting faculty's school
+    public string School { get; init; } = "";      // no longer used (rooms belong to no school); kept so older saved rooms still load
     public string Building { get; init; } = "";
     public string Floor { get; init; } = "";
     public string RoomNo { get; init; } = "";

@@ -1,6 +1,6 @@
 namespace FacultyMonitoring.Services;
 
-/// <summary>One floor (or basement level) of a building. AssignedSchool = the school assigned to that floor; its Dean approves room changes. Null = not assigned yet.</summary>
+/// <summary>One floor (or basement level) of a building. AssignedSchool is no longer used (schools share floors); it stays so the table keeps its shape.</summary>
 public sealed record FloorPlan(string Floor, string? AssignedSchool);
 
 /// <summary>A building of a campus. A building is a place, not owned by a school. Enabled = its rooms are created in the starting data.</summary>
@@ -9,7 +9,7 @@ public sealed record BuildingPlan(string Code, string Name, IReadOnlyList<FloorP
 /// <summary>
 /// Main Campus layout. Building codes: MC, SN, SA, SJ. Room names are "&lt;floor&gt;-&lt;two-digit number&gt;",
 /// for example B-1-01 (upper basement), B-2-01 (lower basement), 2-01 (second floor), 4-01 (fourth floor).
-/// Rooms are fixed: they are created from this table, never typed in. IMS Personnel can change the school assigned to a floor on the Rooms tab.
+/// Rooms are fixed: they are created from this table, never typed in. No school owns a room or a floor.
 /// </summary>
 public static class CampusLayout
 {
