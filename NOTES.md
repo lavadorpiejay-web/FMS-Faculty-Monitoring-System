@@ -193,5 +193,5 @@ Then **uninstall the app from the emulator**, run **Build > Clean Solution**, an
   - Not in the room at the end check (after not being there at the start): **Absent**, wherever the faculty is (office included).
   - The log (`AttendanceLog`) keeps both check times, the observation and the notes. Status is provisional after the first check and final after the end check. A class whose first check was missed cannot be logged any more. A check also needs the Scholar to be inside one of their vacant times.
   - A class outside the assigned school or vacant times is refused and flagged as an irregularity for IMS.
-- Debug builds still have the test clock on the Attendance tab, for example Monday 8:35 AM for a class at 8:00-9:30 AM (end check from 9:25 AM).
+- Debug builds still have the test clock on the Attendance tab. Its time picker (READS Scholar only; `AttendanceLogViewModel.Times`) lists the check moments, :05, :25, :35 and :55 of every hour, in 12-hour form. For a class at 8:00-9:30 AM use 8:05 AM for the first check and 9:25 AM for the end check; for 9:30-11:00 AM use 9:35 AM and 10:55 AM. Schedules and every other screen keep their 30-minute times.
 - Old data: `UserAccount` has the new `OwnSchool` field (empty on old accounts). Seed data changed, so a fresh install is needed.

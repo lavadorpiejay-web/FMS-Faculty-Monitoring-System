@@ -34,7 +34,21 @@ public partial class AttendanceLogViewModel : PageViewModelBase
 
     public IReadOnlyList<string> ReportKinds { get; } = new[] { NotInRoom, WrongRoom };
     public IReadOnlyList<string> Days { get; } = ScheduleRules.DayNames;
-    public IReadOnlyList<string> Times { get; } = ScheduleRules.Times;
+    /// <summary>
+    /// Test clock times for the READS Scholar: the moments a check can be done (5 minutes after a class starts, 5 minutes before it ends),
+    /// shown in 12-hour form, e.g. 8:05 AM and 8:25 AM for classes that start on the hour and end on the half hour.
+    /// Only this screen uses them; schedules everywhere else keep their 30-minute steps.
+    /// </summary>
+    public IReadOnlyList<string> Times { get; } = BuildCheckTimes();
+
+    private static List<string> BuildCheckTimes()
+    {
+        var list = new List<string>();
+        for (var hour = 6; hour <= 21; hour++)
+            foreach (var minute in new[] { 5, 25, 35, 55 })
+                list.Add(TimeFormat.To12h($"{hour:00}:{minute:00}"));
+        return list;
+    }
 
 #if DEBUG
     public bool IsDebug => true;
@@ -76,7 +90,9 @@ public partial class AttendanceLogViewModel : PageViewModelBase
         {
             var target = ScheduleRules.ParseDay(TestDay);
             var date = DateTime.Today.AddDays(((int)target - (int)DateTime.Today.DayOfWeek + 7) % 7);
-            _clock.Override = date.AddMinutes(ScheduleRules.Minutes(TestTime));
+            var hhmm = TimeFormat.To24h(TestTime);
+            if (hhmm is null) { _clock.Override = null; await LoadAsync(); return; }
+            _clock.Override = date.AddMinutes(ScheduleRules.Minutes(hhmm));
         }
         else _clock.Override = null;
         await LoadAsync();
