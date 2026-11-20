@@ -17,6 +17,7 @@ public partial class FacultyScheduleViewModel : PageViewModelBase
     private List<ClassSchedule> _mine = new();
     private List<Subject> _subjects = new();
     private Dictionary<string, Classroom> _rooms = new();
+    private List<Classroom> _allRooms = new();
 
     public FacultyScheduleViewModel(ScheduleService schedules, ChangeRequestService requests)
     {
@@ -51,15 +52,50 @@ public partial class FacultyScheduleViewModel : PageViewModelBase
 
     public bool IsRoomChange => !IsScheduleChange;
 
+    // The "Request a change" form stays hidden until the Faculty member taps its heading.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RequestArrow))]
+    [NotifyPropertyChangedFor(nameof(IsRequestClosed))]
+    private bool _isRequestOpen;
+
+    public bool IsRequestClosed => !IsRequestOpen;
+
+    public string RequestArrow => IsRequestOpen ? "▼" : "▶";
+
+    [RelayCommand]
+    private void ToggleRequest()
+    {
+        ClearMessages();
+        IsRequestOpen = !IsRequestOpen;
+    }
+
+    partial void OnSelectedClassChanged(string? value) => RebuildRoomChoices();
+
+    /// <summary>
+    /// New-room choices: only rooms of the building(s) the class's school is situated in
+    /// (School of Engineering and Architecture = SA), and never the room the class already uses.
+    /// </summary>
+    private void RebuildRoomChoices()
+    {
+        var chosen = _mine.FirstOrDefault(s => ScheduleRules.ScheduleLabel(s) == SelectedClass);
+        var school = chosen?.School ?? _mine.FirstOrDefault()?.School;
+        var allowed = _allRooms
+            .Where(r => CampusLayout.IsRoomAllowed(school, r) && r.Id != chosen?.ClassroomId)
+            .OrderBy(r => r.Building).ThenBy(r => r.Floor).ThenBy(r => r.RoomNo)
+            .ToList();
+        _rooms = allowed.ToDictionary(r => ScheduleRules.RoomLabel(r));
+        var labels = _rooms.Keys.ToList();
+        if (!RoomLabels.SequenceEqual(labels)) RoomLabels = labels;
+        if (NewRoom is not null && !_rooms.ContainsKey(NewRoom)) NewRoom = null;
+    }
+
     partial void OnSelectedKindChanged(string value) => IsScheduleChange = value == ScheduleKind;
 
     public async Task LoadAsync()
     {
         _subjects = await _schedules.GetSubjectsAsync();
         var rooms = await _schedules.GetRoomsAsync();
-        _rooms = rooms.ToDictionary(r => ScheduleRules.RoomLabel(r));
-        var roomLabels = _rooms.Keys.ToList();
-        if (!RoomLabels.SequenceEqual(roomLabels)) RoomLabels = roomLabels;
+        _allRooms = rooms.ToList();
         var byId = rooms.ToDictionary(r => r.Id);
 
         _mine = await _schedules.GetVisibleAsync();
@@ -73,6 +109,7 @@ public partial class FacultyScheduleViewModel : PageViewModelBase
         HasClasses = ScheduleRows.Count > 0;
         var labels = _mine.Select(ScheduleRules.ScheduleLabel).ToList();
         if (!ClassLabels.SequenceEqual(labels)) ClassLabels = labels;
+        RebuildRoomChoices();
 
         // Subjects of the Faculty member's own department can be requested.
         var dept = _mine.FirstOrDefault()?.Department ?? "";
@@ -118,6 +155,8 @@ public partial class FacultyScheduleViewModel : PageViewModelBase
             if (!result.Success) return;
             Reason = "";
             NewDay = NewStart = NewEnd = NewSubject = ScheduleRules.NoChange;
+            NewRoom = null;
+            IsRequestOpen = false;   // fold the form away; the success message and "My requests" stay visible
             await LoadAsync();
         }
         finally { IsBusy = false; }

@@ -6,10 +6,12 @@ public sealed record DirectoryResult(
     bool IsAssigned, string School, string Department,
     IReadOnlyList<DirectoryEntry> Deans,
     IReadOnlyList<DirectoryEntry> Chairpersons,
-    IReadOnlyList<DirectoryEntry> Faculty)
+    IReadOnlyList<DirectoryEntry> Faculty,
+    IReadOnlyList<DepartmentGroup> Departments)
 {
     public static DirectoryResult NotAssigned { get; } = new(false, "", "",
-        Array.Empty<DirectoryEntry>(), Array.Empty<DirectoryEntry>(), Array.Empty<DirectoryEntry>());
+        Array.Empty<DirectoryEntry>(), Array.Empty<DirectoryEntry>(), Array.Empty<DirectoryEntry>(),
+        Array.Empty<DepartmentGroup>());
 }
 
 public sealed record SchoolDirectoryResult(bool IsValid, string School, IReadOnlyList<DepartmentGroup> Departments);
@@ -75,7 +77,18 @@ public sealed class DirectoryService
             .Select(f => new DirectoryEntry(f.FullName, $"Faculty, {f.Department}"))
             .ToList();
 
-        return new DirectoryResult(true, school, dept, deans, chairs, members);
+        // The same people grouped by department, for the READS Directory (department > chairperson > faculty).
+        var departments = AcademicCatalog.DepartmentsOf(school).Select(d => new DepartmentGroup(
+            d,
+            users.Where(u => u.IsUsable && u.Role == UserRole.Chairperson && u.School == school && u.Department == d)
+                 .OrderBy(u => u.FullName)
+                 .Select(u => new DirectoryEntry(u.FullName, $"Chairperson, {d}")).ToList(),
+            faculty.Where(f => f.School == school && f.Department == d)
+                   .OrderBy(f => f.FullName)
+                   .Select(f => new DirectoryEntry(f.FullName, $"Faculty, {d}")).ToList()))
+            .ToList();
+
+        return new DirectoryResult(true, school, dept, deans, chairs, members, departments);
     }
 
     /// <summary>Dean: every department of the Dean's own school, each with its Chairperson(s) and Faculty.</summary>

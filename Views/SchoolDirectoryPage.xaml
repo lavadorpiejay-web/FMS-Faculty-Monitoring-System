@@ -29,13 +29,23 @@
 
                 <VerticalStackLayout Spacing="16" BindableLayout.ItemsSource="{Binding Departments}">
                     <BindableLayout.ItemTemplate>
-                        <DataTemplate x:DataType="models:DepartmentGroup">
+                        <DataTemplate x:DataType="models:DepartmentSection">
                             <Border Style="{StaticResource Card}">
                                 <VerticalStackLayout Spacing="8">
-                                    <Label Text="{Binding Department}" Style="{StaticResource SectionTitle}" />
-                                    <Label Text="{Binding FacultyCountText}" FontSize="12"
-                                           TextColor="{StaticResource Gray600}" />
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                        <Label Grid.Column="0" Text="{Binding Arrow}" FontSize="12"
+                                               TextColor="{StaticResource ForestMid}" VerticalOptions="Center" />
+                                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                            <Label Text="{Binding Department}" Style="{StaticResource SectionTitle}" />
+                                            <Label Text="{Binding CountText}" FontSize="12"
+                                                   TextColor="{StaticResource Gray600}" />
+                                        </VerticalStackLayout>
+                                        <Grid.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding ToggleCommand}" />
+                                        </Grid.GestureRecognizers>
+                                    </Grid>
 
+                                    <VerticalStackLayout Spacing="8" IsVisible="{Binding IsExpanded}">
                                     <Label Text="Chairperson" FontSize="12" FontAttributes="Bold"
                                            TextColor="{StaticResource ForestMid}" Margin="0,6,0,0" />
                                     <Label Text="No chairperson registered yet." FontSize="13"
@@ -59,13 +69,14 @@
                                     </DataTemplate>
                                         </BindableLayout.ItemTemplate>
                                     </VerticalStackLayout>
+                                    </VerticalStackLayout>
                                 </VerticalStackLayout>
                             </Border>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
                 </VerticalStackLayout>
 
-                <Label Text="Read-only view. You can see who is in each department of your school but cannot change anything."
+                <Label Text="Tap a department to show its chairperson and faculty. Read-only view: you cannot change anything."
                        FontSize="12" TextColor="{StaticResource Gray600}" />
             </VerticalStackLayout>
         </VerticalStackLayout>

@@ -29,8 +29,17 @@
             </Border>
             <Border Style="{StaticResource Card}" Padding="20">
               <VerticalStackLayout Spacing="12">
-                <Label Text="Request a change" Style="{StaticResource SectionTitle}" />
-                <Label Text="Schedule changes go to your Chairperson. Room changes go to the Dean of the room's school. IMS Personnel update the schedule after approval." FontSize="13" TextColor="{StaticResource Gray600}" />
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <Label Grid.Column="0" Text="{Binding RequestArrow}" FontSize="12" TextColor="{StaticResource ForestMid}" VerticalOptions="Center" />
+                  <Label Grid.Column="1" Text="Request a change" Style="{StaticResource SectionTitle}" />
+                  <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ToggleRequestCommand}" />
+                  </Grid.GestureRecognizers>
+                </Grid>
+                <Label Text="Tap to show the request form." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding IsRequestClosed}" />
+                <controls:Banners />
+                <VerticalStackLayout Spacing="12" IsVisible="{Binding IsRequestOpen}">
+                <Label Text="Schedule changes go to your Chairperson. Room changes go to the Dean of your school, then IMS Personnel. Rooms are limited to the building your school is situated in." FontSize="13" TextColor="{StaticResource Gray600}" />
                 <controls:LabeledPicker Caption="Class" Title="Choose a class" ItemsSource="{Binding ClassLabels}" SelectedItem="{Binding SelectedClass, Mode=TwoWay}" />
                 <controls:LabeledPicker Caption="Type of request" Title="Choose type" ItemsSource="{Binding Kinds}" SelectedItem="{Binding SelectedKind, Mode=TwoWay}" />
                 <VerticalStackLayout Spacing="12" IsVisible="{Binding IsScheduleChange}">
@@ -43,8 +52,8 @@
                   <controls:LabeledPicker Caption="New classroom" Title="Choose classroom" ItemsSource="{Binding RoomLabels}" SelectedItem="{Binding NewRoom, Mode=TwoWay}" />
                 </VerticalStackLayout>
                 <controls:LabeledEntry Caption="Reason" Placeholder="Why is the change needed?" Text="{Binding Reason, Mode=TwoWay}" />
-                <controls:Banners />
                 <Button Text="Send request" Command="{Binding SubmitCommand}" IsEnabled="{Binding IsNotBusy}" />
+                </VerticalStackLayout>
               </VerticalStackLayout>
             </Border>
             <Border Style="{StaticResource Card}" Padding="20">

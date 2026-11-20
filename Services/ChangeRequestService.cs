@@ -108,6 +108,8 @@ public sealed class ChangeRequestService
             var room = rooms.FirstOrDefault(r => r.Id == newClassroomId);
             if (room is null) return Fail("Choose the new classroom.");
             if (room.Id == s.ClassroomId) return Fail("That is already the class's room.");
+            if (!CampusLayout.IsRoomAllowed(s.School, room))
+                return Fail($"Classes of the {s.School} are held in building {string.Join(", ", CampusLayout.BuildingsOf(s.School)!)}. Choose a room there.");
 
             request = new ChangeRequest
             {

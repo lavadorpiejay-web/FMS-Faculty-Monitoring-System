@@ -108,6 +108,13 @@ Accounts are written only on first launch and live in the app's private storage,
 
 15. Milestone 14 (partial): the Schedules tab picks the day with a calendar (`DatePicker`); schedules still repeat weekly, so the date only decides the weekday. Times are still stored as 24-hour "HH:mm" but are shown in 12-hour form ("8:00 AM") through `Services\TimeFormat.cs` (`To12h`, `To24h`, `Range`). The Schedules tab also picks the Faculty member school first, then department, then person. Done only on the Schedules tab and the schedule conflict messages; the other screens still show 24-hour times until they use `TimeFormat`.
 
+## Collapsible lists and room filter (latest change)
+- **Faculty Schedule tab**: "Request a change" is a toggle (tap the heading). The form is hidden until tapped and folds away again after a request is sent; the success or error message stays visible under the heading.
+- **Room change picker** only lists rooms of the building(s) the class's school is situated in. `CampusLayout.SchoolBuildings` maps a school to its buildings (School of Engineering and Architecture = SA); a school not in the map is not limited yet. The class's current room is left out. `ChangeRequestService.SubmitAsync` refuses a room outside the school's buildings as well. To limit another school, add it to `SchoolBuildings`.
+- **Dean, Departments tab**: each department is a toggle (`DepartmentSection` in `Models\Groups.cs`); tapping it shows its Chairperson(s) and Faculty. Open departments stay open after a reload.
+- **READS Scholar, Directory tab**: the Dean card is unchanged. A "Departments" toggle lists every department of the assigned school with its Chairperson(s); tapping a Chairperson shows that department's Faculty (`DirectoryDepartment`, `ChairpersonNode`). A department with no Chairperson shows its Faculty directly. `DirectoryResult` now also carries `Departments`.
+- Not compiled by the assistant (no .NET SDK there): build in Visual Studio and report any error text.
+
 ## Schedules, duty and attendance (Milestone 8)
 Who does what (matches the 50% checklist):
 - **IMS Personnel**: *Schedules* tab (encode faculty, subject, room, day, time; no room or Faculty clash), *Rooms* tab (campus, owning school, building, floor, room, capacity), *Duty* tab (record each READS Scholar's vacant times, then assign duty day/time inside them plus the monitoring area: campus and optional building/floor; Edit modifies or reassigns), *Home* tab (approved requests waiting to be applied, with a note about READS duties that may need review, plus READS Scholar account approvals), *Master* tab (all schedules with duty assignments, recent attendance, irregularity reports and the change history).

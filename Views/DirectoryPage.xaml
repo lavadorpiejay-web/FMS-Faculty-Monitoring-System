@@ -46,33 +46,73 @@
                     </VerticalStackLayout>
                 </Border>
                 <Border Style="{StaticResource Card}">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Chairperson" Style="{StaticResource SectionTitle}" />
-                        <Label Text="None registered yet." FontSize="13" TextColor="{StaticResource Gray600}"
-                               IsVisible="{Binding ChairpersonsEmpty}" />
-                        <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding Chairpersons}">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                            <Label Grid.Column="0" Text="{Binding DepartmentsArrow}" FontSize="12"
+                                   TextColor="{StaticResource ForestMid}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="Departments" Style="{StaticResource SectionTitle}" />
+                            <Label Grid.Column="2" Text="{Binding DepartmentsCountText}" FontSize="12"
+                                   TextColor="{StaticResource Gray600}" VerticalOptions="Center" />
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleDepartmentsCommand}" />
+                            </Grid.GestureRecognizers>
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="14" IsVisible="{Binding DepartmentsOpen}"
+                                             BindableLayout.ItemsSource="{Binding Departments}">
                             <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="models:DirectoryEntry">
-                                    <VerticalStackLayout Spacing="1">
-                                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" />
-                                        <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
-                                    </VerticalStackLayout>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-                <Border Style="{StaticResource Card}">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Faculty" Style="{StaticResource SectionTitle}" />
-                        <Label Text="None registered yet." FontSize="13" TextColor="{StaticResource Gray600}"
-                               IsVisible="{Binding FacultyEmpty}" />
-                        <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding Faculty}">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="models:DirectoryEntry">
-                                    <VerticalStackLayout Spacing="1">
-                                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" />
-                                        <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                <DataTemplate x:DataType="models:DirectoryDepartment">
+                                    <VerticalStackLayout Spacing="8">
+                                        <Label Text="{Binding Department}" FontSize="12" FontAttributes="Bold"
+                                               TextColor="{StaticResource ForestMid}" />
+
+                                        <!-- Each chairperson: tap the name to show that department's faculty. -->
+                                        <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Chairpersons}">
+                                            <BindableLayout.ItemTemplate>
+                                                <DataTemplate x:DataType="models:ChairpersonNode">
+                                                    <Border Style="{StaticResource Card}" Padding="12" BackgroundColor="{StaticResource Ivory}">
+                                                        <VerticalStackLayout Spacing="8">
+                                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                                                <Label Grid.Column="0" Text="{Binding Arrow}" FontSize="11"
+                                                                       TextColor="{StaticResource ForestMid}" VerticalOptions="Center" />
+                                                                <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                                                    <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" />
+                                                                    <Label Text="Chairperson" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                                                </VerticalStackLayout>
+                                                                <Label Grid.Column="2" Text="{Binding CountText}" FontSize="12"
+                                                                       TextColor="{StaticResource Gray600}" VerticalOptions="Center" />
+                                                                <Grid.GestureRecognizers>
+                                                                    <TapGestureRecognizer Command="{Binding ToggleCommand}" />
+                                                                </Grid.GestureRecognizers>
+                                                            </Grid>
+                                                            <VerticalStackLayout Spacing="6" IsVisible="{Binding IsExpanded}">
+                                                                <Label Text="No faculty registered yet." FontSize="13"
+                                                                       TextColor="{StaticResource Gray600}" IsVisible="{Binding NoFaculty}" />
+                                                                <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Faculty}">
+                                                                    <BindableLayout.ItemTemplate>
+                                                                        <DataTemplate x:DataType="models:DirectoryEntry">
+                                                                            <Label Text="{Binding Name}" FontSize="14" Margin="21,0,0,0" />
+                                                                        </DataTemplate>
+                                                                    </BindableLayout.ItemTemplate>
+                                                                </VerticalStackLayout>
+                                                            </VerticalStackLayout>
+                                                        </VerticalStackLayout>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </BindableLayout.ItemTemplate>
+                                        </VerticalStackLayout>
+
+                                        <!-- No chairperson registered: show the faculty directly so nobody is hidden. -->
+                                        <VerticalStackLayout Spacing="6" IsVisible="{Binding NoChairperson}">
+                                            <Label Text="No chairperson registered yet." FontSize="13" TextColor="{StaticResource Gray600}" />
+                                            <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Faculty}">
+                                                <BindableLayout.ItemTemplate>
+                                                    <DataTemplate x:DataType="models:DirectoryEntry">
+                                                        <Label Text="{Binding Name}" FontSize="14" Margin="21,0,0,0" />
+                                                    </DataTemplate>
+                                                </BindableLayout.ItemTemplate>
+                                            </VerticalStackLayout>
+                                        </VerticalStackLayout>
                                     </VerticalStackLayout>
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
@@ -80,7 +120,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <Label Text="Read-only view. You can see who is in your assigned department but cannot change anything."
+                <Label Text="Tap Departments to show the chairpersons, then tap a chairperson to show that department's faculty. Read-only view."
                        FontSize="12" TextColor="{StaticResource Gray600}" />
             </VerticalStackLayout>
         </VerticalStackLayout>

@@ -38,6 +38,26 @@ public static class CampusLayout
         new("SJ", "San Jose Building", new List<FloorPlan> { new("3", null), new("4", null), new("5", null) }, Enabled: true),
     };
 
+    /// <summary>
+    /// Buildings a school is situated in. A school listed here may only use rooms of these buildings
+    /// (the School of Engineering and Architecture is in SA). A school not listed has no restriction yet.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string[]> SchoolBuildings = new Dictionary<string, string[]>
+    {
+        [Engineering] = new[] { "SA" },
+    };
+
+    /// <summary>Building codes the school is limited to, or null when it is not limited yet.</summary>
+    public static IReadOnlyList<string>? BuildingsOf(string? school) =>
+        school is not null && SchoolBuildings.TryGetValue(school, out var codes) ? codes : null;
+
+    /// <summary>True when the school may use this room (its building is one of the school's buildings, or the school has no limit).</summary>
+    public static bool IsRoomAllowed(string? school, Models.Classroom room)
+    {
+        var codes = BuildingsOf(school);
+        return codes is null || codes.Contains(room.Building, StringComparer.OrdinalIgnoreCase);
+    }
+
     public static string RoomName(string floor, int number) => $"{floor}-{number:00}";
 
     /// <summary>"SA" becomes "SA - San Agustin Building" for pickers.</summary>

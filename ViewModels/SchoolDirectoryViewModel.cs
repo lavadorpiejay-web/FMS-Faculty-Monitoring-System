@@ -11,7 +11,7 @@ public partial class SchoolDirectoryViewModel : ObservableObject
     public SchoolDirectoryViewModel(DirectoryService directory) => _directory = directory;
 
     // Replaced in one assignment (not Clear + Add) so the page re-lays out once and the scroll bar does not jump.
-    [ObservableProperty] private IReadOnlyList<DepartmentGroup> _departments = Array.Empty<DepartmentGroup>();
+    [ObservableProperty] private IReadOnlyList<DepartmentSection> _departments = Array.Empty<DepartmentSection>();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNotValid))]
@@ -31,6 +31,8 @@ public partial class SchoolDirectoryViewModel : ObservableObject
         School = result.School;
         Summary = $"{result.Departments.Count} departments · {chairs} chairpersons · {faculty} faculty";
         IsValid = result.IsValid;
-        Departments = result.Departments;
+        // Keep the departments the Dean already opened open after a reload.
+        var open = Departments.Where(d => d.IsExpanded).Select(d => d.Department).ToHashSet();
+        Departments = result.Departments.Select(g => new DepartmentSection(g, open.Contains(g.Department))).ToList();
     }
 }
