@@ -13,6 +13,7 @@ namespace FacultyMonitoring.ViewModels;
 public partial class RoomsViewModel : PageViewModelBase
 {
     private const int MaxRows = 400;
+    public const string AllRooms = "All rooms";
 
     private readonly ScheduleService _service;
     private List<Classroom> _rooms = new();
@@ -51,7 +52,10 @@ public partial class RoomsViewModel : PageViewModelBase
     [ObservableProperty] private IReadOnlyList<string> _buildingChoices = Array.Empty<string>();
     [ObservableProperty] private IReadOnlyList<string> _floorChoices = Array.Empty<string>();
     [ObservableProperty] private string? _selectedBuilding;
+    [ObservableProperty] private IReadOnlyList<string> _roomChoices = Array.Empty<string>();
     [ObservableProperty] private string? _selectedFloor;
+    [ObservableProperty] private string? _selectedRoom;
+    [ObservableProperty] private bool _showVacant = true;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DifferentTimes))]
     private bool _sameTime = true;
@@ -105,7 +109,19 @@ public partial class RoomsViewModel : PageViewModelBase
         Refresh();
     }
 
-    partial void OnSelectedFloorChanged(string? value) => Refresh();
+    // Building, then floor, then room: the table lists only what was chosen.
+    partial void OnSelectedFloorChanged(string? value)
+    {
+        var rooms = value is null || SelectedBuilding is null ? new List<string>()
+            : _rooms.Where(r => r.Building == CampusLayout.BuildingCode(SelectedBuilding) && r.Floor == value)
+                    .Select(r => r.RoomNo).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+        RoomChoices = value is null ? Array.Empty<string>() : new[] { AllRooms }.Concat(rooms).ToList();
+        SelectedRoom = value is null ? null : AllRooms;
+        Refresh();
+    }
+
+    partial void OnSelectedRoomChanged(string? value) => Refresh();
+    partial void OnShowVacantChanged(bool value) => Refresh();
     partial void OnSelectedStartChanged(string? value) => Refresh();
     partial void OnSelectedEndChanged(string? value) => Refresh();
     partial void OnSameTimeChanged(bool value) => RefreshCustomDays();
@@ -145,6 +161,7 @@ public partial class RoomsViewModel : PageViewModelBase
     private void Refresh()
     {
         if (SelectedBuilding is null) { Clear(""); return; }
+        if (SelectedFloor is null) { Clear("Choose a floor to see its rooms."); return; }
 
         var picked = Days.Where(d => d.IsSelected).ToList();
         if (picked.Count == 0) { Clear("Tick at least one day."); return; }
@@ -162,7 +179,8 @@ public partial class RoomsViewModel : PageViewModelBase
         }
 
         var code = CampusLayout.BuildingCode(SelectedBuilding);
-        var rooms = _rooms.Where(r => r.Building == code && (SelectedFloor is null || r.Floor == SelectedFloor))
+        var allRooms = SelectedRoom is null || SelectedRoom == AllRooms;
+        var rooms = _rooms.Where(r => r.Building == code && r.Floor == SelectedFloor && (allRooms || r.RoomNo == SelectedRoom))
             .OrderBy(r => FloorKey(r.Floor)).ThenBy(r => r.RoomNo, StringComparer.OrdinalIgnoreCase).ToList();
 
         var rows = new List<RoomAvailabilityRow>();
@@ -178,7 +196,7 @@ public partial class RoomsViewModel : PageViewModelBase
                 if (clash.Count == 0)
                 {
                     vacant++;
-                    rows.Add(new RoomAvailabilityRow(label, w.Name, TimeFormat.Range(w.Start, w.End), "Vacant", "-", "-", "-", true));
+                    if (ShowVacant) rows.Add(new RoomAvailabilityRow(label, w.Name, TimeFormat.Range(w.Start, w.End), "Vacant", "-", "-", "-", true));
                     continue;
                 }
                 occupied++;
@@ -189,6 +207,7 @@ public partial class RoomsViewModel : PageViewModelBase
         }
 
         var summary = $"{occupied} room-day{(occupied == 1 ? "" : "s")} occupied, {vacant} vacant, for the chosen day and time.";
+        if (rows.Count == 0) summary += " Nothing to show: every room is vacant (turn on \"Show vacant rooms\" to list them).";
         if (rows.Count > MaxRows)
         {
             rows = rows.Take(MaxRows).ToList();
