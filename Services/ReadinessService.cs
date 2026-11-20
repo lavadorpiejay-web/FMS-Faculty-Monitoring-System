@@ -57,8 +57,8 @@ public sealed class ReadinessService
                 r.Add(new("IMS Personnel role verified", "Role confirmed from your account", true));
                 var scholars = users.Items.Count(u => u.Role == UserRole.ReadsScholar && u.Department == AcademicCatalog.ImsOffice);
                 r.Add(new("READS Scholars in the IMS Office", $"{scholars} assigned to the IMS Office", true));
-                var placed = users.Items.Count(u => u.Role == UserRole.ReadsScholar && u.AssignedDepartment.Length > 0);
-                r.Add(new("Scholar department assignments", $"{placed} of {scholars} READS Scholars assigned to a department", true));
+                var placed = users.Items.Count(u => u.Role == UserRole.ReadsScholar && u.AssignedSchool.Length > 0);
+                r.Add(new("Scholar school assignments", $"{placed} of {scholars} READS Scholars assigned to a school", true));
                 r.Add(Describe("users.json", users));
                 r.Add(Describe("faculty.json", faculty));
                 r.Add(Describe("subjects.json", subjects));

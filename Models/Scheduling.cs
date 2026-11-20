@@ -94,10 +94,23 @@ public sealed record AttendanceLog
     public string Date { get; init; } = "";             // monitoring date, yyyy-MM-dd
     public string ScheduledStart { get; init; } = "";
     public string ScheduledEnd { get; init; } = "";
+    /// <summary>Present, Late or Absent. After the first check it is provisional; it is final once the end check is done.</summary>
     public AttendanceStatus Status { get; init; }
     public string CheckerUserId { get; init; } = "";
     public string CheckerName { get; init; } = "";
     public DateTime TimestampUtc { get; init; }
+
+    // Two checks per class: 5 minutes after the start and 5 minutes before the end.
+    public bool? StartInRoom { get; init; }
+    public DateTime? StartCheckUtc { get; init; }
+    public bool? EndInRoom { get; init; }
+    public DateTime? EndCheckUtc { get; init; }
+    /// <summary>What the checker observed, for example "Faculty not in the classroom".</summary>
+    public string Observation { get; init; } = "";
+    public string Notes { get; init; } = "";
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsComplete => EndCheckUtc is not null;
 }
 
 public sealed record IrregularityReport
@@ -134,4 +147,8 @@ public sealed record AuditEntry
 public sealed record ListRow(string Id, string Title, string Detail, string Extra = "");
 
 /// <summary>A class a READS Scholar can see during duty, with whether it can be logged right now.</summary>
-public sealed record MonitorRow(string ScheduleId, string Title, string Detail, string State, bool CanLog);
+/// <summary>Stage: 0 = nothing to do now, 1 = first check (5 minutes after the start) is open, 2 = end check (5 minutes before the end) is open.</summary>
+public sealed record MonitorRow(string ScheduleId, string Title, string Detail, string State, bool CanLog, int Stage = 0)
+{
+    public string CheckCaption => Stage == 1 ? "First check (5 minutes after the start)" : Stage == 2 ? "End check (5 minutes before the end)" : "";
+}

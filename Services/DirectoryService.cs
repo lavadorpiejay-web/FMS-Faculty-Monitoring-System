@@ -49,11 +49,12 @@ public sealed class DirectoryService
 
         // Re-read the account so an assignment made by IMS Personnel shows up without signing out.
         var me = users.FirstOrDefault(u => u.Id == current.Id && u.IsActive && u.Role == UserRole.ReadsScholar);
-        if (me is null || !AcademicCatalog.IsValidDepartment(me.AssignedSchool, me.AssignedDepartment))
+        if (me is null || !AcademicCatalog.IsValidSchool(me.AssignedSchool))
             return DirectoryResult.NotAssigned;
 
+        // A READS Scholar is assigned to a whole school: every department's Chairperson and Faculty.
         var school = me.AssignedSchool;
-        var dept = me.AssignedDepartment;
+        const string dept = "All departments";
         var faculty = Visible(await _storage.LoadAsync<FacultyMember>(JsonStorageService.FacultyFile), users);
 
         var deans = users
@@ -63,14 +64,14 @@ public sealed class DirectoryService
             .ToList();
 
         var chairs = users
-            .Where(u => u.IsUsable && u.Role == UserRole.Chairperson && u.School == school && u.Department == dept)
-            .OrderBy(u => u.FullName)
+            .Where(u => u.IsUsable && u.Role == UserRole.Chairperson && u.School == school)
+            .OrderBy(u => u.Department).ThenBy(u => u.FullName)
             .Select(u => new DirectoryEntry(u.FullName, $"Chairperson, {u.Department}"))
             .ToList();
 
         var members = faculty
-            .Where(f => f.School == school && f.Department == dept)
-            .OrderBy(f => f.FullName)
+            .Where(f => f.School == school)
+            .OrderBy(f => f.Department).ThenBy(f => f.FullName)
             .Select(f => new DirectoryEntry(f.FullName, $"Faculty, {f.Department}"))
             .ToList();
 

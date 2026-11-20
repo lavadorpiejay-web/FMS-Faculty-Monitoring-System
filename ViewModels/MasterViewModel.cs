@@ -58,7 +58,7 @@ public partial class MasterViewModel : PageViewModelBase
         FillSchedules();
 
         DutyRows.Clear();
-        foreach (var d in await _duties.GetDutiesAsync()) DutyRows.Add(new ListRow(d.Id, d.ReadsName, ScheduleRules.DutyText(d)));
+        foreach (var d in await _duties.GetOverviewAsync()) DutyRows.Add(new ListRow(d.Name, d.Name, $"{d.Assignment}\n{d.VacantSummary}"));
 
         LogRows.Clear();
         foreach (var l in await _attendance.GetRecentLogsForImsAsync(15))

@@ -181,6 +181,7 @@ public sealed class LocalAuthService : IAuthService
 
         // School / department rules per role. Never trust the picker alone: validate against the catalog.
         string school, department;
+        var ownSchool = "";
         switch (req.Role)
         {
             case UserRole.Faculty:
@@ -193,7 +194,11 @@ public sealed class LocalAuthService : IAuthService
                 if (!AcademicCatalog.IsValidSchool(req.School)) return Fail("Choose your school.");
                 school = req.School; department = "";
                 break;
-            default: // READS Scholar, IMS Personnel: assigned to the IMS Office, no school or department yet
+            case UserRole.ReadsScholar:   // placed in the IMS Office; the school they study in is kept as OwnSchool
+                if (!AcademicCatalog.IsValidSchool(req.School)) return Fail("Choose the school you study in.");
+                ownSchool = req.School; school = ""; department = AcademicCatalog.ImsOffice;
+                break;
+            default: // IMS Personnel: assigned to the IMS Office, no school or department
                 school = ""; department = AcademicCatalog.ImsOffice;
                 break;
         }
@@ -222,7 +227,7 @@ public sealed class LocalAuthService : IAuthService
         var user = new UserAccount
         {
             Id = "U-" + Guid.NewGuid().ToString("N")[..8],
-            SisId = sis, FullName = name, Email = email, School = school, Department = department, Role = req.Role,
+            SisId = sis, FullName = name, Email = email, School = school, Department = department, Role = req.Role, OwnSchool = ownSchool,
             EmailVerified = false,
             Status = ApproverOf(req.Role) is null ? ApprovalStatus.Approved : ApprovalStatus.Pending,
             PasswordHash = hash, Salt = salt

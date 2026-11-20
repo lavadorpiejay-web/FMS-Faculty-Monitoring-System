@@ -13,7 +13,8 @@
             <VerticalStackLayout Spacing="4">
                 <Label Text="Attendance logging" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" />
                 <Label Text="{Binding ClockText}" FontSize="13" TextColor="{StaticResource Gray600}" />
-                <Label Text="Only classes inside your monitoring area and duty hours are listed."
+                <Label Text="{Binding MonitoringText}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" />
+                <Label Text="Classes of your assigned school that fall inside your vacant times are listed automatically. Check each class twice: 5 minutes after it starts and 5 minutes before it ends."
                        FontSize="13" TextColor="{StaticResource Gray600}" />
             </VerticalStackLayout>
 
@@ -35,9 +36,10 @@
 
             <Border Style="{StaticResource Card}">
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="Classes in your monitoring area today" Style="{StaticResource SectionTitle}" />
-                    <Label Text="No classes in your assigned area and duty hours today." IsVisible="{Binding HasNoClasses}"
+                    <Label Text="Classes to check today" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{Binding EmptyText}" IsVisible="{Binding HasNoClasses}"
                            FontSize="13" TextColor="{StaticResource Gray600}" />
+                    <controls:LabeledEntry Caption="Notes for the check (optional)" Placeholder="Anything IMS should know, for example why you think the faculty is not in the room" Text="{Binding CheckNotes, Mode=TwoWay}" />
                     <VerticalStackLayout Spacing="14" BindableLayout.ItemsSource="{Binding Rows}">
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="models:MonitorRow">
@@ -45,15 +47,13 @@
                                     <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
                                     <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
                                     <Label Text="{Binding State}" FontSize="12" TextColor="{StaticResource ForestMid}" />
-                                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8" IsEnabled="{Binding CanLog}">
-                                        <Button Text="Present" HeightRequest="40" FontSize="13"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AttendanceLogViewModel}}, Path=PresentCommand}"
+                                    <Label Text="{Binding CheckCaption}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" IsVisible="{Binding CanLog}" />
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsEnabled="{Binding CanLog}">
+                                        <Button Text="In the room" HeightRequest="40" FontSize="13"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AttendanceLogViewModel}}, Path=InRoomCommand}"
                                                 CommandParameter="{Binding .}" />
-                                        <Button Grid.Column="1" Text="Late" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AttendanceLogViewModel}}, Path=LateCommand}"
-                                                CommandParameter="{Binding .}" />
-                                        <Button Grid.Column="2" Text="Absent" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AttendanceLogViewModel}}, Path=AbsentCommand}"
+                                        <Button Grid.Column="1" Text="Not in the room" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AttendanceLogViewModel}}, Path=NotInRoomCommand}"
                                                 CommandParameter="{Binding .}" />
                                     </Grid>
                                 </VerticalStackLayout>

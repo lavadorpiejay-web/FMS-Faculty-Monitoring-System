@@ -179,7 +179,19 @@ Then **uninstall the app from the emulator**, run **Build > Clean Solution**, an
 - **Schedules tab (IMS)**: classroom chosen as building, floor, room. One subject can have several days (tick Mon..Sun). One shared start/end time, or switch off "Same time for every day" to set each day's time. Each day is saved as its own schedule row (all days saved together or none). Removing removes one day at a time.
 - Seed data: Engineering sample classes use SA basement rooms, other schools' sample classes use SA floor 2; duties still use building SA (rds01 whole building, rds02 floor B-1). Needs a fresh install.
 
-## Planned next (agreed, not built yet)
-- Assign tab: READS Scholar is assigned to a school only (a school other than their own, to avoid favoritism); covers all departments.
-- Duty tab becomes the READS Scholar's own page: tick several days plus start/end to enter vacant times in one go (table); IMS no longer enters vacant times or duty areas.
-- Attendance tab: automatically lists the assigned school's classes during the Scholar's vacant times. Two checks per class: 5 minutes after start and 5 minutes before end. In room at first check = Present; not in room at first but in room at the end check = Late; not in room at end check = Absent (office does not matter). A faculty present at the first check is checked again at the end. Observation and notes are saved.
+## READS Scholars: school assignment, vacant times, two-check attendance (Milestone 15 part 2)
+- **Registration**: a READS Scholar picks the school they study in (`UserAccount.OwnSchool`). Dummy accounts: rds01-rds03 study in the School of Business and Management and monitor the School of Engineering and Architecture; rds04-rds05 study in the School of Engineering and Architecture and monitor the School of Arts and Sciences.
+- **Assign tab (IMS)**: a Scholar is assigned to a school only (all of its departments). The Scholar's own school is not offered and is refused by `ScholarAssignmentService`. `AssignedDepartment` is no longer used.
+- **Duty tab (READS Scholar, `MyDutyPage`)**: the Scholar enters their own vacant times: tick several days, one start and end, then a table with Remove. The vacant times are the duty hours (`VacantTimeService`). **Duty tab (IMS, `DutyPage`)** is read-only: each Scholar, the school they monitor and their vacant times (`DutyService.GetOverviewAsync`). IMS no longer records vacant times, duty areas or duties (the duties file and `DutyAssignment` stay only so old data loads).
+- **Home (READS Scholar, `ReadsHomePage`)**: today's duty hours (Current / Upcoming / Completed) and the checks completed today.
+- **Directory (READS Scholar)**: the Dean, Chairpersons and Faculty of the assigned school (all departments).
+- **Attendance tab (READS Scholar)**: nothing to enter. It lists today's classes of the assigned school that overlap the Scholar's vacant times (`AttendanceService.GetMonitorRowsAsync`). Two checks per class:
+  1. First check opens 5 minutes after the start: "In the room" or "Not in the room" (+ optional notes).
+  2. End check opens 5 minutes before the end: same choices.
+  - In the room at the first check: **Present** (if not in the room at the end check it is still Present, with the observation "left early").
+  - Not in the room at the first check, in the room at the end check: **Late**.
+  - Not in the room at the end check (after not being there at the start): **Absent**, wherever the faculty is (office included).
+  - The log (`AttendanceLog`) keeps both check times, the observation and the notes. Status is provisional after the first check and final after the end check. A class whose first check was missed cannot be logged any more. A check also needs the Scholar to be inside one of their vacant times.
+  - A class outside the assigned school or vacant times is refused and flagged as an irregularity for IMS.
+- Debug builds still have the test clock on the Attendance tab, for example Monday 8:35 AM for a class at 8:00-9:30 AM (end check from 9:25 AM).
+- Old data: `UserAccount` has the new `OwnSchool` field (empty on old accounts). Seed data changed, so a fresh install is needed.

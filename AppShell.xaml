@@ -16,7 +16,7 @@
     </TabBar>
 
     <TabBar x:Name="ReadsScholarTabs" IsVisible="False">
-        <ShellContent Title="Home" Route="ReadsScholarHome" ContentTemplate="{DataTemplate views:DashboardPage}" />
+        <ShellContent Title="Home" Route="ReadsScholarHome" ContentTemplate="{DataTemplate views:ReadsHomePage}" />
         <ShellContent Title="Duty" Route="ReadsScholarDuty" ContentTemplate="{DataTemplate views:MyDutyPage}" />
         <ShellContent Title="Attendance" Route="ReadsScholarAttendance" ContentTemplate="{DataTemplate views:AttendanceLogPage}" />
         <ShellContent Title="Directory" Route="ReadsScholarDirectory" ContentTemplate="{DataTemplate views:DirectoryPage}" />

@@ -10,16 +10,17 @@ Sign-in is by ID (exactly 5 characters, not case sensitive).
 
 IMS Personnel and READS Scholars
 --------------------------------
-ID          Role              Notes
-ims01       IMS Personnel     Assigns READS Scholars (Assign tab)
-rds01      READS Scholar     Starts unassigned (Directory tab says "No department assigned yet")
-rds02      READS Scholar     Starts unassigned
-rds03      READS Scholar     Starts unassigned
-rds04      READS Scholar     Starts unassigned
-rds05      READS Scholar     Starts unassigned
+ID          Role              Studies in                                  Monitors (assigned school)
+ims01       IMS Personnel     -                                           Assign tab: assigns a school to each READS Scholar
+rds01       READS Scholar     School of Business and Management           School of Engineering and Architecture
+rds02       READS Scholar     School of Business and Management           School of Engineering and Architecture
+rds03       READS Scholar     School of Business and Management           School of Engineering and Architecture
+rds04       READS Scholar     School of Engineering and Architecture      School of Arts and Sciences
+rds05       READS Scholar     School of Engineering and Architecture      School of Arts and Sciences
 
-To give a Scholar a department: sign in as ims01, open the Assign tab, pick the Scholar, the school and the
-department, and press Save. Then sign in as that Scholar and open the Directory tab.
+A READS Scholar monitors a school other than the one they study in. On the Assign tab the Scholar's own school is not offered.
+rds01, rds02 and rds04 also start with a sample vacant time on Mondays (7:30 AM - 12:00 PM). Scholars enter the rest on their own Duty tab.
+Real READS Scholars choose the school they study in when they register.
 
 
 Dean

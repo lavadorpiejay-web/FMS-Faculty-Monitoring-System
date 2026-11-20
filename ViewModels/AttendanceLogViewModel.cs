@@ -7,8 +7,9 @@ using FacultyMonitoring.Services;
 namespace FacultyMonitoring.ViewModels;
 
 /// <summary>
-/// READS Scholar: the classes inside your monitoring area and duty hours, digital attendance logging (Present / Late / Absent)
-/// with a confirmation prompt, and irregularity reports. Debug builds also have a test clock.
+/// READS Scholar: the classes of your assigned school that fall inside your vacant times, listed automatically.
+/// Each class has two checks (5 minutes after the start, 5 minutes before the end): in the room or not in the room, with notes.
+/// The status (Present / Late / Absent) follows from the two checks. Also irregularity reports. Debug builds have a test clock.
 /// </summary>
 public partial class AttendanceLogViewModel : PageViewModelBase
 {
@@ -42,6 +43,9 @@ public partial class AttendanceLogViewModel : PageViewModelBase
 #endif
 
     [ObservableProperty] private string _clockText = "";
+    [ObservableProperty] private string _monitoringText = "";
+    [ObservableProperty] private string _emptyText = "";
+    [ObservableProperty] private string _checkNotes = "";
     [ObservableProperty] private bool _hasNoClasses;
     [ObservableProperty] private IReadOnlyList<string> _reportClassLabels = Array.Empty<string>();
     [ObservableProperty] private IReadOnlyList<string> _roomLabels = Array.Empty<string>();
@@ -87,6 +91,12 @@ public partial class AttendanceLogViewModel : PageViewModelBase
         var roomLabels = _rooms.Keys.ToList();
         if (!RoomLabels.SequenceEqual(roomLabels)) RoomLabels = roomLabels;
 
+        var school = await _service.GetMonitoringSchoolAsync();
+        MonitoringText = school.Length == 0 ? "You are not assigned to a school yet." : $"Monitoring: {school}";
+        EmptyText = school.Length == 0
+            ? "IMS Personnel have not assigned you to a school yet."
+            : "No classes of your assigned school fall inside your vacant times today. Enter your vacant times on the Duty tab.";
+
         Rows.Clear();
         foreach (var row in await _service.GetMonitorRowsAsync()) Rows.Add(row);
         HasNoClasses = Rows.Count == 0;
@@ -100,25 +110,26 @@ public partial class AttendanceLogViewModel : PageViewModelBase
         foreach (var l in await _service.GetMyLogsAsync(8)) RecentLogs.Add(l);
     }
 
-    [RelayCommand] private Task PresentAsync(MonitorRow? row) => LogAsync(row, AttendanceStatus.Present);
-    [RelayCommand] private Task LateAsync(MonitorRow? row) => LogAsync(row, AttendanceStatus.Late);
-    [RelayCommand] private Task AbsentAsync(MonitorRow? row) => LogAsync(row, AttendanceStatus.Absent);
+    [RelayCommand] private Task InRoomAsync(MonitorRow? row) => CheckAsync(row, true);
+    [RelayCommand] private Task NotInRoomAsync(MonitorRow? row) => CheckAsync(row, false);
 
-    private async Task LogAsync(MonitorRow? row, AttendanceStatus status)
+    private async Task CheckAsync(MonitorRow? row, bool inRoom)
     {
         if (row is null || IsBusy) return;
         ClearMessages();
 
-        // Review and confirm before final submission.
-        var yes = await Shell.Current.DisplayAlertAsync("Confirm attendance",
-            $"{row.Title}\nMark as {status.ToString().ToUpperInvariant()}?\n\nIt is timestamped and cannot be changed after you submit.",
+        // Review and confirm before final submission. Present / Late / Absent is worked out from the two checks.
+        var yes = await Shell.Current.DisplayAlertAsync(row.CheckCaption,
+            $"{row.Title}\nFaculty is {(inRoom ? "IN" : "NOT IN")} the classroom?\n\nIt is timestamped and cannot be changed after you submit.",
             "Submit", "Cancel");
         if (!yes) return;
 
         try
         {
             IsBusy = true;
-            Show(await _service.LogAsync(row.ScheduleId, status));
+            var result = await _service.CheckAsync(row.ScheduleId, inRoom, CheckNotes);
+            Show(result);
+            if (result.Success) CheckNotes = "";
             await LoadAsync();
         }
         finally { IsBusy = false; }

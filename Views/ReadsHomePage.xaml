@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.ReadsHomePage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             xmlns:models="clr-namespace:FacultyMonitoring.Models"
+             x:DataType="vm:ReadsHomeViewModel"
+             Title="Home">
+    <controls:DraggableScrollView>
+        <VerticalStackLayout Spacing="0">
+            <VerticalStackLayout BackgroundColor="{StaticResource DeepGreen}" Padding="24,24,24,28" Spacing="4">
+                <Label Text="READS SCHOLAR" CharacterSpacing="2" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Gold}" />
+                <Label Text="{Binding Greeting}" FontSize="24" FontAttributes="Bold" TextColor="White" />
+                <Label Text="{Binding MonitoringText}" FontSize="14" TextColor="#CFE3D6" />
+                <Label Text="{Binding ClockText}" FontSize="12" TextColor="#CFE3D6" />
+            </VerticalStackLayout>
+            <BoxView HeightRequest="4" Color="{StaticResource Gold}" />
+
+            <VerticalStackLayout Padding="20" Spacing="16">
+                <Border Style="{StaticResource Card}" Padding="20">
+                  <VerticalStackLayout Spacing="12">
+                    <Label Text="My duty hours today" Style="{StaticResource SectionTitle}" />
+                    <Label Text="No duty hours today. Enter your vacant times on the Duty tab." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoDuty}" />
+                    <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding DutyHours}">
+                      <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:ListRow">
+                          <VerticalStackLayout Spacing="2">
+                            <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
+                            <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                            <Label Text="{Binding Extra}" FontSize="12" TextColor="{StaticResource ForestMid}" />
+                          </VerticalStackLayout>
+                        </DataTemplate>
+                      </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                  </VerticalStackLayout>
+                </Border>
+                <Border Style="{StaticResource Card}" Padding="20">
+                  <VerticalStackLayout Spacing="12">
+                    <Label Text="Completed today" Style="{StaticResource SectionTitle}" />
+                    <Label Text="No checks done yet today." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoChecks}" />
+                    <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding Completed}">
+                      <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:ListRow">
+                          <VerticalStackLayout Spacing="2">
+                            <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
+                            <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                            <Label Text="{Binding Extra}" FontSize="12" TextColor="{StaticResource ForestMid}" />
+                          </VerticalStackLayout>
+                        </DataTemplate>
+                      </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                  </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </controls:DraggableScrollView>
+</ContentPage>

@@ -112,7 +112,9 @@ public partial class RegisterViewModel : ObservableObject
     private UserRole? CurrentRole => RolePolicy.FromLabel(SelectedRoleLabel);
 
     // Faculty, Chairperson and Dean belong to a school; Faculty and Chairperson also to a department.
-    public bool NeedsSchool => CurrentRole is UserRole.Faculty or UserRole.Chairperson or UserRole.Dean;
+    // A READS Scholar also picks a school: the school they study in (IMS never assigns them to monitor it).
+    public bool NeedsSchool => CurrentRole is UserRole.Faculty or UserRole.Chairperson or UserRole.Dean or UserRole.ReadsScholar;
+    public string SchoolCaption => CurrentRole == UserRole.ReadsScholar ? "Your school (the school you study in)" : "School";
     public bool NeedsDepartment => CurrentRole is UserRole.Faculty or UserRole.Chairperson;
     // READS Scholar and IMS Personnel are placed in the IMS Office automatically.
     public bool IsOfficeRole => CurrentRole is UserRole.ReadsScholar or UserRole.ImsPersonnel;
@@ -157,6 +159,7 @@ public partial class RegisterViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(RoleHint))]
     [NotifyPropertyChangedFor(nameof(HasRoleHint))]
     [NotifyPropertyChangedFor(nameof(NeedsSchool))]
+    [NotifyPropertyChangedFor(nameof(SchoolCaption))]
     [NotifyPropertyChangedFor(nameof(NeedsDepartment))]
     [NotifyPropertyChangedFor(nameof(IsOfficeRole))]
     [NotifyPropertyChangedFor(nameof(IdMaxLength))]

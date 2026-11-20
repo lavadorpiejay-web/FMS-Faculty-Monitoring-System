@@ -14,7 +14,8 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
     public ScholarAssignmentsViewModel(ScholarAssignmentService service) => _service = service;
 
     public ObservableCollection<AssignmentRow> Assignments { get; } = new();
-    public IReadOnlyList<string> Schools { get; } = AcademicCatalog.SchoolNames;
+    // The school the Scholar studies in is left out: a Scholar monitors another school, never their own.
+    [ObservableProperty] private IReadOnlyList<string> _schools = AcademicCatalog.SchoolNames;
 
     [ObservableProperty] private IReadOnlyList<string> _scholarLabels = Array.Empty<string>();
 
@@ -22,12 +23,8 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasScholarSelected))]
     private string? _selectedScholarLabel;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSchool))]
-    private string? _selectedSchool;
-
-    [ObservableProperty] private IReadOnlyList<string> _departments = Array.Empty<string>();
-    [ObservableProperty] private string? _selectedDepartment;
+    [ObservableProperty] private string? _selectedSchool;
+    [ObservableProperty] private string _ownSchoolText = "";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
@@ -46,32 +43,29 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
     private bool _hasScholars;
 
     public bool HasScholarSelected => SelectedScholarLabel is not null;
-    public bool HasSchool => HasScholarSelected && SelectedSchool is not null;
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
     public bool HasSuccess => !string.IsNullOrEmpty(SuccessMessage);
     public bool IsNotBusy => !IsBusy;
     public bool HasNoScholars => !HasScholars;
-
-    partial void OnSelectedSchoolChanged(string? value)
-    {
-        SelectedDepartment = null;
-        Departments = AcademicCatalog.DepartmentsOf(value);
-    }
 
     // Choosing a Scholar shows their current assignment in the pickers.
     partial void OnSelectedScholarLabelChanged(string? value)
     {
         ErrorMessage = "";
         SuccessMessage = "";
-        OnPropertyChanged(nameof(HasSchool));
 
         if (value is not null && _byLabel.TryGetValue(value, out var info))
         {
+            Schools = AcademicCatalog.SchoolNames.Where(s => !string.Equals(s, info.OwnSchool, StringComparison.OrdinalIgnoreCase)).ToList();
+            OwnSchoolText = info.OwnSchool.Length > 0
+                ? $"This Scholar studies in the {info.OwnSchool}, so that school is not offered."
+                : "";
             SelectedSchool = info.AssignedSchool.Length > 0 ? info.AssignedSchool : null;
-            SelectedDepartment = info.AssignedDepartment.Length > 0 ? info.AssignedDepartment : null;
         }
         else
         {
+            Schools = AcademicCatalog.SchoolNames;
+            OwnSchoolText = "";
             SelectedSchool = null;
         }
     }
@@ -99,12 +93,11 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
         if (SelectedScholarLabel is null || !_byLabel.TryGetValue(SelectedScholarLabel, out var info))
         { ErrorMessage = "Choose a READS Scholar."; return; }
         if (SelectedSchool is null) { ErrorMessage = "Choose a school."; return; }
-        if (SelectedDepartment is null) { ErrorMessage = "Choose a department."; return; }
 
         try
         {
             IsBusy = true;
-            var result = await _service.AssignAsync(info.UserId, SelectedSchool, SelectedDepartment);
+            var result = await _service.AssignAsync(info.UserId, SelectedSchool);
             if (!result.Success) { ErrorMessage = result.Message; return; }
 
             SuccessMessage = result.Message;
@@ -129,7 +122,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
             var result = await _service.ClearAsync(info.UserId);
             if (!result.Success) { ErrorMessage = result.Message; return; }
 
-            SelectedSchool = null;   // also clears the department
+            SelectedSchool = null;
             await LoadAsync();
             SuccessMessage = result.Message;
         }

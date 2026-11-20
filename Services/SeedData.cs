@@ -5,7 +5,8 @@ namespace FacultyMonitoring.Services;
 /// <summary>
 /// Starting data written to local JSON on first launch.
 /// In DEBUG builds (running from Visual Studio) it also creates dummy accounts so you can sign in quickly:
-/// one Dean per school, one Chairperson and one Faculty per department, plus five READS Scholars (unassigned) and one IMS Personnel.
+/// one Dean per school, one Chairperson and one Faculty per department, plus five READS Scholars (each with the school they study in
+/// and a different school assigned to monitor) and one IMS Personnel.
 /// Release builds get no accounts at all; everyone registers.
 /// </summary>
 public static class SeedData
@@ -56,10 +57,10 @@ public static class SeedData
 
 #if DEBUG
     private static UserAccount User(string id, string sis, string name, string school, string dept, UserRole role,
-        (string Hash, string Salt) pw, string assignedSchool = "", string assignedDept = "") => new()
+        (string Hash, string Salt) pw, string assignedSchool = "", string assignedDept = "", string ownSchool = "") => new()
     {
         Id = id, SisId = sis, Email = $"{sis}@fms.test", FullName = name, School = school, Department = dept, Role = role,
-        AssignedSchool = assignedSchool, AssignedDepartment = assignedDept, PasswordHash = pw.Hash, Salt = pw.Salt
+        AssignedSchool = assignedSchool, AssignedDepartment = assignedDept, OwnSchool = ownSchool, PasswordHash = pw.Hash, Salt = pw.Salt
     };
 #endif
 
@@ -75,9 +76,19 @@ public static class SeedData
             User("U-IMS", "ims01", "IMS Personnel (dummy)", "", Ims, UserRole.ImsPersonnel, pw),
         };
 
-        // READS Scholars start UNASSIGNED. Sign in as ims01 and use the Assign tab to give them a school and department.
+        // A READS Scholar monitors a school other than the one they study in (to avoid favoritism toward their own faculty):
+        // rds01-rds03 study in the School of Business and Management and monitor the School of Engineering and Architecture;
+        // rds04-rds05 study in the School of Engineering and Architecture and monitor the School of Arts and Sciences.
+        var sea = AcademicCatalog.Schools[0].Name;
+        var sbm = AcademicCatalog.Schools.First(s => s.Name.Contains("Business")).Name;
+        var sas = AcademicCatalog.Schools.First(s => s.Name.Contains("Arts and Sciences")).Name;
         for (var i = 1; i <= ReadsScholarCount; i++)
-            users.Add(User($"U-READS-{i}", $"rds{i:00}", $"READS Scholar {i} (dummy)", "", Ims, UserRole.ReadsScholar, pw));
+        {
+            var own = i <= 3 ? sbm : sea;
+            var assigned = i <= 3 ? sea : sas;
+            users.Add(User($"U-READS-{i}", $"rds{i:00}", $"READS Scholar {i} (dummy)", "", Ims, UserRole.ReadsScholar, pw,
+                assignedSchool: assigned, ownSchool: own));
+        }
 
         // Sign-in IDs are exactly 5 characters: dean1.., chr01.., fac01.. (in catalog order).
         var schoolList = units.Select(u => (u.School, u.SchoolCode)).Distinct().ToList();
@@ -188,25 +199,11 @@ public static class SeedData
 #endif
     }
 
-    // Monitoring areas are places, not departments: a READS Scholar sees the classes scheduled in the rooms of the area,
-    // whoever teaches them.
-    // rds01 monitors the whole San Agustin building ("SA") on the Main Campus, Mondays 8:00-11:00.
-    // rds02 monitors the upper basement (floor "B-1") of San Agustin on the Main Campus, Mondays 8:00-9:30.
-    public static List<DutyAssignment> Duties()
-    {
-#if DEBUG
-        return new()
-        {
-            new() { Id = "D-seed-1", ReadsUserId = "U-READS-1", ReadsName = "READS Scholar 1 (dummy)", Campus = AcademicCatalog.DefaultCampus,
-                    Building = "SA", Floor = "", Day = DayOfWeek.Monday, Start = "08:00", End = "11:00" },
-            new() { Id = "D-seed-2", ReadsUserId = "U-READS-2", ReadsName = "READS Scholar 2 (dummy)", Campus = AcademicCatalog.DefaultCampus,
-                    Building = "SA", Floor = "B-1", Day = DayOfWeek.Monday, Start = "08:00", End = "09:30" },
-        };
-#else
-        return new();
-#endif
-    }
+    // READS Scholars enter their own vacant times now, and monitor the classes of their assigned school inside them,
+    // so there are no duty assignments to seed. (The duties file and DutyAssignment record are kept only so older data still loads.)
+    public static List<DutyAssignment> Duties() => new();
 
+    // Sample vacant times (debug builds only), Mondays. rds01 and rds02 monitor the Engineering classes; rds04 monitors Arts and Sciences.
     public static List<VacantSlot> Vacancies()
     {
 #if DEBUG
@@ -214,6 +211,7 @@ public static class SeedData
         {
             new() { Id = "V-seed-1", ReadsUserId = "U-READS-1", Day = DayOfWeek.Monday, Start = "07:30", End = "12:00" },
             new() { Id = "V-seed-2", ReadsUserId = "U-READS-2", Day = DayOfWeek.Monday, Start = "07:30", End = "12:00" },
+            new() { Id = "V-seed-3", ReadsUserId = "U-READS-4", Day = DayOfWeek.Monday, Start = "07:30", End = "12:00" },
         };
 #else
         return new();

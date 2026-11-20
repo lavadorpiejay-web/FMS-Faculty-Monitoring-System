@@ -15,9 +15,11 @@ public sealed record UserAccount
     public string FullName { get; init; } = "";
     public string School { get; init; } = "";       // empty for IMS Office staff
     public string Department { get; init; } = "";   // empty for Deans; "IMS Office" for READS Scholar / IMS Personnel
-    // For READS Scholars only: the school and department IMS Personnel assigned them to view.
+    // For READS Scholars only: the school IMS Personnel assigned them to monitor (and view in the Directory).
     public string AssignedSchool { get; init; } = "";
-    public string AssignedDepartment { get; init; } = "";
+    public string AssignedDepartment { get; init; } = "";   // no longer used: a READS Scholar is assigned to a whole school
+    // For READS Scholars only: the school they study in. IMS Personnel cannot assign them to monitor their own school.
+    public string OwnSchool { get; init; } = "";
     public UserRole Role { get; init; }
     public bool IsActive { get; init; } = true;
     public string Email { get; init; } = "";

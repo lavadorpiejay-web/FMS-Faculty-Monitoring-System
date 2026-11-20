@@ -32,6 +32,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<AuditService>();
         builder.Services.AddSingleton<ScheduleService>();
         builder.Services.AddSingleton<DutyService>();
+        builder.Services.AddSingleton<VacantTimeService>();
         builder.Services.AddSingleton<ChangeRequestService>();
         builder.Services.AddSingleton<AttendanceService>();
 
@@ -60,6 +61,7 @@ public static class MauiProgram
         builder.Services.AddTransient<FacultyScheduleViewModel>();
         builder.Services.AddTransient<RequestsViewModel>();
         builder.Services.AddTransient<MyDutyViewModel>();
+        builder.Services.AddTransient<ReadsHomeViewModel>();
         builder.Services.AddTransient<AttendanceLogViewModel>();
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<RegisterPage>();
@@ -82,6 +84,7 @@ public static class MauiProgram
         builder.Services.AddTransient<FacultySchedulePage>();
         builder.Services.AddTransient<RequestsPage>();
         builder.Services.AddTransient<MyDutyPage>();
+        builder.Services.AddTransient<ReadsHomePage>();
         builder.Services.AddTransient<AttendanceLogPage>();
 
 #if DEBUG
