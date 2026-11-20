@@ -89,7 +89,7 @@ public partial class FacultyScheduleViewModel : PageViewModelBase
                 _ => r.Status.ToString().ToLowerInvariant()
             };
             RequestRows.Add(new ListRow(r.Id, $"{r.ScheduleLabel} - {decided}",
-                $"{(r.Kind == ChangeKind.Room ? "Room" : "Schedule")} change: {r.Summary}\nReason: {r.Reason}",
+                $"{(r.Kind == ChangeKind.Room ? "Room" : "Schedule")} change: {r.Summary}\nReason: {r.Reason}" + (r.DeclineReason.Length > 0 ? $"\nDeclined because: {r.DeclineReason}" : ""),
                 r.DecidedByName.Length > 0 ? $"Decided by {r.DecidedByName}" : ""));
         }
     }

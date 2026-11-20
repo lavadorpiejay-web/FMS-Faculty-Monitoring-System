@@ -202,23 +202,26 @@ public sealed class ChangeRequestService
             : "Availability: NOT available. " + conflict;
     }
 
-    /// <summary>IMS Personnel: decline an approved request, for example when the room is not available. The Faculty member sees the decision.</summary>
-    public async Task<OperationResult> DeclineAsync(string requestId)
+    /// <summary>IMS Personnel: decline an approved request with a reason, for example when the room is not available. Nothing in the schedule changes; the Faculty member sees the reason.</summary>
+    public async Task<OperationResult> DeclineAsync(string requestId, string reason)
     {
         var me = _session.CurrentUser;
         if (me is null || me.Role != UserRole.ImsPersonnel) return Fail("Only IMS Personnel can decline here.");
+        reason = reason.Trim();
+        if (reason.Length == 0) return Fail("Give a reason for declining.");
 
         var requests = await LoadAsync();
         var ri = requests.FindIndex(r => r.Id == requestId && r.Status == ChangeStatus.Approved);
         if (ri < 0) return Fail("That request is not waiting for IMS Personnel.");
 
         var request = requests[ri];
-        requests[ri] = request with { Status = ChangeStatus.Declined, DecidedUtc = DateTime.UtcNow, DecidedByName = $"{me.FullName} (IMS Personnel)" };
+        requests[ri] = request with { Status = ChangeStatus.Declined, DecidedUtc = DateTime.UtcNow, DecidedByName = $"{me.FullName} (IMS Personnel)", DeclineReason = reason };
         await _storage.SaveAsync(JsonStorageService.RequestsFile, requests);
-        await _audit.LogAsync("Change declined by IMS", $"{request.RequesterName}: {request.ScheduleLabel}. {request.Summary}");
-        return new OperationResult(true, "Declined. The Faculty member will see the decision.");
+        await _audit.LogAsync("Change declined by IMS", $"{request.RequesterName}: {request.ScheduleLabel}. {request.Summary}. Reason: {reason}");
+        return new OperationResult(true, "Declined. The schedule was not changed; the Faculty member will see your reason.");
     }
 
+    /// <summary>IMS Personnel: approve an approved request. The requested room (or schedule change) is set in the master schedule automatically.</summary>
     public async Task<OperationResult> ApplyAsync(string requestId)
     {
         var me = _session.CurrentUser;
@@ -253,10 +256,15 @@ public sealed class ChangeRequestService
         var affected = duties
             .Where(d => (d.Day == before.Day && ScheduleRules.Overlaps(d.Start, d.End, before.Start, before.End) && ScheduleRules.DutyCovers(d, before, oldRoom))
                      || (d.Day == after.Day && ScheduleRules.Overlaps(d.Start, d.End, after.Start, after.End) && ScheduleRules.DutyCovers(d, after, newRoom)))
-            .Select(d => d.ReadsName).Distinct().OrderBy(n => n).ToList();
+            .OrderBy(d => d.ReadsName).ThenBy(d => d.Day).ThenBy(d => d.Start).ToList();
 
         var message = $"Applied: {before.SubjectCode} ({before.FacultyName}) updated.";
-        if (affected.Count > 0) message += $" Review the duty assignments of {string.Join(", ", affected)} on the Duty tab.";
+        if (affected.Count > 0)
+        {
+            // Name each checker and the duty to adjust, so IMS can change the assignments on the Duty tab.
+            var lines = affected.Select(d => $"{d.ReadsName}: {d.Day} {TimeFormat.Range(d.Start, d.End)}, {ScheduleRules.AreaText(d)}");
+            message += " Adjust these checker duties on the Duty tab: " + string.Join("; ", lines) + ".";
+        }
         return new OperationResult(true, message);
     }
 }

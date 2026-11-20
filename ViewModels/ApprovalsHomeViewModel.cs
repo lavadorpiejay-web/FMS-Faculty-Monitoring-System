@@ -175,13 +175,14 @@ public partial class ApprovalsHomeViewModel : PageViewModelBase
     private async Task ImsDeclineAsync(ListRow? row)
     {
         if (row is null || IsBusy) return;
-        var yes = await Shell.Current.DisplayAlertAsync("Decline request", $"Decline the request of {row.Title}?", "Decline", "Cancel");
-        if (!yes) return;
+        var reason = await Shell.Current.DisplayPromptAsync("Decline request", $"Why are you declining {row.Title}? The Faculty member will see this reason. Nothing will be changed in the schedule.",
+            "Decline", "Cancel", "Reason", 200);
+        if (reason is null) return;   // cancelled
         try
         {
             IsBusy = true;
             ClearMessages();
-            Show(await _changes.DeclineAsync(row.Id));
+            Show(await _changes.DeclineAsync(row.Id, reason));
             await RefreshAsync();
         }
         finally { IsBusy = false; }

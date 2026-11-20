@@ -72,6 +72,7 @@ public sealed record ChangeRequest
     public DateTime CreatedUtc { get; init; }
     public DateTime? DecidedUtc { get; init; }
     public string DecidedByName { get; init; } = "";
+    public string DeclineReason { get; init; } = "";   // why IMS Personnel declined (shown to the Faculty member)
     public DateTime? AppliedUtc { get; init; }
     public string AppliedByName { get; init; } = "";
 }
