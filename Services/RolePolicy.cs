@@ -27,6 +27,7 @@ public static class RolePolicy
         if (first == "..") return true;                                 // back navigation
         // Only when signed out.
         if (first is "Login" or "Register" or "VerifyEmail" or "ForgotPassword") return role is null;
+        if (first == "Notifications") return role is not null;
         return role is not null && first.StartsWith(role.Value.ToString(), StringComparison.Ordinal);
     }
 

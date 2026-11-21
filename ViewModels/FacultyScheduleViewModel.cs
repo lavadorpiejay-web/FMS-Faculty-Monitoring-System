@@ -122,7 +122,7 @@ public partial class FacultyScheduleViewModel : PageViewModelBase
             var decided = r.Status switch
             {
                 ChangeStatus.Pending => r.Kind == ChangeKind.Room ? "waiting for the Dean" : "waiting for your Chairperson",
-                ChangeStatus.Approved => "approved, waiting for IMS Personnel",
+                ChangeStatus.Approved => "approved, IMS Personnel notified and will apply it",
                 _ => r.Status.ToString().ToLowerInvariant()
             };
             RequestRows.Add(new ListRow(r.Id, $"{r.ScheduleLabel} - {decided}",

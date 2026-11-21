@@ -8,12 +8,14 @@ public sealed class VacantTimeService
     private readonly JsonStorageService _storage;
     private readonly SessionService _session;
     private readonly AuditService _audit;
+    private readonly LocalAlertService _alerts;
 
-    public VacantTimeService(JsonStorageService storage, SessionService session, AuditService audit)
+    public VacantTimeService(JsonStorageService storage, SessionService session, AuditService audit, LocalAlertService alerts)
     {
         _storage = storage;
         _session = session;
         _audit = audit;
+        _alerts = alerts;
     }
 
     private UserAccount? Reads => _session.CurrentUser is { Role: UserRole.ReadsScholar } u ? u : null;
@@ -51,6 +53,7 @@ public sealed class VacantTimeService
         await _storage.SaveAsync(JsonStorageService.VacanciesFile, all);
         await _audit.LogAsync("Vacant time recorded",
             $"{me.FullName}: {string.Join(", ", days.Select(d => d.ToString()[..3]))} {TimeFormat.Range(start, end)}");
+        _ = _alerts.SyncAsync();   // schedule the duty reminders for the new times
         return new OperationResult(true, $"Saved {days.Count} vacant time{(days.Count == 1 ? "" : "s")}.");
     }
 
@@ -65,6 +68,7 @@ public sealed class VacantTimeService
         all.Remove(slot);
         await _storage.SaveAsync(JsonStorageService.VacanciesFile, all);
         await _audit.LogAsync("Vacant time removed", $"{me.FullName}: {slot.Day} {TimeFormat.Range(slot.Start, slot.End)}");
+        _ = _alerts.SyncAsync();   // drop the reminder of the removed time
         return new OperationResult(true, "Vacant time removed.");
     }
 }

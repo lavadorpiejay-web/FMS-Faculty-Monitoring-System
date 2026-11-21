@@ -12,12 +12,52 @@ public sealed class ChangeRequestService
     private readonly JsonStorageService _storage;
     private readonly SessionService _session;
     private readonly AuditService _audit;
+    private readonly NotificationService _notifications;
 
-    public ChangeRequestService(JsonStorageService storage, SessionService session, AuditService audit)
+    public ChangeRequestService(JsonStorageService storage, SessionService session, AuditService audit, NotificationService notifications)
     {
         _storage = storage;
         _session = session;
         _audit = audit;
+        _notifications = notifications;
+    }
+
+    /// <summary>
+    /// Which checkers (READS Scholars) are touched by a change, so IMS can adjust the checker assignments.
+    /// A checker is assigned to a whole school and works in their own vacant times, so a checker is touched when a vacant time
+    /// of a Scholar assigned to the class's school overlaps the class's old or new day and time.
+    /// </summary>
+    private async Task<string> CheckerImpactAsync(ClassSchedule before, ClassSchedule after)
+    {
+        var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
+        var vacancies = await _storage.LoadAsync<VacantSlot>(JsonStorageService.VacanciesFile);
+        var scholars = users.Where(u => u.IsUsable && u.Role == UserRole.ReadsScholar && u.AssignedSchool == before.School).ToList();
+
+        string Covering(ClassSchedule c)
+        {
+            var names = scholars
+                .Where(u => vacancies.Any(v => v.ReadsUserId == u.Id && v.Day == c.Day && ScheduleRules.Overlaps(v.Start, v.End, c.Start, c.End)))
+                .Select(u => u.FullName).OrderBy(n => n).ToList();
+            return string.Join(", ", names);
+        }
+
+        var oldNames = Covering(before);
+        var sameSlot = before.Day == after.Day && before.Start == after.Start && before.End == after.End;
+        if (sameSlot)
+        {
+            return oldNames.Length > 0
+                ? $"Checkers monitoring this class: {oldNames}. Tell them about the change."
+                : "No checker of this school is free at that time. Check the checker assignments.";
+        }
+
+        var newNames = Covering(after);
+        var text = oldNames.Length > 0
+            ? $"Checkers who covered the old time ({before.Day} {ScheduleRules.Range(before.Start, before.End)}): {oldNames}."
+            : $"No checker was covering the old time ({before.Day} {ScheduleRules.Range(before.Start, before.End)}).";
+        text += newNames.Length > 0
+            ? $" Checkers free at the new time ({after.Day} {ScheduleRules.Range(after.Start, after.End)}): {newNames}."
+            : $" No checker of this school is free at the new time ({after.Day} {ScheduleRules.Range(after.Start, after.End)}); assign one.";
+        return text;
     }
 
     private static OperationResult Fail(string message) => new(false, message);
@@ -131,6 +171,17 @@ public sealed class ChangeRequestService
         await _storage.SaveAsync(JsonStorageService.RequestsFile, requests);
         await _audit.LogAsync("Change requested", $"{me.FullName}: {request.ScheduleLabel}. {request.Summary}");
 
+        // Bell: tell the Chairperson (schedule change) or the Dean (room change) that a request is waiting.
+        await _notifications.NotifyAsync(new AppNotification
+        {
+            RecipientRole = kind == ChangeKind.Schedule ? UserRole.Chairperson : UserRole.Dean,
+            RecipientSchool = s.School,
+            RecipientDepartment = kind == ChangeKind.Schedule ? s.Department : "",
+            Category = NotificationService.ForApprover, RequestId = request.Id,
+            Title = $"{(kind == ChangeKind.Room ? "Room" : "Schedule")} change request from {me.FullName}",
+            Message = $"{request.ScheduleLabel}\n{request.Summary}\nReason: {reason}"
+        });
+
         var who = kind == ChangeKind.Schedule ? "your Chairperson" : "the Dean";
         return new OperationResult(true, $"Request sent to {who} for approval. IMS Personnel then check the availability and give the final approval.");
     }
@@ -169,9 +220,41 @@ public sealed class ChangeRequestService
         await _storage.SaveAsync(JsonStorageService.RequestsFile, all);
         await _audit.LogAsync(approve ? "Change approved" : "Change declined", $"{all[i].RequesterName}: {all[i].ScheduleLabel}. {all[i].Summary}");
 
+        await _notifications.MarkRequestHandledAsync(requestId, NotificationService.ForApprover);
+        var approverTitle = all[i].ApproverRole == UserRole.Dean ? "Dean" : "Chairperson";
+        if (approve) await NotifyImsAsync(all[i], me);
+        await _notifications.NotifyAsync(new AppNotification
+        {
+            RecipientUserId = all[i].RequesterUserId, Category = NotificationService.ForRequester, RequestId = requestId,
+            Title = approve ? $"Your request was approved by the {approverTitle}" : $"Your request was declined by the {approverTitle}",
+            Message = $"{all[i].ScheduleLabel}\n{all[i].Summary}" + (approve ? "\nIMS Personnel will check the availability and apply it." : "")
+        });
+
         return new OperationResult(true, approve
-            ? "Approved. IMS Personnel will now check the availability and give the final approval."
+            ? "Approved. IMS Personnel have been notified and will check the availability and give the final approval."
             : "Declined. The Faculty member will see the decision.");
+    }
+
+    /// <summary>Tell IMS Personnel that a Chairperson or Dean approved a request, with the checkers they may need to adjust.</summary>
+    private async Task NotifyImsAsync(ChangeRequest request, UserAccount approver)
+    {
+        var impact = "";
+        var schedules = await _storage.LoadAsync<ClassSchedule>(JsonStorageService.SchedulesFile);
+        var s = schedules.FirstOrDefault(x => x.Id == request.ScheduleId);
+        if (s is not null)
+        {
+            var subjects = await _storage.LoadAsync<Subject>(JsonStorageService.SubjectsFile);
+            impact = await CheckerImpactAsync(s, Apply(s, request, subjects));
+        }
+        var by = request.ApproverRole == UserRole.Dean ? "Dean" : "Chairperson";
+        var kind = request.Kind == ChangeKind.Room ? "Room change" : "Schedule change";
+        var message = $"{request.Summary}\nApproved by {by} {approver.FullName}. Check the availability, apply it to the master schedule, and adjust the checkers.";
+        if (impact.Length > 0) message += "\n" + impact;
+        await _notifications.NotifyAsync(new AppNotification
+        {
+            RecipientRole = UserRole.ImsPersonnel, Category = NotificationService.ForIms, RequestId = request.Id,
+            Title = $"{kind} approved: {request.RequesterName}, {request.ScheduleLabel}", Message = message
+        });
     }
 
     // ------------------------------------------------------------------- IMS
@@ -220,6 +303,13 @@ public sealed class ChangeRequestService
         requests[ri] = request with { Status = ChangeStatus.Declined, DecidedUtc = DateTime.UtcNow, DecidedByName = $"{me.FullName} (IMS Personnel)", DeclineReason = reason };
         await _storage.SaveAsync(JsonStorageService.RequestsFile, requests);
         await _audit.LogAsync("Change declined by IMS", $"{request.RequesterName}: {request.ScheduleLabel}. {request.Summary}. Reason: {reason}");
+        await _notifications.MarkRequestHandledAsync(request.Id, NotificationService.ForIms);
+        await _notifications.NotifyAsync(new AppNotification
+        {
+            RecipientUserId = request.RequesterUserId, Category = NotificationService.ForRequester, RequestId = request.Id,
+            Title = "Your request was declined by IMS Personnel",
+            Message = $"{request.ScheduleLabel}\n{request.Summary}\nReason: {reason}"
+        });
         return new OperationResult(true, "Declined. The schedule was not changed; the Faculty member will see your reason.");
     }
 
@@ -251,22 +341,18 @@ public sealed class ChangeRequestService
         await _storage.SaveAsync(JsonStorageService.RequestsFile, requests);
         await _audit.LogAsync("Change applied", $"{before.FacultyName}: {ScheduleRules.ScheduleLabel(before)} now {ScheduleRules.ScheduleLabel(after)} in {ScheduleRules.RoomLabel(rooms.FirstOrDefault(r => r.Id == after.ClassroomId))}");
 
-        // Checkers whose duty covered the class before or covers it now may need a new duty or area.
-        var duties = await _storage.LoadAsync<DutyAssignment>(JsonStorageService.DutiesFile);
-        var oldRoom = rooms.FirstOrDefault(r => r.Id == before.ClassroomId);
-        var newRoom = rooms.FirstOrDefault(r => r.Id == after.ClassroomId);
-        var affected = duties
-            .Where(d => (d.Day == before.Day && ScheduleRules.Overlaps(d.Start, d.End, before.Start, before.End) && ScheduleRules.DutyCovers(d, before, oldRoom))
-                     || (d.Day == after.Day && ScheduleRules.Overlaps(d.Start, d.End, after.Start, after.End) && ScheduleRules.DutyCovers(d, after, newRoom)))
-            .OrderBy(d => d.ReadsName).ThenBy(d => d.Day).ThenBy(d => d.Start).ToList();
-
-        var message = $"Applied: {before.SubjectCode} ({before.FacultyName}) updated.";
-        if (affected.Count > 0)
+        await _notifications.MarkRequestHandledAsync(request.Id, NotificationService.ForIms);
+        await _notifications.NotifyAsync(new AppNotification
         {
-            // Name each checker and the duty to adjust, so IMS can change the assignments on the Duty tab.
-            var lines = affected.Select(d => $"{d.ReadsName}: {d.Day} {TimeFormat.Range(d.Start, d.End)}, {ScheduleRules.AreaText(d)}");
-            message += " Adjust these checker duties on the Duty tab: " + string.Join("; ", lines) + ".";
-        }
+            RecipientUserId = request.RequesterUserId, Category = NotificationService.ForRequester, RequestId = request.Id,
+            Title = "Your change was applied",
+            Message = $"{request.ScheduleLabel}\n{request.Summary}\nIt is now in the master schedule."
+        });
+
+        // Checkers (READS Scholars) of this school whose vacant times touch the class before or after the change.
+        var message = $"Applied: {before.SubjectCode} ({before.FacultyName}) updated.";
+        var impact = await CheckerImpactAsync(before, after);
+        if (impact.Length > 0) message += " Adjust the checker assignments: " + impact;
         return new OperationResult(true, message);
     }
 }

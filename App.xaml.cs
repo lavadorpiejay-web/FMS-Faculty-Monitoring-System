@@ -12,5 +12,10 @@ public partial class App : Application
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
-        => new Window(_services.GetRequiredService<AppShell>());
+    {
+        var window = new Window(_services.GetRequiredService<AppShell>());
+        // Coming back to the app: refresh the reminders and alert about notifications that arrived meanwhile.
+        window.Resumed += (_, _) => _ = _services.GetRequiredService<Services.LocalAlertService>().SyncAsync();
+        return window;
+    }
 }

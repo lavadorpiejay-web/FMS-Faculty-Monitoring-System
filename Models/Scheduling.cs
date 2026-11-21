@@ -145,6 +145,34 @@ public sealed record AuditEntry
 }
 
 /// <summary>A generic two-line list item. Id is what a Remove / Edit / Approve button acts on.</summary>
+/// <summary>
+/// One notification (the bell). It is addressed either to one person (RecipientUserId) or to a role, optionally narrowed to a
+/// school and department (for example "the Chairperson of this department", or "IMS Personnel").
+/// Older records with no recipient at all belong to IMS Personnel.
+/// </summary>
+public sealed record AppNotification
+{
+    public string Id { get; init; } = "";
+    public string RecipientUserId { get; init; } = "";
+    public UserRole? RecipientRole { get; init; }
+    public string RecipientSchool { get; init; } = "";
+    public string RecipientDepartment { get; init; } = "";
+    public string Category { get; init; } = "";
+    public string RequestId { get; init; } = "";
+    public string Title { get; init; } = "";
+    public string Message { get; init; } = "";
+    public DateTime CreatedUtc { get; init; }
+    public bool IsRead { get; init; }
+}
+
+/// <summary>One line of the Notifications page.</summary>
+public sealed record NotificationRow(string Id, string Title, string Message, string TimeText, bool IsUnread)
+{
+    public bool IsRead => !IsUnread;
+    public Microsoft.Maui.Graphics.Color BackgroundColor =>
+        IsUnread ? Microsoft.Maui.Graphics.Color.FromArgb("#FFF1BF") : Microsoft.Maui.Graphics.Colors.White;
+}
+
 public sealed record ListRow(string Id, string Title, string Detail, string Extra = "");
 
 /// <summary>One row of the IMS Rooms table: a room on a day, in a time, either Vacant or used by a class.</summary>

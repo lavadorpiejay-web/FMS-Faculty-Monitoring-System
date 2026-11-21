@@ -115,6 +115,27 @@ Accounts are written only on first launch and live in the app's private storage,
 - **READS Scholar, Directory tab**: the Dean card is unchanged. A "Departments" toggle lists every department of the assigned school with its Chairperson(s); tapping a Chairperson shows that department's Faculty (`DirectoryDepartment`, `ChairpersonNode`). A department with no Chairperson shows its Faculty directly. `DirectoryResult` now also carries `Departments`.
 - Not compiled by the assistant (no .NET SDK there): build in Visual Studio and report any error text.
 
+## Phone alerts without a server (latest change)
+- Package `Plugin.LocalNotification` (`FacultyMonitoring.csproj`, `.UseLocalNotification()` in `MauiProgram`), permissions in `Platforms\Android\AndroidManifest.xml`. Code: `Services\LocalAlertService.cs`.
+- **Reminders (repeat every week, 10 minutes before):** READS Scholar "Duty starts in 10 minutes" from their own vacant times; Faculty "Class starts in 10 minutes" from their schedule. Other roles get none.
+- **New-notification alert:** when the app is opened or resumed, or someone signs in, one phone alert if there are unread bell notifications not alerted yet.
+- `LocalAlertService.SyncAsync` runs after sign-in (`AppShell.EnterRoleAsync`), on app resume (`App.CreateWindow`), and after a READS Scholar adds or removes a vacant time. Sign-out cancels the reminders. Permission is asked once.
+- Limits: it only reaches the phone the app is on (no server), reminders refresh when the app is opened, and Android may fire them a few minutes late unless "Alarms & reminders" is allowed for the app. The emulator needs a fresh install to ask for notification permission.
+- Not compiled by the assistant: if NuGet cannot restore `Plugin.LocalNotification` 12.*, install the newest version in Visual Studio (Manage NuGet Packages). If `LocalNotificationCenter` is not found, the package uses the older name `NotificationCenter`.
+
+## Notification bell (latest change)
+- Every signed-in page has a bell with a red unread count in the top bar (`Controls\NotificationBell.cs`, attached to each page by `AppShell.AttachBell`). Tapping it opens the Notifications page (`Views\NotificationsPage.xaml`, route `Notifications`, allowed for every signed-in role in `RolePolicy`). Tap a notice to mark it read, or use "Mark all as read".
+- `NotificationService` / `AppNotification` (`notifications.json`): a notice is addressed to one person or to a role (optionally a school and department). Role notices are a shared inbox: IMS Personnel, the Chairperson of the department, the Dean of the school.
+- Who gets what: Chairperson (schedule change) or Dean (room change) get "new request"; IMS Personnel get "approved" (with the checkers to adjust); the Faculty member gets approved / declined by Chairperson or Dean, applied, or declined by IMS.
+- The old "New approvals" card on the IMS Home tab was removed; the bell replaces it. The approved-changes list stays on Home.
+
+## Approval notification to IMS
+- When a Chairperson (schedule change) or Dean (room change) approves a request, `ChangeRequestService.DecideAsync` writes a notification for IMS Personnel (`NotificationService`, `notifications.json`, model `ImsNotification`). It appears as a highlighted "New approvals" card at the top of the IMS Home tab, above the approved-changes list, until IMS applies or declines that request or taps "Mark all as read".
+- The notice names the request, who approved it, and the **checkers to adjust**. Checkers are READS Scholars assigned to the class's school; one is touched when one of their vacant times overlaps the class's old or new day and time (`ChangeRequestService.CheckerImpactAsync`). A schedule change lists the checkers who covered the old time and those free at the new time, and warns when nobody is free. A room change lists the checkers monitoring that class so they can be told the new room.
+- The message after IMS applies a change uses the same check (the old duty-based check was removed, because duties are no longer used).
+- The Faculty "My requests" list shows "approved, IMS Personnel notified and will apply it".
+- Room changes: a Dean only sees room requests of Faculty of their own school, and the new room is limited to the school's building (see "Collapsible lists and room filter").
+
 ## Schedules, duty and attendance (Milestone 8)
 Who does what (matches the 50% checklist):
 - **IMS Personnel**: *Schedules* tab (encode faculty, subject, room, day, time; no room or Faculty clash), *Rooms* tab (campus, owning school, building, floor, room, capacity), *Duty* tab (record each READS Scholar's vacant times, then assign duty day/time inside them plus the monitoring area: campus and optional building/floor; Edit modifies or reassigns), *Home* tab (approved requests waiting to be applied, with a note about READS duties that may need review, plus READS Scholar account approvals), *Master* tab (all schedules with duty assignments, recent attendance, irregularity reports and the change history).
@@ -143,7 +164,7 @@ Quick test path (debug build, password in DUMMY_ACCOUNTS.txt):
 ## Open items / next
 - Not compiled or run by the assistant that wrote Milestone 8: build it in Visual Studio and report any error text.
 - IMS now has 8 tabs (Home, Schedules, Rooms, Duty, Master, Assign, Profile, plus More on Android). Consider merging Rooms into Schedules.
-- No push notification yet: IMS sees approved changes on its Home tab and Chairperson/Dean see requests on their Home tab.
+- No phone push notification yet (the notice is in-app, on the IMS Home tab; see "Approval notification to IMS").
 - READS Scholars' vacant times are entered by IMS (READS cannot enter their own yet).
 - Class schedules repeat weekly; there is no semester calendar, holiday or one-off date handling.
 - READS Directory shows name, role and department only. Decide later whether to show more.

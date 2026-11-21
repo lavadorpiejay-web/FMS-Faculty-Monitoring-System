@@ -2,6 +2,7 @@ using FacultyMonitoring.Services;
 using FacultyMonitoring.ViewModels;
 using FacultyMonitoring.Views;
 using Microsoft.Extensions.Logging;
+using Plugin.LocalNotification;
 
 namespace FacultyMonitoring;
 
@@ -12,6 +13,7 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
+            .UseLocalNotification()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -30,6 +32,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<ScholarAssignmentService>();
         builder.Services.AddSingleton<ClockService>();
         builder.Services.AddSingleton<AuditService>();
+        builder.Services.AddSingleton<NotificationService>();
+        builder.Services.AddSingleton<LocalAlertService>();
         builder.Services.AddSingleton<ScheduleService>();
         builder.Services.AddSingleton<DutyService>();
         builder.Services.AddSingleton<VacantTimeService>();
@@ -53,6 +57,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ForgotPasswordViewModel>();
         builder.Services.AddTransient<ApprovalsViewModel>();
         builder.Services.AddTransient<ApprovalsHomeViewModel>();
+        builder.Services.AddTransient<NotificationsViewModel>();
         builder.Services.AddTransient<SchedulesViewModel>();
         builder.Services.AddTransient<RoomsViewModel>();
         builder.Services.AddTransient<DutyViewModel>();
@@ -76,6 +81,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ForgotPasswordPage>();
         builder.Services.AddTransient<ApprovalsPage>();
         builder.Services.AddTransient<ApprovalsHomePage>();
+        builder.Services.AddTransient<NotificationsPage>();
         builder.Services.AddTransient<SchedulesPage>();
         builder.Services.AddTransient<RoomsPage>();
         builder.Services.AddTransient<DutyPage>();
