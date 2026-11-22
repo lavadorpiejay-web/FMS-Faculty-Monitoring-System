@@ -63,7 +63,7 @@ public partial class MasterViewModel : PageViewModelBase
         LogRows.Clear();
         foreach (var l in await _attendance.GetRecentLogsForImsAsync(15))
             LogRows.Add(new ListRow(l.Id, $"{l.SubjectCode} - {l.Status} ({l.FacultyName})",
-                $"{l.Date} {ScheduleRules.Range(l.ScheduledStart, l.ScheduledEnd)} | {l.RoomLabel} | checked by {l.CheckerName} at {l.TimestampUtc.ToLocalTime():h:mm tt}"));
+                $"{l.Date} {ScheduleRules.Range(l.ScheduledStart, l.ScheduledEnd)} | {l.RoomLabel} | checked by {(l.EndCheckerName.Length > 0 ? $"{l.CheckerName} (first) and {l.EndCheckerName} (end)" : l.CheckerName)} at {l.TimestampUtc.ToLocalTime():h:mm tt}"));
 
         IrregularityRows.Clear();
         foreach (var r in await _attendance.GetIrregularitiesForImsAsync(15))

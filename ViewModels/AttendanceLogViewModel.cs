@@ -7,8 +7,8 @@ using FacultyMonitoring.Services;
 namespace FacultyMonitoring.ViewModels;
 
 /// <summary>
-/// READS Scholar: the classes of your assigned school that fall inside your vacant times, listed automatically.
-/// Each class has two checks (5 minutes after the start, 5 minutes before the end): in the room or not in the room, with notes.
+/// READS Scholar: the classes IMS Personnel assigned to you (inside your vacant times, on your floors), one card per class.
+/// Each class has two checks (5 minutes after the start, last 15 minutes before the end): two buttons, In the Room or Not in the Room, with optional notes.
 /// The status (Present / Late / Absent) follows from the two checks. Also irregularity reports. Debug builds have a test clock.
 /// </summary>
 public partial class AttendanceLogViewModel : PageViewModelBase
@@ -35,7 +35,7 @@ public partial class AttendanceLogViewModel : PageViewModelBase
     public IReadOnlyList<string> ReportKinds { get; } = new[] { NotInRoom, WrongRoom };
     public IReadOnlyList<string> Days { get; } = ScheduleRules.DayNames;
     /// <summary>
-    /// Test clock times for the READS Scholar: the moments a check can be done (5 minutes after a class starts, 5 minutes before it ends),
+    /// Test clock times for the READS Scholar: the moments a check can be done (5 minutes after a class starts, and inside the last 15 minutes before it ends),
     /// shown in 12-hour form, e.g. 8:05 AM and 8:25 AM for classes that start on the hour and end on the half hour.
     /// Only this screen uses them; schedules everywhere else keep their 30-minute steps.
     /// </summary>
@@ -45,7 +45,7 @@ public partial class AttendanceLogViewModel : PageViewModelBase
     {
         var list = new List<string>();
         for (var hour = 6; hour <= 21; hour++)
-            foreach (var minute in new[] { 5, 25, 35, 55 })
+            foreach (var minute in new[] { 5, 15, 25, 35, 45, 55 })
                 list.Add(TimeFormat.To12h($"{hour:00}:{minute:00}"));
         return list;
     }
@@ -58,9 +58,13 @@ public partial class AttendanceLogViewModel : PageViewModelBase
 
     [ObservableProperty] private string _clockText = "";
     [ObservableProperty] private string _monitoringText = "";
+    [ObservableProperty] private string _floorsText = "";
+    [ObservableProperty] private bool _hasFloors;
     [ObservableProperty] private string _emptyText = "";
     [ObservableProperty] private string _checkNotes = "";
     [ObservableProperty] private bool _hasNoClasses;
+    [ObservableProperty] private bool _hasClasses;
+    [ObservableProperty] private string _progressText = "";
     [ObservableProperty] private IReadOnlyList<string> _reportClassLabels = Array.Empty<string>();
     [ObservableProperty] private IReadOnlyList<string> _roomLabels = Array.Empty<string>();
     [ObservableProperty] private string? _selectedReportClass;
@@ -109,13 +113,21 @@ public partial class AttendanceLogViewModel : PageViewModelBase
 
         var school = await _service.GetMonitoringSchoolAsync();
         MonitoringText = school.Length == 0 ? "You are not assigned to a school yet." : $"Monitoring: {school}";
+        var assignment = await _service.GetMyAssignmentInfoAsync();
+        HasFloors = assignment.ClassCount > 0;
+        FloorsText = HasFloors ? $"Your floors: {assignment.Floors}" : "";
         EmptyText = school.Length == 0
             ? "IMS Personnel have not assigned you to a school yet."
-            : "No classes of your assigned school fall inside your vacant times today. Enter your vacant times on the Duty tab.";
+            : assignment.ClassCount == 0
+                ? "IMS Personnel have not given you classes to check yet. Enter your vacant times on the Duty tab so they can assign classes inside them."
+                : "None of your assigned classes are scheduled today.";
 
         Rows.Clear();
         foreach (var row in await _service.GetMonitorRowsAsync()) Rows.Add(row);
         HasNoClasses = Rows.Count == 0;
+        HasClasses = !HasNoClasses;
+        var finished = Rows.Count(r => r.IsFinished);
+        ProgressText = $"Finished {finished} of {Rows.Count} class{(Rows.Count == 1 ? "" : "es")} today";
 
         _classIds = new Dictionary<string, string>();
         foreach (var row in Rows) _classIds.TryAdd(row.Title, row.ScheduleId);

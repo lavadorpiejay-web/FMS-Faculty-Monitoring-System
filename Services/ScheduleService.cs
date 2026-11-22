@@ -50,13 +50,32 @@ public sealed class ScheduleService
         return visible.OrderBy(s => s.Day == DayOfWeek.Sunday ? 7 : (int)s.Day).ThenBy(s => s.Start).ThenBy(s => s.SubjectCode).ToList();
     }
 
-    /// <summary>IMS only: the Faculty accounts a schedule can be encoded for.</summary>
+    private static bool CanTeach(UserAccount u) => u.IsUsable && u.Role is UserRole.Faculty or UserRole.Chairperson or UserRole.Dean;
+
+    /// <summary>The subject a person can be scheduled for: their own department's, or (a Dean has no department) any department of their school.</summary>
+    private static bool SubjectFits(Subject s, UserAccount teacher, string code) =>
+        s.Code == code && (teacher.Role == UserRole.Dean
+            ? AcademicCatalog.DepartmentsOf(teacher.School).Contains(s.Department)
+            : s.Department == teacher.Department);
+
+    /// <summary>IMS only: the accounts a schedule can be encoded for (Faculty, and Chairpersons and Deans who also handle subjects).</summary>
     public async Task<List<UserAccount>> GetFacultyAsync()
     {
         if (!IsIms) return new();
         await _storage.InitializeAsync();
         var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
-        return users.Where(u => u.Role == UserRole.Faculty && u.IsUsable).OrderBy(u => u.FullName).ToList();
+        return users.Where(CanTeach).OrderBy(u => u.FullName).ToList();
+    }
+
+    /// <summary>The classes the signed-in person handles themselves (any role that teaches: Faculty, Chairperson, Dean).</summary>
+    public async Task<List<ClassSchedule>> GetMineAsync()
+    {
+        var me = _session.CurrentUser;
+        if (me is null) return new();
+        await _storage.InitializeAsync();
+        var all = await _storage.LoadAsync<ClassSchedule>(JsonStorageService.SchedulesFile);
+        return all.Where(s => s.FacultyUserId == me.Id)
+            .OrderBy(s => s.Day == DayOfWeek.Sunday ? 7 : (int)s.Day).ThenBy(s => s.Start).ToList();
     }
 
     /// <summary>The first clash with the candidate: same room or same Faculty at an overlapping time on the same day.</summary>
@@ -82,11 +101,11 @@ public sealed class ScheduleService
 
         await _storage.InitializeAsync();
         var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
-        var faculty = users.FirstOrDefault(u => u.Id == facultyUserId && u.Role == UserRole.Faculty && u.IsUsable);
+        var faculty = users.FirstOrDefault(u => u.Id == facultyUserId && CanTeach(u));
         if (faculty is null) return Fail("That Faculty member was not found.");
 
-        var subject = (await GetSubjectsAsync()).FirstOrDefault(s => s.Code == subjectCode && s.Department == faculty.Department);
-        if (subject is null) return Fail("Choose a subject of the Faculty member's department.");
+        var subject = (await GetSubjectsAsync()).FirstOrDefault(s => SubjectFits(s, faculty, subjectCode));
+        if (subject is null) return Fail("Choose a subject of the person's department (a Dean: a department of the school).");
 
         var room = (await GetRoomsAsync()).FirstOrDefault(r => r.Id == classroomId);
         if (room is null) return Fail("Choose a classroom.");
@@ -95,7 +114,7 @@ public sealed class ScheduleService
         var candidate = new ClassSchedule
         {
             Id = ScheduleRules.NewId("S"), FacultyUserId = faculty.Id, FacultyName = faculty.FullName,
-            School = faculty.School, Department = faculty.Department,
+            School = faculty.School, Department = faculty.Role == UserRole.Dean ? subject.Department : faculty.Department,
             SubjectCode = subject.Code, SubjectTitle = subject.Title, ClassroomId = room.Id,
             Day = ScheduleRules.ParseDay(dayName), Start = start!, End = end!
         };
@@ -121,6 +140,24 @@ public sealed class ScheduleService
         return new OperationResult(true, $"Removed {s.SubjectCode} ({s.FacultyName}).");
     }
 
+    /// <summary>Removes several schedules at once (same subject, same day, same time, or the ones IMS picked). All or nothing.</summary>
+    public async Task<OperationResult> RemoveManyAsync(IReadOnlyCollection<string> scheduleIds)
+    {
+        if (!IsIms) return Fail("Only IMS Personnel can remove schedules.");
+        if (scheduleIds.Count == 0) return Fail("Nothing was chosen to remove.");
+        await _storage.InitializeAsync();
+        var all = await _storage.LoadAsync<ClassSchedule>(JsonStorageService.SchedulesFile);
+        var ids = scheduleIds.ToHashSet();
+        var gone = all.Where(x => ids.Contains(x.Id)).ToList();
+        if (gone.Count == 0) return Fail("Those schedules were not found.");
+        all.RemoveAll(x => ids.Contains(x.Id));
+        await _storage.SaveAsync(JsonStorageService.SchedulesFile, all);
+        await _audit.LogAsync("Schedules removed", string.Join("; ", gone.Select(s => $"{s.FacultyName}: {ScheduleRules.ScheduleLabel(s)}")));
+        return new OperationResult(true, gone.Count == 1
+            ? $"Removed {gone[0].SubjectCode} ({gone[0].FacultyName})."
+            : $"Removed {gone.Count} schedules.");
+    }
+
     /// <summary>Several class days for one subject at once (for example Monday, Wednesday, Friday). Saved all together or not at all.</summary>
     public async Task<OperationResult> AddManyAsync(string facultyUserId, string subjectCode, string classroomId,
         IReadOnlyList<(DayOfWeek Day, string? Start, string? End)> days)
@@ -135,11 +172,11 @@ public sealed class ScheduleService
 
         await _storage.InitializeAsync();
         var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
-        var faculty = users.FirstOrDefault(u => u.Id == facultyUserId && u.Role == UserRole.Faculty && u.IsUsable);
+        var faculty = users.FirstOrDefault(u => u.Id == facultyUserId && CanTeach(u));
         if (faculty is null) return Fail("That Faculty member was not found.");
 
-        var subject = (await GetSubjectsAsync()).FirstOrDefault(s => s.Code == subjectCode && s.Department == faculty.Department);
-        if (subject is null) return Fail("Choose a subject of the Faculty member's department.");
+        var subject = (await GetSubjectsAsync()).FirstOrDefault(s => SubjectFits(s, faculty, subjectCode));
+        if (subject is null) return Fail("Choose a subject of the person's department (a Dean: a department of the school).");
 
         var room = (await GetRoomsAsync()).FirstOrDefault(r => r.Id == classroomId);
         if (room is null) return Fail("Choose a classroom.");
@@ -151,7 +188,7 @@ public sealed class ScheduleService
             var candidate = new ClassSchedule
             {
                 Id = ScheduleRules.NewId("S"), FacultyUserId = faculty.Id, FacultyName = faculty.FullName,
-                School = faculty.School, Department = faculty.Department,
+                School = faculty.School, Department = faculty.Role == UserRole.Dean ? subject.Department : faculty.Department,
                 SubjectCode = subject.Code, SubjectTitle = subject.Title, ClassroomId = room.Id,
                 Day = d.Day, Start = d.Start!, End = d.End!
             };

@@ -16,12 +16,20 @@ public partial class DutyViewModel : ObservableObject
 
     public ObservableCollection<ScholarDutyRow> Scholars { get; } = new();
 
-    [ObservableProperty] private bool _hasNone;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasScholars))]
+    private bool _hasNone;
+
+    public bool HasScholars => !HasNone;
 
     public async Task LoadAsync()
     {
+        // Keep the Scholars the IMS Personnel already opened open after a reload.
+        var open = Scholars.Where(x => x.IsExpanded).Select(x => x.UserId).ToHashSet();
+        var overview = await _service.GetOverviewAsync();
         Scholars.Clear();
-        foreach (var s in await _service.GetOverviewAsync()) Scholars.Add(s);
+        foreach (var s in overview)
+            Scholars.Add(open.Contains(s.UserId) ? new ScholarDutyRow(s.UserId, s.Name, s.Assignment, s.VacantSummary, s.Blocks, true) : s);
         HasNone = Scholars.Count == 0;
     }
 }

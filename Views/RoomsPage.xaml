@@ -11,11 +11,8 @@
         <VerticalStackLayout Padding="20" Spacing="16">
             <Border Style="{StaticResource Card}" Padding="20">
               <VerticalStackLayout Spacing="12">
-                <Label Text="Room availability" Style="{StaticResource SectionTitle}" />
-                <Label Text="Main Campus classrooms are fixed and belong to no school. Choose a building, a floor, optionally one room, the days and the time to see which rooms are occupied or vacant. To use a room, add a schedule on the Schedules tab." FontSize="13" TextColor="{StaticResource Gray600}" />
-                <controls:LabeledPicker Caption="Building" Title="Choose building" ItemsSource="{Binding BuildingChoices}" SelectedItem="{Binding SelectedBuilding, Mode=TwoWay}" />
-                <controls:LabeledPicker Caption="Floor" Title="Choose building first, then floor" ItemsSource="{Binding FloorChoices}" SelectedItem="{Binding SelectedFloor, Mode=TwoWay}" />
-                <controls:LabeledPicker Caption="Room (or all rooms of the floor)" Title="Choose floor first, then room" ItemsSource="{Binding RoomChoices}" SelectedItem="{Binding SelectedRoom, Mode=TwoWay}" />
+                <Label Text="Day and time" Style="{StaticResource SectionTitle}" />
+                <Label Text="Choose the days and the time to check first. Then pick the building, floor and room just above the list below." FontSize="13" TextColor="{StaticResource Gray600}" />
                 <VerticalStackLayout Spacing="4">
                   <Label Text="Days (tick every day to check)" FontSize="12" TextColor="{StaticResource Gray600}" />
                   <FlexLayout Wrap="Wrap" JustifyContent="Start" BindableLayout.ItemsSource="{Binding Days}">
@@ -29,10 +26,6 @@
                     </BindableLayout.ItemTemplate>
                   </FlexLayout>
                 </VerticalStackLayout>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                  <Label Grid.Column="0" Text="Show vacant rooms" VerticalOptions="Center" />
-                  <Switch Grid.Column="1" IsToggled="{Binding ShowVacant, Mode=TwoWay}" />
-                </Grid>
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                   <Label Grid.Column="0" Text="Same time for every day" VerticalOptions="Center" />
                   <Switch Grid.Column="1" IsToggled="{Binding SameTime, Mode=TwoWay}" />
@@ -55,6 +48,20 @@
                     </BindableLayout.ItemTemplate>
                   </VerticalStackLayout>
                 </VerticalStackLayout>
+              </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Padding="20">
+              <VerticalStackLayout Spacing="12">
+                <Label Text="Room availability" Style="{StaticResource SectionTitle}" />
+                <Label Text="Main Campus classrooms are fixed and belong to no school. Choose a building, a floor and optionally one room to see which rooms are occupied or vacant at the day and time above. To use a room, add a schedule on the Schedules tab." FontSize="13" TextColor="{StaticResource Gray600}" />
+                <controls:LabeledPicker Caption="Building" Title="Choose building" ItemsSource="{Binding BuildingChoices}" SelectedItem="{Binding SelectedBuilding, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Floor" Title="Choose building first, then floor" ItemsSource="{Binding FloorChoices}" SelectedItem="{Binding SelectedFloor, Mode=TwoWay}" />
+                <controls:LabeledPicker Caption="Room (or all rooms of the floor)" Title="Choose floor first, then room" ItemsSource="{Binding RoomChoices}" SelectedItem="{Binding SelectedRoom, Mode=TwoWay}" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <Label Grid.Column="0" Text="Show vacant rooms" VerticalOptions="Center" />
+                  <Switch Grid.Column="1" IsToggled="{Binding ShowVacant, Mode=TwoWay}" />
+                </Grid>
               </VerticalStackLayout>
             </Border>
 

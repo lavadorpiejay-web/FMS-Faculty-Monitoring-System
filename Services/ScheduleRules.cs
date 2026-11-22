@@ -40,6 +40,7 @@ public static class ScheduleRules
     public static string Range(string start, string end) => $"{Pretty(start)} - {Pretty(end)}";
 
     public static string HHmm(DateTime t) => t.ToString("HH:mm", CultureInfo.InvariantCulture);
+    public static string HHmmOf(int minutes) => $"{minutes / 60:00}:{minutes % 60:00}";
     public static string DateText(DateTime t) => t.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     public static string ClockText(DateTime t) => t.ToString("ddd MMM d, h:mm tt", CultureInfo.InvariantCulture);
 

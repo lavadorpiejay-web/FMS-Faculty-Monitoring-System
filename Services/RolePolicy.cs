@@ -44,7 +44,7 @@ public static class RolePolicy
             "READS Scholar", "Working student who checks faculty attendance in the classes of the school assigned by IMS Personnel, during their own vacant times.",
             "Infrastructure initialization",
             ReportsTo: "IMS Personnel (when assigned to the IMS Office)", Oversees: "",
-            Allowed: new[] { "Enter your vacant times (your duty hours)", "Home: today's duty hours and completed checks", "Two checks per class (5 minutes after the start, 5 minutes before the end) with notes", "Report attendance irregularities", "Read-only directory of the Dean, Chairpersons and Faculty of your assigned school" },
+            Allowed: new[] { "Enter your vacant times (your duty hours)", "Home: today's duty hours and completed checks", "Two checks per class (5 minutes after the start, last 15 minutes before the end) with notes", "Report attendance irregularities", "Read-only directory of the Dean, Chairpersons and Faculty of your assigned school" },
             Restricted: new[] { "Classes outside your assigned school and vacant times", "Managing other users", "Administrative overrides" }),
 
         UserRole.ImsPersonnel => new RoleInfo(
@@ -58,14 +58,14 @@ public static class RolePolicy
             "Chairperson", "Department-level infrastructure views for your academic unit.",
             "System initialization check",
             ReportsTo: "Dean", Oversees: "Faculty",
-            Allowed: new[] { "Approve or decline Faculty schedule change requests", "Approve new Faculty accounts", "Read-only list of the Faculty in your department" },
+            Allowed: new[] { "Approve or decline Faculty schedule change requests", "Approve new Faculty accounts", "Read-only list of the Faculty in your department with the subjects each one handles", "See your own schedule (classes you handle yourself)" },
             Restricted: new[] { "Checker-level attendance permissions", "Dean-level controls" }),
 
         _ => new RoleInfo(
             "Dean", "Oversees the departments of your school.",
             "Platform readiness verification",
             ReportsTo: "", Oversees: "Chairpersons and Faculty",
-            Allowed: new[] { "Approve or decline classroom change requests for rooms of your school", "Approve new Chairperson accounts", "Read-only list of the Chairpersons and Faculty in each department of your school" },
+            Allowed: new[] { "Approve or decline classroom change requests for rooms of your school", "Approve new Chairperson accounts", "Read-only list of the Chairpersons and Faculty in each department of your school", "See the subjects you handle yourself (for example general education or major subjects)" },
             Restricted: new[] { "Day-to-day attendance logging" })
     };
 }

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.PersonDetailPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             xmlns:models="clr-namespace:FacultyMonitoring.Models"
+             x:DataType="vm:PersonDetailViewModel"
+             Title="Details">
+    <controls:DraggableScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <VerticalStackLayout Spacing="2">
+                <Label Text="{Binding RoleText}" FontSize="12" FontAttributes="Bold" CharacterSpacing="1" TextColor="{StaticResource ForestMid}" />
+                <Label Text="{Binding Name}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" />
+            </VerticalStackLayout>
+
+            <Border Style="{StaticResource Card}" Padding="20">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Information" Style="{StaticResource SectionTitle}" />
+                    <Grid ColumnDefinitions="110,*" ColumnSpacing="8">
+                        <Label Text="ID" FontSize="13" TextColor="{StaticResource Gray600}" />
+                        <Label Grid.Column="1" Text="{Binding SisId}" FontSize="14" />
+                    </Grid>
+                    <Grid ColumnDefinitions="110,*" ColumnSpacing="8">
+                        <Label Text="Email" FontSize="13" TextColor="{StaticResource Gray600}" />
+                        <Label Grid.Column="1" Text="{Binding Email}" FontSize="14" />
+                    </Grid>
+                    <Grid ColumnDefinitions="110,*" ColumnSpacing="8">
+                        <Label Text="School" FontSize="13" TextColor="{StaticResource Gray600}" />
+                        <Label Grid.Column="1" Text="{Binding School}" FontSize="14" />
+                    </Grid>
+                    <Grid ColumnDefinitions="110,*" ColumnSpacing="8">
+                        <Label Text="Department" FontSize="13" TextColor="{StaticResource Gray600}" />
+                        <Label Grid.Column="1" Text="{Binding Department}" FontSize="14" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Padding="20" IsVisible="{Binding ShowSubjects}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{Binding SubjectsHeading}" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{Binding NoSubjectsText}" FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoSubjects}" />
+                    <VerticalStackLayout Spacing="14" BindableLayout.ItemsSource="{Binding Subjects}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:ListRow">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
+                                    <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Padding="20" IsVisible="{Binding HasRelated}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{Binding RelatedHeading}" Style="{StaticResource SectionTitle}" />
+                    <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding Related}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:ListRow">
+                                <VerticalStackLayout Spacing="1">
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                    <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Faculty only: check their classes today and write notes, same rules as the Attendance tab. -->
+            <Border Style="{StaticResource Card}" Padding="20" IsVisible="{Binding IsFaculty}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Today's classes to check" Style="{StaticResource SectionTitle}" />
+                    <Label Text="The classes of this faculty member that fall inside your vacant times today. Use the same two checks as on the Attendance tab, then add or change your notes and the status here."
+                           FontSize="13" TextColor="{StaticResource Gray600}" />
+                    <controls:Banners />
+                    <Label Text="None of this faculty member's classes are in your vacant times today." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoTodayClasses}" />
+                    <controls:LabeledEntry Caption="Notes for the check (optional)" Placeholder="For example: students said the instructor is on a bathroom break" Text="{Binding CheckNotes, Mode=TwoWay}" IsVisible="{Binding HasTodayClasses}" />
+                    <VerticalStackLayout Spacing="16" BindableLayout.ItemsSource="{Binding TodayClasses}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:MonitorRow">
+                                <Border Style="{StaticResource Card}" Padding="12" BackgroundColor="{StaticResource Ivory}">
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                        <Label Text="{Binding Subject}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                        <Label Text="{Binding State}" FontSize="12" TextColor="{StaticResource ForestMid}" />
+                                        <Label Text="{Binding Notes, StringFormat='Notes: {0}'}" FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNotes}" />
+                                        <Label Text="✔ Finished" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" IsVisible="{Binding IsFinished}" />
+                                        <Label Text="{Binding CheckCaption}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" IsVisible="{Binding CanLog}" />
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsVisible="{Binding CanLog}">
+                                            <Button Text="In the room" HeightRequest="40" FontSize="13"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PersonDetailViewModel}}, Path=InRoomCommand}"
+                                                    CommandParameter="{Binding .}" />
+                                            <Button Grid.Column="1" Text="Not in the room" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PersonDetailViewModel}}, Path=NotInRoomCommand}"
+                                                    CommandParameter="{Binding .}" />
+                                        </Grid>
+                                        <Button Text="Change status or note" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}" IsVisible="{Binding HasLog}"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PersonDetailViewModel}}, Path=AdjustCommand}"
+                                                CommandParameter="{Binding .}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Padding="20" IsVisible="{Binding IsFaculty}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="My notes on this faculty member" Style="{StaticResource SectionTitle}" />
+                    <Label Text="Your checks and notes from past classes. Tap Change to edit a note, or to keep the faculty Present (for example a bathroom break or a meeting with the Chairperson), or mark Late or Absent."
+                           FontSize="12" TextColor="{StaticResource Gray600}" />
+                    <Label Text="No checks recorded for this faculty member yet." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoNotes}" />
+                    <VerticalStackLayout Spacing="16" BindableLayout.ItemsSource="{Binding Notes}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:ListRow">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                    <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                    <Label Text="{Binding Extra}" FontSize="12" TextColor="{StaticResource ForestMid}" />
+                                    <Button Text="Change" HeightRequest="38" FontSize="13" Style="{StaticResource OutlineButton}"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PersonDetailViewModel}}, Path=EditNoteCommand}"
+                                            CommandParameter="{Binding .}" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </controls:DraggableScrollView>
+</ContentPage>

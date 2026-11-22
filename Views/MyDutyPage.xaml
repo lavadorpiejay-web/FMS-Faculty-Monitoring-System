@@ -36,25 +36,8 @@
               <VerticalStackLayout Spacing="12">
                 <Label Text="My vacant times" Style="{StaticResource SectionTitle}" />
                 <Label Text="You have not entered any vacant times yet." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoSlots}" />
-                <Grid ColumnDefinitions="2*,2*,2*,*" ColumnSpacing="6" IsVisible="{Binding HasSlots}">
-                  <Label Grid.Column="0" Text="Day" FontAttributes="Bold" FontSize="12" TextColor="{StaticResource Gray600}" />
-                  <Label Grid.Column="1" Text="From" FontAttributes="Bold" FontSize="12" TextColor="{StaticResource Gray600}" />
-                  <Label Grid.Column="2" Text="To" FontAttributes="Bold" FontSize="12" TextColor="{StaticResource Gray600}" />
-                </Grid>
-                <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Slots}">
-                  <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="models:ListRow">
-                      <Grid ColumnDefinitions="2*,2*,2*,*" ColumnSpacing="6">
-                        <Label Grid.Column="0" Text="{Binding Title}" FontSize="14" VerticalOptions="Center" />
-                        <Label Grid.Column="1" Text="{Binding Detail}" FontSize="14" VerticalOptions="Center" />
-                        <Label Grid.Column="2" Text="{Binding Extra}" FontSize="14" VerticalOptions="Center" />
-                        <Button Grid.Column="3" Text="X" HeightRequest="36" WidthRequest="40" Padding="0" FontSize="13" Style="{StaticResource OutlineButton}"
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:MyDutyViewModel}}, Path=RemoveCommand}"
-                                CommandParameter="{Binding .}" />
-                      </Grid>
-                    </DataTemplate>
-                  </BindableLayout.ItemTemplate>
-                </VerticalStackLayout>
+                <Label Text="Tap a block to remove it: you can delete only that one, everything on that day, everything at that time, or choose which ones. Swipe sideways to see the whole week." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasSlots}" />
+                <controls:WeeklyTimetable Blocks="{Binding Timetable}" BlockTappedCommand="{Binding RemoveCommand}" IsVisible="{Binding HasSlots}" />
               </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>

@@ -26,6 +26,14 @@ public partial class DirectoryViewModel : ObservableObject
     [RelayCommand]
     private void ToggleDepartments() => DepartmentsOpen = !DepartmentsOpen;
 
+    /// <summary>Opens the full page of a Dean, Chairperson or Faculty member (information, subjects, schedule, notes).</summary>
+    [RelayCommand]
+    private async Task OpenPersonAsync(DirectoryEntry? entry)
+    {
+        if (entry is null) return;
+        await Shell.Current.GoToAsync("ReadsScholarPerson", new Dictionary<string, object> { ["person"] = entry });
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNotAssigned))]
     private bool _isAssigned;

@@ -35,15 +35,33 @@
                                TextColor="{StaticResource Gray600}" IsVisible="{Binding FacultyEmpty}" />
                         <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding Faculty}">
                             <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="models:DirectoryEntry">
-                                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" />
-                                    </DataTemplate>
+                                <DataTemplate x:DataType="models:FacultyWithSubjects">
+                                    <Border Style="{StaticResource Card}" Padding="12" BackgroundColor="{StaticResource Ivory}">
+                                        <VerticalStackLayout Spacing="8">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" />
+                                                <Label Grid.Column="1" Text="{Binding CountText}" FontSize="12" TextColor="{StaticResource Gray600}" VerticalOptions="Center" />
+                                            </Grid>
+                                            <Label Text="No classes encoded yet." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoSubjects}" />
+                                            <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Subjects}">
+                                                <BindableLayout.ItemTemplate>
+                                                    <DataTemplate x:DataType="models:ListRow">
+                                                        <VerticalStackLayout Spacing="2">
+                                                            <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="13" />
+                                                            <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                                        </VerticalStackLayout>
+                                                    </DataTemplate>
+                                                </BindableLayout.ItemTemplate>
+                                            </VerticalStackLayout>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
-                <Label Text="Read-only view. You can see the faculty in your department but cannot change anything."
+                <Label Text="Read-only view. Each faculty member is listed with the subjects they handle and their days, times and rooms. IMS Personnel encode the schedules."
                        FontSize="12" TextColor="{StaticResource Gray600}" />
             </VerticalStackLayout>
         </VerticalStackLayout>

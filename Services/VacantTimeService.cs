@@ -71,4 +71,23 @@ public sealed class VacantTimeService
         _ = _alerts.SyncAsync();   // drop the reminder of the removed time
         return new OperationResult(true, "Vacant time removed.");
     }
+
+    /// <summary>Removes several vacant times at once (a whole day, a whole time, or the ones the Scholar picked). All or nothing.</summary>
+    public async Task<OperationResult> RemoveManyAsync(IReadOnlyCollection<string> slotIds)
+    {
+        var me = Reads;
+        if (me is null) return Fail("Only READS Scholars can change their vacant times.");
+        if (slotIds.Count == 0) return Fail("Nothing was chosen to remove.");
+        await _storage.InitializeAsync();
+        var all = await _storage.LoadAsync<VacantSlot>(JsonStorageService.VacanciesFile);
+        var ids = slotIds.ToHashSet();
+        var gone = all.Where(v => ids.Contains(v.Id) && v.ReadsUserId == me.Id).ToList();
+        if (gone.Count == 0) return Fail("Those vacant times were not found.");
+        all.RemoveAll(v => ids.Contains(v.Id) && v.ReadsUserId == me.Id);
+        await _storage.SaveAsync(JsonStorageService.VacanciesFile, all);
+        await _audit.LogAsync("Vacant times removed",
+            $"{me.FullName}: {string.Join(", ", gone.Select(v => $"{v.Day.ToString()[..3]} {TimeFormat.Range(v.Start, v.End)}"))}");
+        _ = _alerts.SyncAsync();   // drop the reminders of the removed times
+        return new OperationResult(true, gone.Count == 1 ? "Vacant time removed." : $"{gone.Count} vacant times removed.");
+    }
 }

@@ -36,12 +36,14 @@
     <TabBar x:Name="ChairpersonTabs" IsVisible="False">
         <ShellContent Title="Home" Route="ChairpersonHome" ContentTemplate="{DataTemplate views:ApprovalsHomePage}" />
         <ShellContent Title="Faculty" Route="ChairpersonFaculty" ContentTemplate="{DataTemplate views:DepartmentFacultyPage}" />
+        <ShellContent Title="My schedule" Route="ChairpersonSchedule" ContentTemplate="{DataTemplate views:MySchedulePage}" />
         <ShellContent Title="Profile" Route="ChairpersonProfile" ContentTemplate="{DataTemplate views:ProfilePage}" />
     </TabBar>
 
     <TabBar x:Name="DeanTabs" IsVisible="False">
         <ShellContent Title="Home" Route="DeanHome" ContentTemplate="{DataTemplate views:ApprovalsHomePage}" />
         <ShellContent Title="Departments" Route="DeanDepartments" ContentTemplate="{DataTemplate views:SchoolDirectoryPage}" />
+        <ShellContent Title="My subjects" Route="DeanSubjects" ContentTemplate="{DataTemplate views:MySchedulePage}" />
         <ShellContent Title="Profile" Route="DeanProfile" ContentTemplate="{DataTemplate views:ProfilePage}" />
     </TabBar>
 </Shell>

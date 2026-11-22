@@ -52,6 +52,69 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Border Style="{StaticResource Card}" Padding="20">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Classes and floor to check" Style="{StaticResource SectionTitle}" />
+                    <Label Text="Choose the READS Scholar above, then a building and a floor. Each class has two checks: the first check (5 minutes after it starts) and the end check (opens 15 minutes before it ends, so one Scholar can walk a whole floor). A check can be ticked when it falls inside the Scholar's vacant time. If a class runs past the end of the vacant time, tick only the first check here and give the end check to the Scholar whose vacant time starts there. The Scholar sees the classes (with the floor) on the Attendance tab."
+                           FontSize="13" TextColor="{StaticResource Gray600}" />
+                    <Label Text="{Binding VacantText}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" IsVisible="{Binding HasScholarSelected}" />
+
+                    <Label Text="Building" Style="{StaticResource SectionTitle}" FontSize="13" />
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                        <Picker Title="Choose building" ItemsSource="{Binding Buildings}"
+                                SelectedItem="{Binding SelectedBuilding}" IsEnabled="{Binding HasScholarSelected}"
+                                TextColor="{StaticResource InkDark}" TitleColor="#8FA096" />
+                    </Border>
+
+                    <Label Text="Floor" Style="{StaticResource SectionTitle}" FontSize="13" />
+                    <Border Stroke="{StaticResource Gray200}" Padding="12,0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                        <Picker Title="Choose floor" ItemsSource="{Binding Floors}"
+                                SelectedItem="{Binding SelectedFloor}" IsEnabled="{Binding HasScholarSelected}"
+                                TextColor="{StaticResource InkDark}" TitleColor="#8FA096" />
+                    </Border>
+
+                    <Label Text="{Binding ClassesMessage}" FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasClassesMessage}" />
+
+                    <VerticalStackLayout Spacing="0" BindableLayout.ItemsSource="{Binding Classes}" IsVisible="{Binding HasClasses}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:ClassPick">
+                                <VerticalStackLayout Spacing="2" Padding="0,8">
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                    <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                    <HorizontalStackLayout Spacing="4">
+                                        <CheckBox IsChecked="{Binding StartSelected, Mode=TwoWay}" IsEnabled="{Binding CanStart}" />
+                                        <Label Text="First check" VerticalOptions="Center" FontSize="13" Margin="0,0,16,0" />
+                                        <CheckBox IsChecked="{Binding EndSelected, Mode=TwoWay}" IsEnabled="{Binding CanEnd}" />
+                                        <Label Text="End check" VerticalOptions="Center" FontSize="13" />
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding Note}" FontSize="12" TextColor="{StaticResource ErrorRed}" IsVisible="{Binding HasNote}" />
+                                    <BoxView HeightRequest="1" Color="{StaticResource Gray200}" Margin="0,6,0,0" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10" IsVisible="{Binding HasClasses}">
+                        <Button Grid.Column="0" Text="Tick all" Style="{StaticResource OutlineButton}" Command="{Binding SelectAllClassesCommand}" />
+                        <Button Grid.Column="1" Text="Untick all" Style="{StaticResource OutlineButton}" Command="{Binding ClearClassesCommand}" />
+                    </Grid>
+                    <Border IsVisible="{Binding HasError}" BackgroundColor="{StaticResource ErrorSoft}"
+                            StrokeThickness="0" Padding="12,10">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+                        <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource ErrorRed}" FontSize="13" />
+                    </Border>
+                    <Border IsVisible="{Binding HasSuccess}" BackgroundColor="{StaticResource GoldSoft}"
+                            StrokeThickness="0" Padding="12,10">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+                        <Label Text="{Binding SuccessMessage}" FontSize="13" />
+                    </Border>
+                    <Button Text="Save classes for this floor" Command="{Binding SaveClassesCommand}" IsEnabled="{Binding IsNotBusy}" IsVisible="{Binding HasClasses}" />
+                    <Label Text="Unticking every class and saving takes this floor off the Scholar's list." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasClasses}" />
+                </VerticalStackLayout>
+            </Border>
+
             <Border Style="{StaticResource Card}">
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Current assignments" Style="{StaticResource SectionTitle}" />

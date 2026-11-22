@@ -5,15 +5,19 @@ namespace FacultyMonitoring.Services;
 public sealed record DutyView(string Id, string Title, string Detail, string State);
 
 /// <summary>
-/// READS Scholars see their duty hours (their own vacant times) and the classes of the school they are assigned to that fall inside them.
-/// Every class is checked twice: 5 minutes after it starts and 5 minutes before it ends.
+/// READS Scholars see their duty hours (their own vacant times) and the classes IMS Personnel assigned to them (classes of their school that lie
+/// inside those vacant times, on the floors IMS chose).
+/// Every class is checked twice: 5 minutes after it starts, and in the last 15 minutes before it ends.
 ///   In the room at the first check                       -> Present (the end check confirms they stayed).
 ///   Not in the room at the first check, in it at the end -> Late.
 ///   Not in the room at the end check                     -> Absent, wherever the faculty is (office included).
 /// </summary>
 public sealed class AttendanceService
 {
+    /// <summary>The first check opens this many minutes after the class starts.</summary>
     public const int CheckMinutes = 5;
+    /// <summary>The end check opens this many minutes before the class ends (a window, so one Scholar can walk a whole floor of rooms that end together).</summary>
+    public const int EndWindowMinutes = 15;
 
     private readonly JsonStorageService _storage;
     private readonly SessionService _session;
@@ -48,10 +52,33 @@ public sealed class AttendanceService
         return all.Where(v => v.ReadsUserId == me.Id).ToList();
     }
 
-    /// <summary>A class is in scope when it belongs to the assigned school, is today, and overlaps one of the Scholar's vacant times.</summary>
-    private static bool InScope(UserAccount me, IEnumerable<VacantSlot> vacancies, ClassSchedule s, DateTime now) =>
-        me.AssignedSchool.Length > 0 && s.School == me.AssignedSchool && s.Day == now.DayOfWeek
-        && vacancies.Any(v => v.Day == now.DayOfWeek && ScheduleRules.Overlaps(v.Start, v.End, s.Start, s.End));
+    /// <summary>The classes IMS Personnel assigned to this Scholar.</summary>
+    private async Task<Dictionary<string, CheckAssignment>> MyAssignedIdsAsync(UserAccount me)
+    {
+        var all = await _storage.LoadAsync<CheckAssignment>(JsonStorageService.CheckAssignmentsFile);
+        return all.Where(a => a.ReadsUserId == me.Id).GroupBy(a => a.ScheduleId).ToDictionary(g => g.Key, g => g.First());
+    }
+
+    /// <summary>
+    /// A class is in scope when IMS assigned it (or one of its two checks) to this Scholar, it belongs to the assigned school and it is today.
+    /// Whether the Scholar is free at the moment of the check is tested when the check is done (they must be inside a vacant time).
+    /// </summary>
+    private static bool InScope(UserAccount me, IReadOnlyDictionary<string, CheckAssignment> assigned, ClassSchedule s, DateTime now) =>
+        me.AssignedSchool.Length > 0 && s.School == me.AssignedSchool && s.Day == now.DayOfWeek && assigned.ContainsKey(s.Id);
+
+    private static bool Mine(AttendanceLog l, UserAccount me) => l.CheckerUserId == me.Id || l.EndCheckerUserId == me.Id;
+
+    /// <summary>How many classes IMS assigned to this Scholar and on which floors, for the Attendance page header.</summary>
+    public async Task<(int ClassCount, string Floors)> GetMyAssignmentInfoAsync()
+    {
+        var me = await FreshMeAsync();
+        if (me is null) return (0, "");
+        var live = (await _storage.LoadAsync<ClassSchedule>(JsonStorageService.SchedulesFile)).Select(x => x.Id).ToHashSet();
+        var mine = (await _storage.LoadAsync<CheckAssignment>(JsonStorageService.CheckAssignmentsFile))
+            .Where(a => a.ReadsUserId == me.Id && live.Contains(a.ScheduleId)).ToList();
+        var floors = string.Join(", ", mine.Select(a => $"{a.Building} floor {a.Floor}").Distinct().OrderBy(f => f));
+        return (mine.Count, floors);
+    }
 
     // ------------------------------------------------------------ home
 
@@ -88,7 +115,7 @@ public sealed class AttendanceService
         await _storage.InitializeAsync();
         var dateText = ScheduleRules.DateText(_clock.Now);
         var logs = await _storage.LoadAsync<AttendanceLog>(JsonStorageService.AttendanceFile);
-        return logs.Where(l => l.CheckerUserId == me.Id && l.Date == dateText)
+        return logs.Where(l => Mine(l, me) && l.Date == dateText)
             .OrderByDescending(l => l.EndCheckUtc ?? l.StartCheckUtc ?? l.TimestampUtc)
             .Select(l =>
             {
@@ -102,7 +129,7 @@ public sealed class AttendanceService
 
     // -------------------------------------------------------- monitoring
 
-    /// <summary>Today's classes of the assigned school inside the Scholar's vacant times, with which check (if any) can be done now.</summary>
+    /// <summary>Today's classes (or checks of classes) IMS assigned to the Scholar, with which check (if any) can be done now.</summary>
     public async Task<List<MonitorRow>> GetMonitorRowsAsync()
     {
         var me = await FreshMeAsync();
@@ -119,25 +146,42 @@ public sealed class AttendanceService
         var schedules = await _storage.LoadAsync<ClassSchedule>(JsonStorageService.SchedulesFile);
         var rooms = await _storage.LoadAsync<Classroom>(JsonStorageService.ClassroomsFile);
         var logs = await _storage.LoadAsync<AttendanceLog>(JsonStorageService.AttendanceFile);
+        var assigned = await MyAssignedIdsAsync(me);
+        var people = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
 
-        var rows = new List<(string Start, MonitorRow Row)>();
-        foreach (var s in schedules.Where(x => InScope(me, vacancies, x, now)))
+        var rows = new List<(MonitorRow Row, string Start, string Place)>();
+        foreach (var s in schedules.Where(x => InScope(me, assigned, x, now)))
         {
             var room = rooms.FirstOrDefault(r => r.Id == s.ClassroomId);
             var startOpen = ScheduleRules.Minutes(s.Start) + CheckMinutes;
-            var endOpen = ScheduleRules.Minutes(s.End) - CheckMinutes;
+            var endOpen = ScheduleRules.Minutes(s.End) - EndWindowMinutes;
             var endM = ScheduleRules.Minutes(s.End);
             var log = logs.FirstOrDefault(l => l.ScheduleId == s.Id && l.Date == dateText);
 
             var title = $"{ScheduleRules.RoomLabel(room)} | {s.SubjectCode} {ScheduleRules.Range(s.Start, s.End)}";
             var detail = $"{s.SubjectTitle} | Scheduled: {s.FacultyName}";
 
+            var part = assigned[s.Id];
+            var doesStart = part.DoesStart;
+            var doesEnd = part.DoesEnd;
             string state; var stage = 0;
+            var finished = false;
+            string finishedResult = "";
             if (log is { IsComplete: true })
+            {
                 state = $"Done: {log.Status}. {log.Observation}";
+                finished = true;
+                finishedResult = log.Status.ToString();
+            }
             else if (log is null)
             {
-                if (nowM < startOpen) state = $"First check opens at {Hm(startOpen)}";
+                if (!doesStart)
+                {
+                    // Another Scholar does the first check (their shift covers the start). This Scholar takes over for the end check.
+                    if (nowM >= endOpen) state = "The first check was not done by the other Scholar, so this class cannot be logged anymore";
+                    else state = $"Another Scholar does the first check. Your end check opens at {Hm(endOpen)}";
+                }
+                else if (nowM < startOpen) state = $"First check opens at {Hm(startOpen)}";
                 else if (nowM >= endOpen) state = "The first check was not done, so this class cannot be logged anymore";
                 else if (!inVacantTime) state = "Ready, but you are outside your vacant time";
                 else { state = "First check is open (5 minutes after the start)"; stage = 1; }
@@ -145,14 +189,34 @@ public sealed class AttendanceService
             else
             {
                 var first = log.StartInRoom == true ? "in the room" : "not in the room";
-                if (nowM < endOpen) state = $"First check done ({first}). End check opens at {Hm(endOpen)}";
-                else if (nowM >= endM) state = $"Class ended without the end check. Recorded as {log.Status}";
+                if (!doesEnd)
+                {
+                    // This Scholar's part (the first check) is done; another Scholar finishes the class.
+                    state = $"First check done ({first}). Another Scholar does the end check";
+                    finished = true;
+                    finishedResult = $"your first check is done ({first})";
+                }
+                else if (nowM < endOpen) state = $"First check done ({first}). End check opens at {Hm(endOpen)}";
+                else if (nowM >= endM) { state = $"Class ended without the end check. Recorded as {log.Status}"; finished = true; finishedResult = log.Status.ToString(); }
                 else if (!inVacantTime) state = $"First check done ({first}). Ready for the end check, but you are outside your vacant time";
-                else { state = $"First check done ({first}). End check is open (5 minutes before the end)"; stage = 2; }
+                else { state = $"First check done ({first}). End check is open (15 minutes before the end)"; stage = 2; }
             }
-            rows.Add((s.Start + "|" + title, new MonitorRow(s.Id, title, detail, state, stage > 0, stage)));
+            var teacher = people.FirstOrDefault(u => u.Id == s.FacultyUserId);
+            var roleText = teacher?.Role switch { UserRole.Chairperson => "Chairperson", UserRole.Dean => "Dean", _ => "Faculty" };
+            var row = new MonitorRow(s.Id, title, detail, state, stage > 0, stage)
+            {
+                Room = ScheduleRules.RoomLabel(room), Time = ScheduleRules.Range(s.Start, s.End),
+                Subject = $"{s.SubjectCode} - {s.SubjectTitle}", Faculty = s.FacultyName, FacultyUserId = s.FacultyUserId,
+                FacultyRole = roleText, Building = room?.Building ?? "", Floor = room?.Floor ?? "",
+                LogId = log?.Id ?? "", IsFinished = finished, Result = finishedResult, Part = part.Part,
+                Notes = log?.Notes ?? ""
+            };
+            rows.Add((row, s.Start, $"{room?.Building}|{room?.Floor}|{room?.RoomNo}"));
         }
-        return rows.OrderBy(r => r.Start).Select(r => r.Row).ToList();
+        // Classes that can be checked right now come first, then the ones still to come, then the finished ones.
+        return rows.OrderBy(r => r.Row.IsFinished ? 2 : r.Row.CanLog ? 0 : 1)
+                   .ThenBy(r => r.Start).ThenBy(r => r.Place, StringComparer.Ordinal)
+                   .Select(r => r.Row).ToList();
     }
 
     public async Task<List<ListRow>> GetMyLogsAsync(int count)
@@ -161,7 +225,7 @@ public sealed class AttendanceService
         if (me is null) return new();
         await _storage.InitializeAsync();
         var logs = await _storage.LoadAsync<AttendanceLog>(JsonStorageService.AttendanceFile);
-        return logs.Where(l => l.CheckerUserId == me.Id).OrderByDescending(l => l.TimestampUtc).Take(count)
+        return logs.Where(l => Mine(l, me)).OrderByDescending(l => l.TimestampUtc).Take(count)
             .Select(l => new ListRow(l.Id, $"{l.SubjectCode} - {l.Status}{(l.IsComplete ? "" : " (pending)")}",
                 $"{l.FacultyName} | {l.Date} | {l.Observation}")).ToList();
     }
@@ -184,20 +248,22 @@ public sealed class AttendanceService
         var rooms = await _storage.LoadAsync<Classroom>(JsonStorageService.ClassroomsFile);
         var room = rooms.FirstOrDefault(r => r.Id == s.ClassroomId);
         var vacancies = await MyVacanciesAsync(me);
+        var assigned = await MyAssignedIdsAsync(me);
 
-        // A class outside the assigned school or the Scholar's vacant times is refused and flagged for IMS Personnel.
-        if (!InScope(me, vacancies, s, now))
+        // A class IMS did not assign to this Scholar, or one outside the vacant times, is refused and flagged for IMS Personnel.
+        if (!InScope(me, assigned, s, now))
         {
             await AddIrregularityAsync(me, IrregularityKind.OutsideAssignment, s, room, null,
-                "Tried to log a class outside the assigned school or vacant times.", now, true,
+                "Tried to log a class that IMS did not assign, or outside the vacant times.", now, true,
                 "Entry does not match the checker's assigned schedule");
-            return Fail("This class is not in your assigned school and vacant times. The attempt was flagged for IMS Personnel.");
+            return Fail("IMS Personnel did not assign this class to you (or it is outside your vacant times). The attempt was flagged for IMS Personnel.");
         }
         if (!vacancies.Any(v => v.Day == now.DayOfWeek && ScheduleRules.NowWithin(now, v.Start, v.End)))
             return Fail("You can check classes only during your vacant time.");
+        var part = assigned[s.Id];
 
         var startOpen = ScheduleRules.Minutes(s.Start) + CheckMinutes;
-        var endOpen = ScheduleRules.Minutes(s.End) - CheckMinutes;
+        var endOpen = ScheduleRules.Minutes(s.End) - EndWindowMinutes;
         var endM = ScheduleRules.Minutes(s.End);
 
         var logs = await _storage.LoadAsync<AttendanceLog>(JsonStorageService.AttendanceFile);
@@ -205,6 +271,7 @@ public sealed class AttendanceService
 
         if (log is null)
         {
+            if (!part.DoesStart) return Fail("The first check of this class belongs to another Scholar. You do the end check.");
             if (nowM < startOpen) return Fail($"The first check opens at {Hm(startOpen)}, 5 minutes after the class starts.");
             if (nowM >= endOpen) return Fail("The first check window has closed.");
 
@@ -234,12 +301,18 @@ public sealed class AttendanceService
         }
 
         if (log.IsComplete) return Fail($"Already finished: {log.Status}.");
-        if (nowM < endOpen) return Fail($"The end check opens at {Hm(endOpen)}, 5 minutes before the class ends.");
+        if (!part.DoesEnd) return Fail("Your part of this class (the first check) is done. Another Scholar does the end check.");
+        if (nowM < endOpen) return Fail($"The end check opens at {Hm(endOpen)}, 15 minutes before the class ends.");
         if (nowM >= endM) return Fail("The class has already ended.");
 
         AttendanceStatus status;
         string observation;
-        if (log.StartInRoom == true)
+        if (log.StatusAdjusted)
+        {
+            status = log.Status;          // the checker set it by hand (for example a bathroom break): the end check keeps it
+            observation = log.Observation;
+        }
+        else if (log.StartInRoom == true)
         {
             status = AttendanceStatus.Present;
             observation = inRoom ? "Faculty in the classroom at the start and at the end"
@@ -257,10 +330,76 @@ public sealed class AttendanceService
         logs[index] = log with
         {
             Status = status, EndInRoom = inRoom, EndCheckUtc = DateTime.UtcNow, TimestampUtc = DateTime.UtcNow,
+            EndCheckerUserId = log.CheckerUserId == me.Id ? "" : me.Id, EndCheckerName = log.CheckerUserId == me.Id ? "" : me.FullName,
             Observation = observation, Notes = allNotes
         };
         await _storage.SaveAsync(JsonStorageService.AttendanceFile, logs);
         return new OperationResult(true, $"{s.SubjectCode} ({s.FacultyName}) recorded as {status}.");
+    }
+
+    // ------------------------------------------- notes and status (Directory)
+
+    /// <summary>This Scholar's own entries about one Faculty member, newest first (the notes written when checking their classes).</summary>
+    public async Task<List<ListRow>> GetNotesForFacultyAsync(string facultyUserId, int count = 30)
+    {
+        var me = Reads;
+        if (me is null || facultyUserId.Length == 0) return new();
+        await _storage.InitializeAsync();
+        var logs = await _storage.LoadAsync<AttendanceLog>(JsonStorageService.AttendanceFile);
+        return logs.Where(l => Mine(l, me) && l.FacultyUserId == facultyUserId)
+            .OrderByDescending(l => l.Date).ThenByDescending(l => l.TimestampUtc).Take(count)
+            .Select(l => new ListRow(l.Id,
+                $"{l.SubjectCode} - {l.Status}{(l.StatusAdjusted ? " (set by you)" : "")}{(l.IsComplete ? "" : " (end check pending)")}",
+                $"{l.Date} | {ScheduleRules.Range(l.ScheduledStart, l.ScheduledEnd)} | {l.RoomLabel}",
+                l.Notes.Length > 0 ? $"Notes: {l.Notes}" : "No notes yet"))
+            .ToList();
+    }
+
+    /// <summary>The notes text of one of this Scholar's entries (to prefill the editor).</summary>
+    public async Task<string> GetLogNotesAsync(string logId)
+    {
+        var me = Reads;
+        if (me is null) return "";
+        await _storage.InitializeAsync();
+        var logs = await _storage.LoadAsync<AttendanceLog>(JsonStorageService.AttendanceFile);
+        return logs.FirstOrDefault(l => l.Id == logId && Mine(l, me))?.Notes ?? "";
+    }
+
+    private const string AdjustMarker = " | Checker set the status";
+
+    /// <summary>
+    /// Changes the notes of one of this Scholar's entries and, optionally, its status. Real life: students say the instructor is on a
+    /// bathroom break or in a meeting with the Chairperson, so the checker can keep the faculty Present although they are not in the
+    /// room, or mark Late or Absent. Only the checker who made the entry can change it. Written to the audit trail.
+    /// </summary>
+    public async Task<OperationResult> UpdateLogAsync(string logId, AttendanceStatus? newStatus, string? reason, string? notes)
+    {
+        var me = await FreshMeAsync();
+        if (me is null) return Fail("Only READS Scholars can change attendance notes.");
+        await _storage.InitializeAsync();
+        var logs = await _storage.LoadAsync<AttendanceLog>(JsonStorageService.AttendanceFile);
+        var i = logs.FindIndex(l => l.Id == logId && Mine(l, me));
+        if (i < 0) return Fail("That entry was not found, or it was made by another checker.");
+
+        var log = logs[i];
+        var status = log.Status;
+        var observation = log.Observation;
+        var adjusted = log.StatusAdjusted;
+        if (newStatus is not null)
+        {
+            var cut = observation.IndexOf(AdjustMarker, StringComparison.Ordinal);
+            var baseText = cut >= 0 ? observation[..cut] : observation;
+            var why = (reason ?? "").Trim();
+            status = newStatus.Value;
+            adjusted = true;
+            observation = $"{baseText}{AdjustMarker} to {status}{(why.Length > 0 ? $": {why}" : "")}";
+        }
+
+        logs[i] = log with { Status = status, StatusAdjusted = adjusted, Observation = observation, Notes = (notes ?? "").Trim(), TimestampUtc = DateTime.UtcNow };
+        await _storage.SaveAsync(JsonStorageService.AttendanceFile, logs);
+        await _audit.LogAsync(newStatus is null ? "Attendance note edited" : "Attendance status set by checker",
+            $"{me.FullName}: {log.FacultyName} {log.SubjectCode} {log.Date} -> {status}{(string.IsNullOrWhiteSpace(reason) ? "" : $" ({reason!.Trim()})")}");
+        return new OperationResult(true, newStatus is null ? "Note saved." : $"{log.SubjectCode} ({log.FacultyName}) is now {status}.");
     }
 
     // ------------------------------------------------------- irregularities
@@ -301,12 +440,12 @@ public sealed class AttendanceService
             if (observed.Id == s.ClassroomId) return Fail("That is the assigned room. Choose the room you actually saw.");
         }
 
-        var inScope = InScope(me, await MyVacanciesAsync(me), s, now);
+        var inScope = InScope(me, await MyAssignedIdsAsync(me), s, now);
         await AddIrregularityAsync(me, kind, s, expected, observed, notes.Trim(), now, !inScope,
             inScope ? "" : "Report does not match the checker's assigned schedule");
         return new OperationResult(true, inScope
             ? "Irregularity report submitted to IMS Personnel."
-            : "Report submitted and flagged, because the class is outside your assigned school or vacant times.");
+            : "Report submitted and flagged, because IMS did not assign this class to you (or it is outside your vacant times).");
     }
 
     // ------------------------------------------------- IMS oversight lists

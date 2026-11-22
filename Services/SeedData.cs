@@ -217,4 +217,33 @@ public static class SeedData
         return new();
 #endif
     }
+
+    // Sample class assignments (debug builds only): IMS gives each READS Scholar the classes of the school they monitor that lie inside
+    // their vacant times. rds01 and rds02 both monitor Engineering, so they share its classes (a class belongs to one Scholar only).
+    public static List<CheckAssignment> CheckAssignments()
+    {
+#if DEBUG
+        var rooms = Classrooms().ToDictionary(r => r.Id);
+        var vacancies = Vacancies();
+        var sea = AcademicCatalog.Schools[0].Name;
+        var sas = AcademicCatalog.Schools.First(x => x.Name.Contains("Arts and Sciences")).Name;
+        var list = new List<CheckAssignment>();
+        var n = 0;
+        foreach (var sch in Schedules())
+        {
+            string? reads = null;
+            if (sch.School == sea) reads = n++ % 2 == 0 ? "U-READS-1" : "U-READS-2";
+            else if (sch.School == sas) reads = "U-READS-4";
+            if (reads is null || !rooms.TryGetValue(sch.ClassroomId, out var room)) continue;
+            if (!vacancies.Any(v => v.ReadsUserId == reads && v.Day == sch.Day && ScheduleRules.Contains(v.Start, v.End, sch.Start, sch.End))) continue;
+            list.Add(new CheckAssignment
+            {
+                Id = $"CA-seed-{list.Count + 1}", ReadsUserId = reads, ScheduleId = sch.Id, Building = room.Building, Floor = room.Floor
+            });
+        }
+        return list;
+#else
+        return new();
+#endif
+    }
 }

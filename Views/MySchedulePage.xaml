@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="FacultyMonitoring.Views.MySchedulePage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:FacultyMonitoring.Controls"
+             xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
+             xmlns:models="clr-namespace:FacultyMonitoring.Models"
+             x:DataType="vm:MyScheduleViewModel"
+             Title="{Binding PageTitle}">
+    <controls:DraggableScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <Border Style="{StaticResource Card}" Padding="20">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{Binding PageTitle}" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{Binding Intro}" FontSize="13" TextColor="{StaticResource Gray600}" />
+                    <Label Text="{Binding EmptyText}" FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoClasses}" />
+                    <controls:WeeklyTimetable Blocks="{Binding Timetable}" IsVisible="{Binding HasClasses}" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Style="{StaticResource Card}" Padding="20" IsVisible="{Binding HasClasses}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Subjects" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{Binding Summary}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                    <VerticalStackLayout Spacing="14" BindableLayout.ItemsSource="{Binding Subjects}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:ListRow">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
+                                    <Label Text="{Binding Extra}" FontSize="12" TextColor="{StaticResource ForestMid}" />
+                                    <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </controls:DraggableScrollView>
+</ContentPage>

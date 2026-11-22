@@ -19,6 +19,7 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("VerifyEmail", typeof(Views.VerifyEmailPage));
         Routing.RegisterRoute("ForgotPassword", typeof(Views.ForgotPasswordPage));
         Routing.RegisterRoute("Notifications", typeof(Views.NotificationsPage));
+        Routing.RegisterRoute("ReadsScholarPerson", typeof(Views.PersonDetailPage));   // READS Directory: one person
         Navigating += OnNavigating;
         Navigated += (_, _) => AttachBell();
     }

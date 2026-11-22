@@ -37,8 +37,12 @@
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="models:DirectoryEntry">
                                     <VerticalStackLayout Spacing="1">
-                                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" />
+                                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource DeepGreen}" TextDecorations="Underline" />
                                         <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                        <Label Text="Tap for information and subjects" FontSize="11" TextColor="{StaticResource ForestMid}" />
+                                        <VerticalStackLayout.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DirectoryViewModel}}, Path=OpenPersonCommand}" CommandParameter="{Binding .}" />
+                                        </VerticalStackLayout.GestureRecognizers>
                                     </VerticalStackLayout>
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
@@ -86,12 +90,19 @@
                                                                 </Grid.GestureRecognizers>
                                                             </Grid>
                                                             <VerticalStackLayout Spacing="6" IsVisible="{Binding IsExpanded}">
+                                                                <Button Text="View chairperson details" HeightRequest="38" FontSize="13" Style="{StaticResource OutlineButton}"
+                                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DirectoryViewModel}}, Path=OpenPersonCommand}"
+                                                                        CommandParameter="{Binding Entry}" />
                                                                 <Label Text="No faculty registered yet." FontSize="13"
                                                                        TextColor="{StaticResource Gray600}" IsVisible="{Binding NoFaculty}" />
                                                                 <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Faculty}">
                                                                     <BindableLayout.ItemTemplate>
                                                                         <DataTemplate x:DataType="models:DirectoryEntry">
-                                                                            <Label Text="{Binding Name}" FontSize="14" Margin="21,0,0,0" />
+                                                                            <Label Text="{Binding Name}" FontSize="14" Margin="21,0,0,0" TextColor="{StaticResource DeepGreen}" TextDecorations="Underline">
+                                                                            <Label.GestureRecognizers>
+                                                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DirectoryViewModel}}, Path=OpenPersonCommand}" CommandParameter="{Binding .}" />
+                                                                            </Label.GestureRecognizers>
+                                                                        </Label>
                                                                         </DataTemplate>
                                                                     </BindableLayout.ItemTemplate>
                                                                 </VerticalStackLayout>
@@ -108,7 +119,11 @@
                                             <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Faculty}">
                                                 <BindableLayout.ItemTemplate>
                                                     <DataTemplate x:DataType="models:DirectoryEntry">
-                                                        <Label Text="{Binding Name}" FontSize="14" Margin="21,0,0,0" />
+                                                        <Label Text="{Binding Name}" FontSize="14" Margin="21,0,0,0" TextColor="{StaticResource DeepGreen}" TextDecorations="Underline">
+                                                                            <Label.GestureRecognizers>
+                                                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DirectoryViewModel}}, Path=OpenPersonCommand}" CommandParameter="{Binding .}" />
+                                                                            </Label.GestureRecognizers>
+                                                                        </Label>
                                                     </DataTemplate>
                                                 </BindableLayout.ItemTemplate>
                                             </VerticalStackLayout>
@@ -120,7 +135,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <Label Text="Tap Departments to show the chairpersons, then tap a chairperson to show that department's faculty. Read-only view."
+                <Label Text="Tap Departments to show the chairpersons, then tap a chairperson to show that department's faculty. Tap any name for the person's information, subjects, schedule and your notes."
                        FontSize="12" TextColor="{StaticResource Gray600}" />
             </VerticalStackLayout>
         </VerticalStackLayout>

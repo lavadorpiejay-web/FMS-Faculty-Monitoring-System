@@ -15,6 +15,7 @@ public sealed class JsonStorageService
     public const string SchedulesFile = "schedules.json";
     public const string DutiesFile = "duties.json";
     public const string VacanciesFile = "vacancies.json";
+    public const string CheckAssignmentsFile = "checkassignments.json";
     public const string RequestsFile = "requests.json";
     public const string AttendanceFile = "attendance.json";
     public const string IrregularitiesFile = "irregularities.json";
@@ -52,6 +53,7 @@ public sealed class JsonStorageService
             if (!Exists(SchedulesFile))  await WriteAsync(SchedulesFile, SeedData.Schedules());
             if (!Exists(DutiesFile))     await WriteAsync(DutiesFile, SeedData.Duties());
             if (!Exists(VacanciesFile))  await WriteAsync(VacanciesFile, SeedData.Vacancies());
+            if (!Exists(CheckAssignmentsFile)) await WriteAsync(CheckAssignmentsFile, SeedData.CheckAssignments());
             if (!Exists(RequestsFile))   await WriteAsync(RequestsFile, new List<ChangeRequest>());
             if (!Exists(AttendanceFile)) await WriteAsync(AttendanceFile, new List<AttendanceLog>());
             if (!Exists(IrregularitiesFile)) await WriteAsync(IrregularitiesFile, new List<IrregularityReport>());

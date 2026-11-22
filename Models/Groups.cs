@@ -115,11 +115,13 @@ public partial class ChairpersonNode : ObservableObject
 {
     public ChairpersonNode(DirectoryEntry entry, IReadOnlyList<DirectoryEntry> faculty, bool expanded = false)
     {
+        Entry = entry;
         Name = entry.Name;
         Faculty = faculty;
         _isExpanded = expanded;
     }
 
+    public DirectoryEntry Entry { get; }
     public string Name { get; }
     public IReadOnlyList<DirectoryEntry> Faculty { get; }
     public bool NoFaculty => Faculty.Count == 0;
@@ -150,4 +152,35 @@ public sealed class DirectoryDepartment
     public IReadOnlyList<DirectoryEntry> Faculty { get; }
     public bool NoChairperson => Chairpersons.Count == 0;
     public bool NoFaculty => Faculty.Count == 0;
+}
+
+/// <summary>
+/// One class IMS Personnel can give to a READS Scholar. A class has two checks (first: 5 minutes after the start, end: last 15 minutes before the end),
+/// each ticked on its own, because the Scholar's vacant time may cover only one of them and another Scholar takes over for the other.
+/// CanStart / CanEnd say whether the check lies inside the Scholar's vacant time and is not held by someone else.
+/// </summary>
+public partial class ClassPick : ObservableObject
+{
+    public ClassPick(string scheduleId, string title, string detail, string note, bool canStart, bool canEnd, bool startOn, bool endOn)
+    {
+        ScheduleId = scheduleId;
+        Title = title;
+        Detail = detail;
+        Note = note;
+        CanStart = canStart;
+        CanEnd = canEnd;
+        _startSelected = startOn;
+        _endSelected = endOn;
+    }
+
+    public string ScheduleId { get; }
+    public string Title { get; }
+    public string Detail { get; }
+    public string Note { get; }
+    public bool HasNote => Note.Length > 0;
+    public bool CanStart { get; }
+    public bool CanEnd { get; }
+
+    [ObservableProperty] private bool _startSelected;
+    [ObservableProperty] private bool _endSelected;
 }

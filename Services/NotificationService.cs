@@ -13,6 +13,8 @@ public sealed class NotificationService
     public const string ForIms = "ims";             // approved request waiting for IMS Personnel
     public const string ForApprover = "approver";   // new request waiting for a Chairperson or Dean
     public const string ForRequester = "requester"; // decision about the Faculty member's own request
+    public const string ForAssignment = "assignment"; // IMS assigned (or cleared) a READS Scholar's school
+    public const string ForChecker = "checker";     // a class a READS Scholar checks was moved or changed rooms
 
     private const int MaxEntries = 300;
     private readonly JsonStorageService _storage;

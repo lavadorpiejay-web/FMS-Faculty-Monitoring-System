@@ -14,14 +14,30 @@
                 <Label Text="READS Scholars and their vacant times" Style="{StaticResource SectionTitle}" />
                 <Label Text="Each READS Scholar enters their own vacant times on their Duty tab. They monitor the classes of the school you assign on the Assign tab. This list is read-only." FontSize="13" TextColor="{StaticResource Gray600}" />
                 <Label Text="There are no READS Scholars yet." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNone}" />
-                <VerticalStackLayout Spacing="16" BindableLayout.ItemsSource="{Binding Scholars}">
+                <Label Text="Tap a READS Scholar's name to show or hide their vacant schedule." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasScholars}" />
+                <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding Scholars}">
                   <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="services:ScholarDutyRow">
-                      <VerticalStackLayout Spacing="2">
-                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" />
-                        <Label Text="{Binding Assignment}" FontSize="12" TextColor="{StaticResource ForestMid}" />
-                        <Label Text="{Binding VacantSummary}" FontSize="12" TextColor="{StaticResource Gray600}" />
-                      </VerticalStackLayout>
+                      <Border BackgroundColor="{StaticResource Ivory}" Stroke="{StaticResource Gray200}" StrokeThickness="1" Padding="14,12">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="12" /></Border.StrokeShape>
+                        <VerticalStackLayout Spacing="8">
+                          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Label Grid.Column="0" Text="{Binding Arrow}" FontSize="12" TextColor="{StaticResource ForestMid}" VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                              <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" />
+                              <Label Text="{Binding Assignment}" FontSize="12" TextColor="{StaticResource ForestMid}" />
+                              <Label Text="{Binding CountText}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                            </VerticalStackLayout>
+                            <Grid.GestureRecognizers>
+                              <TapGestureRecognizer Command="{Binding ToggleCommand}" />
+                            </Grid.GestureRecognizers>
+                          </Grid>
+                          <VerticalStackLayout Spacing="6" IsVisible="{Binding IsExpanded}">
+                            <Label Text="{Binding VacantSummary}" FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoBlocks}" />
+                            <controls:WeeklyTimetable Blocks="{Binding Blocks}" Compact="True" IsVisible="{Binding HasBlocks}" Margin="0,4,0,0" />
+                          </VerticalStackLayout>
+                        </VerticalStackLayout>
+                      </Border>
                     </DataTemplate>
                   </BindableLayout.ItemTemplate>
                 </VerticalStackLayout>

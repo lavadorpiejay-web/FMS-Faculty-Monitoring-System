@@ -57,8 +57,10 @@ public sealed class NotificationTitleView : Grid
         bell.GestureRecognizers.Add(tap);
         SemanticProperties.SetDescription(bell, "Notifications");
 
-        Add(title, 0, 0);
-        Add(bell, 1, 0);
+        title.SetValue(ColumnProperty, 0);
+        bell.SetValue(ColumnProperty, 1);
+        Children.Add(title);
+        Children.Add(bell);
 
         page.Appearing += (_, _) => _ = RefreshAsync();
         Loaded += (_, _) => { _service.Changed += OnChanged; _ = RefreshAsync(); };

@@ -14,6 +14,24 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
     public ScholarAssignmentsViewModel(ScholarAssignmentService service) => _service = service;
 
     public ObservableCollection<AssignmentRow> Assignments { get; } = new();
+    /// <summary>Classes on the chosen floor that can be given to the chosen Scholar (inside their vacant times).</summary>
+    public ObservableCollection<ClassPick> Classes { get; } = new();
+
+    public IReadOnlyList<string> Buildings { get; } = CampusLayout.MainCampus.Where(b => b.Enabled).Select(b => CampusLayout.BuildingLabel(b.Code)).ToList();
+
+    [ObservableProperty] private IReadOnlyList<string> _floors = Array.Empty<string>();
+    [ObservableProperty] private string? _selectedBuilding;
+    [ObservableProperty] private string? _selectedFloor;
+    [ObservableProperty] private string _vacantText = "";
+    [ObservableProperty] private string _classesMessage = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNoClasses))]
+    private bool _hasClasses;
+
+    public bool HasNoClasses => !HasClasses;
+    public bool HasClassesMessage => !string.IsNullOrEmpty(ClassesMessage);
+    partial void OnClassesMessageChanged(string value) => OnPropertyChanged(nameof(HasClassesMessage));
     // The school the Scholar studies in is left out: a Scholar monitors another school, never their own.
     [ObservableProperty] private IReadOnlyList<string> _schools = AcademicCatalog.SchoolNames;
 
@@ -53,6 +71,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
     {
         ErrorMessage = "";
         SuccessMessage = "";
+        _ = ReloadClassesAsync(refreshVacant: true);
 
         if (value is not null && _byLabel.TryGetValue(value, out var info))
         {
@@ -70,6 +89,52 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
         }
     }
 
+    partial void OnSelectedBuildingChanged(string? value)
+    {
+        var code = value is null ? "" : CampusLayout.BuildingCode(value);
+        var plan = CampusLayout.MainCampus.FirstOrDefault(b => b.Code == code);
+        Floors = plan is null ? Array.Empty<string>() : plan.Floors.Select(f => f.Floor).ToList();
+        SelectedFloor = null;
+        _ = ReloadClassesAsync(refreshVacant: false);
+    }
+
+    partial void OnSelectedFloorChanged(string? value) => _ = ReloadClassesAsync(refreshVacant: false);
+
+    private ScholarInfo? CurrentScholar() =>
+        SelectedScholarLabel is not null && _byLabel.TryGetValue(SelectedScholarLabel, out var found) ? found : null;
+
+    private int _reloadVersion;
+
+    /// <summary>Lists the classes IMS can tick for the chosen Scholar, building and floor.</summary>
+    private async Task ReloadClassesAsync(bool refreshVacant)
+    {
+        var version = ++_reloadVersion;   // several changes can fire at once (building then floor): only the newest result is shown
+        Classes.Clear();
+        HasClasses = false;
+        ClassesMessage = "";
+
+        var info = CurrentScholar();
+        if (info is null) { VacantText = ""; return; }
+        if (refreshVacant)
+        {
+            var vacant = await _service.GetVacantTextAsync(info.UserId);
+            if (version != _reloadVersion) return;
+            VacantText = vacant;
+        }
+        if (SelectedBuilding is null || SelectedFloor is null)
+        {
+            ClassesMessage = "Choose a building and a floor to see the classes you can give this Scholar.";
+            return;
+        }
+
+        var result = await _service.GetClassesAsync(info.UserId, CampusLayout.BuildingCode(SelectedBuilding), SelectedFloor);
+        if (version != _reloadVersion) return;
+        Classes.Clear();
+        foreach (var c in result.Items) Classes.Add(c);
+        HasClasses = Classes.Count > 0;
+        ClassesMessage = result.Message;
+    }
+
     public async Task LoadAsync()
     {
         var scholars = await _service.GetScholarsAsync();
@@ -81,6 +146,47 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
 
         Assignments.Clear();
         foreach (var s in scholars) Assignments.Add(new AssignmentRow(s.Name, s.Assignment));
+    }
+
+    [RelayCommand]
+    private void SelectAllClasses()
+    {
+        foreach (var c in Classes)
+        {
+            if (c.CanStart) c.StartSelected = true;
+            if (c.CanEnd) c.EndSelected = true;
+        }
+    }
+
+    [RelayCommand]
+    private void ClearClasses()
+    {
+        foreach (var c in Classes) { c.StartSelected = false; c.EndSelected = false; }
+    }
+
+    [RelayCommand]
+    private async Task SaveClassesAsync()
+    {
+        if (IsBusy) return;
+        ErrorMessage = "";
+        SuccessMessage = "";
+
+        var info = CurrentScholar();
+        if (info is null) { ErrorMessage = "Choose a READS Scholar."; return; }
+        if (SelectedBuilding is null || SelectedFloor is null) { ErrorMessage = "Choose a building and a floor."; return; }
+
+        try
+        {
+            IsBusy = true;
+            var picks = Classes.Select(c => (c.ScheduleId, c.StartSelected && c.CanStart, c.EndSelected && c.CanEnd)).ToList();
+            var result = await _service.SaveClassesAsync(info.UserId, CampusLayout.BuildingCode(SelectedBuilding), SelectedFloor, picks);
+            if (!result.Success) { ErrorMessage = result.Message; return; }
+
+            await LoadAsync();                              // refreshes the summary list (classes and floors per Scholar)
+            await ReloadClassesAsync(refreshVacant: false); // refreshes the ticks and "already checked by" notes
+            SuccessMessage = result.Message;
+        }
+        finally { IsBusy = false; }
     }
 
     [RelayCommand]
@@ -100,8 +206,9 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
             var result = await _service.AssignAsync(info.UserId, SelectedSchool);
             if (!result.Success) { ErrorMessage = result.Message; return; }
 
-            SuccessMessage = result.Message;
             await LoadAsync();
+            await ReloadClassesAsync(refreshVacant: false);
+            SuccessMessage = result.Message;
         }
         finally { IsBusy = false; }
     }
@@ -124,6 +231,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
 
             SelectedSchool = null;
             await LoadAsync();
+            await ReloadClassesAsync(refreshVacant: false);
             SuccessMessage = result.Message;
         }
         finally { IsBusy = false; }

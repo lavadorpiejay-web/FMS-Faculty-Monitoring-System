@@ -24,40 +24,87 @@ public sealed class ChangeRequestService
 
     /// <summary>
     /// Which checkers (READS Scholars) are touched by a change, so IMS can adjust the checker assignments.
-    /// A checker is assigned to a whole school and works in their own vacant times, so a checker is touched when a vacant time
-    /// of a Scholar assigned to the class's school overlaps the class's old or new day and time.
+    /// The checkers touched are the ones IMS assigned this class to. When the day or time changes, IMS also sees which Scholars of the
+    /// school are free at the new time and whether the assigned checkers still have the class inside their vacant times.
     /// </summary>
     private async Task<string> CheckerImpactAsync(ClassSchedule before, ClassSchedule after)
     {
         var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
         var vacancies = await _storage.LoadAsync<VacantSlot>(JsonStorageService.VacanciesFile);
+        var assignments = await _storage.LoadAsync<CheckAssignment>(JsonStorageService.CheckAssignmentsFile);
         var scholars = users.Where(u => u.IsUsable && u.Role == UserRole.ReadsScholar && u.AssignedSchool == before.School).ToList();
 
-        string Covering(ClassSchedule c)
-        {
-            var names = scholars
-                .Where(u => vacancies.Any(v => v.ReadsUserId == u.Id && v.Day == c.Day && ScheduleRules.Overlaps(v.Start, v.End, c.Start, c.End)))
-                .Select(u => u.FullName).OrderBy(n => n).ToList();
-            return string.Join(", ", names);
-        }
+        var assigned = scholars.Where(u => assignments.Any(a => a.ReadsUserId == u.Id && a.ScheduleId == before.Id))
+            .OrderBy(u => u.FullName).ToList();
+        var assignedNames = string.Join(", ", assigned.Select(u => u.FullName));
 
-        var oldNames = Covering(before);
         var sameSlot = before.Day == after.Day && before.Start == after.Start && before.End == after.End;
         if (sameSlot)
         {
-            return oldNames.Length > 0
-                ? $"Checkers monitoring this class: {oldNames}. Tell them about the change."
-                : "No checker of this school is free at that time. Check the checker assignments.";
+            return assigned.Count > 0
+                ? $"Checkers assigned to this class: {assignedNames}. They will be told about the change."
+                : "No checker is assigned to this class yet. Assign one on the Assign tab.";
         }
 
-        var newNames = Covering(after);
-        var text = oldNames.Length > 0
-            ? $"Checkers who covered the old time ({before.Day} {ScheduleRules.Range(before.Start, before.End)}): {oldNames}."
-            : $"No checker was covering the old time ({before.Day} {ScheduleRules.Range(before.Start, before.End)}).";
-        text += newNames.Length > 0
-            ? $" Checkers free at the new time ({after.Day} {ScheduleRules.Range(after.Start, after.End)}): {newNames}."
+        bool Fits(UserAccount u, ClassSchedule c) =>
+            vacancies.Any(v => v.ReadsUserId == u.Id && v.Day == c.Day && ScheduleRules.Contains(v.Start, v.End, c.Start, c.End));
+
+        var text = assigned.Count > 0
+            ? $"Checkers assigned to this class: {assignedNames}."
+            : "No checker was assigned to this class.";
+        var lost = assigned.Where(u => !Fits(u, after)).Select(u => u.FullName).ToList();
+        if (lost.Count > 0)
+            text += $" At the new time ({after.Day} {ScheduleRules.Range(after.Start, after.End)}) it is no longer inside the vacant times of {string.Join(", ", lost)}; assign it again.";
+
+        var free = scholars.Where(u => Fits(u, after)).Select(u => u.FullName).OrderBy(n => n).ToList();
+        text += free.Count > 0
+            ? $" Checkers free at the new time: {string.Join(", ", free)}."
             : $" No checker of this school is free at the new time ({after.Day} {ScheduleRules.Range(after.Start, after.End)}); assign one.";
         return text;
+    }
+
+    /// <summary>
+    /// Bell notice for every checker (READS Scholar) IMS assigned this class to. They are the ones who would walk to the old room or
+    /// the old time, so they are told the new room (room change) or the new day and time (schedule change).
+    /// Returns how many checkers were notified.
+    /// </summary>
+    private async Task<int> NotifyCheckersAsync(ChangeRequest request, ClassSchedule before, ClassSchedule after, IReadOnlyList<Classroom> rooms)
+    {
+        var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
+        var vacancies = await _storage.LoadAsync<VacantSlot>(JsonStorageService.VacanciesFile);
+        var assignments = await _storage.LoadAsync<CheckAssignment>(JsonStorageService.CheckAssignmentsFile);
+        var scholars = users.Where(u => u.IsUsable && u.Role == UserRole.ReadsScholar
+            && assignments.Any(a => a.ReadsUserId == u.Id && a.ScheduleId == before.Id)).ToList();
+
+        var oldRoom = ScheduleRules.RoomLabel(rooms.FirstOrDefault(r => r.Id == before.ClassroomId));
+        var newRoom = ScheduleRules.RoomLabel(rooms.FirstOrDefault(r => r.Id == after.ClassroomId));
+        var subject = $"{after.SubjectCode} - {after.SubjectTitle} ({after.FacultyName})";
+
+        string title, message;
+        if (request.Kind == ChangeKind.Room)
+        {
+            title = $"Room changed: {after.SubjectCode}, now {newRoom}";
+            message = $"{subject}\n{after.Day} {ScheduleRules.Range(after.Start, after.End)}\nMoved from {oldRoom} to {newRoom}. Check the class in the new room. Approved by the Dean and IMS Personnel.";
+        }
+        else
+        {
+            title = $"Class schedule changed: {after.SubjectCode}";
+            message = $"{subject}\nWas: {before.Day} {ScheduleRules.Range(before.Start, before.End)}, {oldRoom}\nNow: {after.Day} {ScheduleRules.Range(after.Start, after.End)}, {newRoom}\nApproved by the Chairperson and IMS Personnel.";
+        }
+
+        var told = 0;
+        foreach (var u in scholars)
+        {
+            var fits = vacancies.Any(v => v.ReadsUserId == u.Id && v.Day == after.Day && ScheduleRules.Overlaps(v.Start, v.End, after.Start, after.End));
+            await _notifications.NotifyAsync(new AppNotification
+            {
+                RecipientUserId = u.Id, Category = NotificationService.ForChecker, RequestId = request.Id,
+                Title = title,
+                Message = fits ? message : message + "\nThe new time is outside your vacant times, so IMS Personnel will assign the class again."
+            });
+            told++;
+        }
+        return told;
     }
 
     private static OperationResult Fail(string message) => new(false, message);
@@ -337,6 +384,19 @@ public sealed class ChangeRequestService
 
         schedules[si] = after;
         await _storage.SaveAsync(JsonStorageService.SchedulesFile, schedules);
+
+        // The class may have moved to another floor: keep the checkers' assigned floor in step with the new room.
+        var newRoom = rooms.FirstOrDefault(r => r.Id == after.ClassroomId);
+        if (newRoom is not null)
+        {
+            var assigned = await _storage.LoadAsync<CheckAssignment>(JsonStorageService.CheckAssignmentsFile);
+            var moved = false;
+            for (var k = 0; k < assigned.Count; k++)
+                if (assigned[k].ScheduleId == after.Id && (assigned[k].Building != newRoom.Building || assigned[k].Floor != newRoom.Floor))
+                { assigned[k] = assigned[k] with { Building = newRoom.Building, Floor = newRoom.Floor }; moved = true; }
+            if (moved) await _storage.SaveAsync(JsonStorageService.CheckAssignmentsFile, assigned);
+        }
+
         requests[ri] = request with { Status = ChangeStatus.Applied, AppliedUtc = DateTime.UtcNow, AppliedByName = me.FullName };
         await _storage.SaveAsync(JsonStorageService.RequestsFile, requests);
         await _audit.LogAsync("Change applied", $"{before.FacultyName}: {ScheduleRules.ScheduleLabel(before)} now {ScheduleRules.ScheduleLabel(after)} in {ScheduleRules.RoomLabel(rooms.FirstOrDefault(r => r.Id == after.ClassroomId))}");
@@ -349,10 +409,12 @@ public sealed class ChangeRequestService
             Message = $"{request.ScheduleLabel}\n{request.Summary}\nIt is now in the master schedule."
         });
 
-        // Checkers (READS Scholars) of this school whose vacant times touch the class before or after the change.
-        var message = $"Applied: {before.SubjectCode} ({before.FacultyName}) updated.";
+        // Checkers (READS Scholars) of this school whose vacant times touch the class before or after the change get a bell notice.
+        var told = await NotifyCheckersAsync(request, before, after, rooms);
+        var message = $"Applied: {before.SubjectCode} ({before.FacultyName}) updated."
+            + (told > 0 ? $" {told} READS checker{(told == 1 ? " was" : "s were")} notified." : " No READS checker is assigned to this class, so no checker was notified.");
         var impact = await CheckerImpactAsync(before, after);
-        if (impact.Length > 0) message += " Adjust the checker assignments: " + impact;
+        if (impact.Length > 0) message += " " + impact;
         return new OperationResult(true, message);
     }
 }

@@ -67,8 +67,24 @@ public sealed record CheckResult(string Title, string Detail, bool Passed)
     public string Symbol => Passed ? "✓" : "✕";
 }
 
+/// <summary>Chairperson's Faculty tab: one Faculty member with the subjects they handle (code - title, then every day, time and room).</summary>
+public sealed record FacultyWithSubjects(string Name, IReadOnlyList<ListRow> Subjects)
+{
+    public bool HasNoSubjects => Subjects.Count == 0;
+    public string CountText => Subjects.Count == 1 ? "1 subject" : $"{Subjects.Count} subjects";
+}
+
 /// <summary>One person shown in the READS Scholar directory (name, role and department only).</summary>
-public sealed record DirectoryEntry(string Name, string Detail);
+public sealed record DirectoryEntry(string Name, string Detail, string UserId = "", string Role = "",
+    string SisId = "", string Email = "", string School = "", string Department = "")
+{
+    public bool IsFaculty => Role == "Faculty";
+}
+
+/// <summary>Everything the READS Directory shows about one Dean, Chairperson or Faculty member.</summary>
+public sealed record PersonDetail(
+    bool IsValid, string Name, string RoleText, string SisId, string Email, string School, string Department,
+    bool IsFaculty, string SubjectsHeading, IReadOnlyList<ListRow> Subjects, string RelatedHeading, IReadOnlyList<ListRow> Related);
 
 /// <summary>One department with its Chairperson(s) and Faculty (Dean's view of their school).</summary>
 public sealed record DepartmentGroup(

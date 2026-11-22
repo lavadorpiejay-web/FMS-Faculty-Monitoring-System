@@ -1,9 +1,44 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using FacultyMonitoring.Models;
 
 namespace FacultyMonitoring.Services;
 
-/// <summary>One READS Scholar as IMS Personnel see them: the school they monitor and the vacant times they entered.</summary>
-public sealed record ScholarDutyRow(string Name, string Assignment, string VacantSummary);
+/// <summary>
+/// One READS Scholar as IMS Personnel see them: the school they monitor and the vacant times they entered.
+/// The name is a toggle: tapping it opens or closes that Scholar's weekly vacant-time timetable.
+/// </summary>
+public partial class ScholarDutyRow : ObservableObject
+{
+    public ScholarDutyRow(string userId, string name, string assignment, string vacantSummary, IReadOnlyList<TimetableBlock> blocks, bool expanded = false)
+    {
+        UserId = userId;
+        Name = name;
+        Assignment = assignment;
+        VacantSummary = vacantSummary;
+        Blocks = blocks;
+        _isExpanded = expanded;
+    }
+
+    /// <summary>Stable identity so the open/closed state survives a reload.</summary>
+    public string UserId { get; }
+    public string Name { get; }
+    public string Assignment { get; }
+    public string VacantSummary { get; }
+    public IReadOnlyList<TimetableBlock> Blocks { get; }
+    public bool HasBlocks => Blocks.Count > 0;
+    public bool HasNoBlocks => Blocks.Count == 0;
+    public string CountText => Blocks.Count == 0 ? "No vacant times yet" : Blocks.Count == 1 ? "1 vacant time" : $"{Blocks.Count} vacant times";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Arrow))]
+    private bool _isExpanded;
+
+    public string Arrow => IsExpanded ? "▼" : "▶";
+
+    [RelayCommand]
+    private void Toggle() => IsExpanded = !IsExpanded;
+}
 
 /// <summary>
 /// IMS Personnel overview of READS Scholars. READS Scholars enter their own vacant times (see <see cref="VacantTimeService"/>);
@@ -33,13 +68,12 @@ public sealed class DutyService
             .Select(u =>
             {
                 var slots = vacancies.Where(v => v.ReadsUserId == u.Id).OrderBy(v => DayOrder(v.Day)).ThenBy(v => v.Start)
-                    .Select(v => $"{v.Day} {TimeFormat.Range(v.Start, v.End)}").ToList();
+                    .Select(v => new TimetableBlock(v.Id, v.Day, v.Start, v.End, "Vacant", TimeFormat.Range(v.Start, v.End), "", "Vacant")).ToList();
                 var assignment = u.AssignedSchool.Length == 0
                     ? "Not assigned to a school yet"
                     : $"Monitors: {u.AssignedSchool}";
                 if (u.OwnSchool.Length > 0) assignment += $" (studies in {u.OwnSchool})";
-                return new ScholarDutyRow(u.FullName, assignment,
-                    slots.Count == 0 ? "No vacant times entered yet" : string.Join("\n", slots));
+                return new ScholarDutyRow(u.Id, u.FullName, assignment, "No vacant times entered yet", slots);
             }).ToList();
     }
 }

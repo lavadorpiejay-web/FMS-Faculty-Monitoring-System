@@ -9,9 +9,15 @@ namespace FacultyMonitoring.ViewModels;
 public partial class DepartmentFacultyViewModel : ObservableObject
 {
     private readonly DirectoryService _directory;
-    public DepartmentFacultyViewModel(DirectoryService directory) => _directory = directory;
+    private readonly ScheduleService _schedules;
 
-    public ObservableCollection<DirectoryEntry> Faculty { get; } = new();
+    public DepartmentFacultyViewModel(DirectoryService directory, ScheduleService schedules)
+    {
+        _directory = directory;
+        _schedules = schedules;
+    }
+
+    public ObservableCollection<FacultyWithSubjects> Faculty { get; } = new();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNotValid))]
@@ -28,8 +34,27 @@ public partial class DepartmentFacultyViewModel : ObservableObject
     {
         var result = await _directory.LoadForCurrentChairpersonAsync();
 
+        // The department's encoded schedules (a Chairperson sees their own department's), grouped per Faculty member and subject.
+        var rooms = (await _schedules.GetRoomsAsync()).ToDictionary(r => r.Id);
+        var schedules = await _schedules.GetVisibleAsync();
+        static int DayOrder(DayOfWeek d) => d == DayOfWeek.Sunday ? 7 : (int)d;
+
         Faculty.Clear();
-        foreach (var f in result.Faculty) Faculty.Add(f);
+        foreach (var f in result.Faculty)
+        {
+            var rows = new List<ListRow>();
+            if (f.UserId.Length > 0)
+                foreach (var g in schedules.Where(s => s.FacultyUserId == f.UserId).GroupBy(s => s.SubjectCode).OrderBy(g => g.Key))
+                {
+                    var lines = g.OrderBy(s => DayOrder(s.Day)).ThenBy(s => s.Start).Select(s =>
+                    {
+                        rooms.TryGetValue(s.ClassroomId, out var room);
+                        return $"{s.Day} {TimeFormat.Range(s.Start, s.End)} | {ScheduleRules.RoomLabel(room)}";
+                    });
+                    rows.Add(new ListRow(g.Key, $"{g.Key} - {g.First().SubjectTitle}", string.Join("\n", lines)));
+                }
+            Faculty.Add(new FacultyWithSubjects(f.Name, rows));
+        }
 
         School = result.School;
         Department = result.Department;

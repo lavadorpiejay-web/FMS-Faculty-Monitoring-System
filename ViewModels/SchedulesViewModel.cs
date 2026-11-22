@@ -13,6 +13,8 @@ public partial class SchedulesViewModel : PageViewModelBase
     private Dictionary<string, UserAccount> _faculty = new();
     private List<Classroom> _rooms = new();
     private List<Subject> _subjects = new();
+    private List<ClassSchedule> _allSchedules = new();
+    private Dictionary<string, Classroom> _roomById = new();
 
     public SchedulesViewModel(ScheduleService service)
     {
@@ -137,7 +139,8 @@ public partial class SchedulesViewModel : PageViewModelBase
     {
         var labels = SelectedSchool is null || SelectedDepartment is null
             ? new List<string>()
-            : _faculty.Where(kv => kv.Value.School == SelectedSchool && kv.Value.Department == SelectedDepartment)
+            : _faculty.Where(kv => kv.Value.School == SelectedSchool
+                                   && (kv.Value.Department == SelectedDepartment || kv.Value.Role == UserRole.Dean))   // a Dean has no department: listed under every department of the school
                       .Select(kv => kv.Key).ToList();
         if (!FacultyLabels.SequenceEqual(labels)) FacultyLabels = labels;
     }
@@ -147,7 +150,7 @@ public partial class SchedulesViewModel : PageViewModelBase
     {
         SelectedSubject = null;
         SubjectLabels = value is not null && _faculty.TryGetValue(value, out var f)
-            ? _subjects.Where(s => s.Department == f.Department).Select(SubjectLabel).ToList()
+            ? _subjects.Where(s => s.Department == (f.Role == UserRole.Dean ? SelectedDepartment : f.Department)).Select(SubjectLabel).ToList()
             : Array.Empty<string>();
     }
 
@@ -156,7 +159,8 @@ public partial class SchedulesViewModel : PageViewModelBase
         _subjects = await _service.GetSubjectsAsync();
 
         _faculty = new Dictionary<string, UserAccount>();
-        foreach (var u in await _service.GetFacultyAsync()) _faculty.TryAdd($"{u.FullName} ({u.SisId})", u);
+        foreach (var u in await _service.GetFacultyAsync())
+            _faculty.TryAdd(u.Role == UserRole.Faculty ? $"{u.FullName} ({u.SisId})" : $"{u.FullName} ({u.SisId}) - {u.Role}", u);
         RefreshFacultyLabels();
 
         var rooms = await _service.GetRoomsAsync();
@@ -171,6 +175,8 @@ public partial class SchedulesViewModel : PageViewModelBase
 
         var byId = rooms.ToDictionary(r => r.Id);
         var schedules = await _service.GetVisibleAsync();
+        _allSchedules = schedules;
+        _roomById = byId;
 
         var schools = schedules
             .GroupBy(s => s.School.Length > 0 ? s.School : "(No school)")
@@ -219,7 +225,8 @@ public partial class SchedulesViewModel : PageViewModelBase
             Start: TimeFormat.To24h(SameTime ? SelectedStart : (d.Start ?? SelectedStart)),
             End: TimeFormat.To24h(SameTime ? SelectedEnd : (d.End ?? SelectedEnd)))).ToList();
 
-        var subject = _subjects.FirstOrDefault(s => s.Department == faculty.Department && SubjectLabel(s) == SelectedSubject);
+        var subjectDepartment = faculty.Role == UserRole.Dean ? SelectedDepartment : faculty.Department;
+        var subject = _subjects.FirstOrDefault(s => s.Department == subjectDepartment && SubjectLabel(s) == SelectedSubject);
         if (subject is null) { ErrorMessage = "Choose a subject."; return; }
 
         try
@@ -232,17 +239,47 @@ public partial class SchedulesViewModel : PageViewModelBase
         finally { IsBusy = false; }
     }
 
+    private static int DayOrder(DayOfWeek d) => d == DayOfWeek.Sunday ? 7 : (int)d;
+
+    /// <summary>
+    /// Remove asks what to delete: only that class, every class of the same subject, every class of that Faculty member on the same day,
+    /// every class at the same time, all of that Faculty member's classes, or exactly the ones IMS ticks.
+    /// The scope stays inside one Faculty member's classes so a single tap can never wipe other people's schedules.
+    /// </summary>
     [RelayCommand]
     private async Task RemoveAsync(ListRow? row)
     {
         if (row is null || IsBusy) return;
-        var yes = await Shell.Current.DisplayAlertAsync("Remove schedule", $"Remove {row.Title}?", "Remove", "Cancel");
-        if (!yes) return;
+        var tapped = _allSchedules.FirstOrDefault(s => s.Id == row.Id);
+        if (tapped is null) return;
+        var theirs = _allSchedules.Where(s => s.FacultyUserId == tapped.FacultyUserId).ToList();
+
+        string Line(ClassSchedule s) => $"{s.Day} {TimeFormat.Range(s.Start, s.End)}";
+        var scopes = new List<RemovePrompt.Scope> { new($"Only this one ({tapped.SubjectCode}, {Line(tapped)})", new[] { tapped.Id }) };
+        void Add(string label, IEnumerable<ClassSchedule> items)
+        {
+            var found = items.Select(s => s.Id).ToList();
+            if (found.Count > 1) scopes.Add(new($"{label} ({found.Count})", found));
+        }
+        Add($"All {tapped.SubjectCode} classes of {tapped.FacultyName}", theirs.Where(s => s.SubjectCode == tapped.SubjectCode));
+        Add($"All classes of {tapped.FacultyName} on {tapped.Day}", theirs.Where(s => s.Day == tapped.Day));
+        Add($"All classes of {tapped.FacultyName} at {TimeFormat.Range(tapped.Start, tapped.End)}", theirs.Where(s => s.Start == tapped.Start && s.End == tapped.End));
+        Add($"Every class of {tapped.FacultyName}", theirs);
+
+        var candidates = theirs.OrderBy(s => DayOrder(s.Day)).ThenBy(s => s.Start).Select(s =>
+        {
+            _roomById.TryGetValue(s.ClassroomId, out var room);
+            return new ListRow(s.Id, $"{s.SubjectCode} - {s.SubjectTitle}", $"{Line(s)} | {ScheduleRules.RoomLabel(room)}");
+        }).ToList();
+
+        var ids = await RemovePrompt.AskAsync($"Remove schedule ({tapped.FacultyName})", "schedule", scopes, candidates);
+        if (ids is null) return;
+
         try
         {
             IsBusy = true;
             ClearMessages();
-            Show(await _service.RemoveAsync(row.Id));
+            Show(await _service.RemoveManyAsync(ids));
             await LoadAsync();
         }
         finally { IsBusy = false; }

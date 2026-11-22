@@ -13,18 +13,8 @@
               <VerticalStackLayout Spacing="12">
                 <Label Text="My classes" Style="{StaticResource SectionTitle}" />
                 <Label Text="Your encoded schedule is what READS checkers monitor." FontSize="13" TextColor="{StaticResource Gray600}" />
-                <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding ScheduleRows}">
-                  <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="models:ListRow">
-                      <VerticalStackLayout Spacing="3">
-                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
-                        <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
-
-
-                      </VerticalStackLayout>
-                    </DataTemplate>
-                  </BindableLayout.ItemTemplate>
-                </VerticalStackLayout>
+                <Label Text="You have no classes encoded yet." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoClasses}" />
+                <controls:WeeklyTimetable Blocks="{Binding Timetable}" IsVisible="{Binding HasClasses}" />
               </VerticalStackLayout>
             </Border>
             <Border Style="{StaticResource Card}" Padding="20">

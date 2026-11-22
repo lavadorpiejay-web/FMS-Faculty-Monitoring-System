@@ -44,7 +44,14 @@ public partial class FacultyScheduleViewModel : PageViewModelBase
     [ObservableProperty] private string? _newSubject = ScheduleRules.NoChange;
     [ObservableProperty] private string? _newRoom;
     [ObservableProperty] private string _reason = "";
-    [ObservableProperty] private bool _hasClasses;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNoClasses))]
+    private bool _hasClasses;
+
+    public bool HasNoClasses => !HasClasses;
+
+    /// <summary>The weekly timetable of the Faculty member's classes.</summary>
+    [ObservableProperty] private IReadOnlyList<TimetableBlock> _timetable = Array.Empty<TimetableBlock>();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRoomChange))]
@@ -107,6 +114,12 @@ public partial class FacultyScheduleViewModel : PageViewModelBase
                 $"{s.Day} {ScheduleRules.Range(s.Start, s.End)} | {ScheduleRules.RoomLabel(room)}"));
         }
         HasClasses = ScheduleRows.Count > 0;
+        Timetable = _mine.Select(s =>
+        {
+            byId.TryGetValue(s.ClassroomId, out var room);
+            return new TimetableBlock(s.Id, s.Day, s.Start, s.End, $"{s.SubjectCode} {s.SubjectTitle}",
+                TimeFormat.Range(s.Start, s.End), room is null ? "" : $"Room {room.Building} {room.RoomNo}", s.SubjectCode);
+        }).ToList();
         var labels = _mine.Select(ScheduleRules.ScheduleLabel).ToList();
         if (!ClassLabels.SequenceEqual(labels)) ClassLabels = labels;
         RebuildRoomChoices();
