@@ -141,6 +141,18 @@ public static class SeedData
         var cpe = Units().FirstOrDefault(u => u.Code == "cpe");
         if (cpe is not null)
             subjects.Add(new Subject { Code = "CPE204", Title = "Microprocessor Systems", Units = 3, Department = cpe.Department });
+
+        // ---- Your own subjects: add one line per subject, (Code, Title, Units, Department). ----
+        // Department must match the name in AcademicCatalog.cs exactly, for example "Department of Electrical Engineering".
+        // Seed data is written only on first launch, so uninstall the app and reinstall it to see changes.
+        var extra = new (string Code, string Title, int Units, string Dept)[]
+        {
+            // ("EE201", "Circuit Analysis", 3, "Department of Electrical Engineering"),
+            // ("CE305", "Structural Design", 3, "Department of Civil Engineering"),
+        };
+        foreach (var e in extra)
+            subjects.Add(new Subject { Code = e.Code, Title = e.Title, Units = e.Units, Department = e.Dept });
+
         return subjects;
     }
 
