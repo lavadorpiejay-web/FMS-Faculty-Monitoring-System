@@ -21,7 +21,8 @@ public sealed record ClassSchedule
     public string End { get; init; } = "09:00";
 }
 
-/// <summary>A READS Scholar's weekly duty: where (monitoring area) and when. Empty Department/Building/Floor = no restriction.</summary>
+/// <summary>A READS Scholar's weekly duty: where (monitoring area: campus, building, floor) and when. Empty Building/Floor = no restriction.
+/// School and Department are no longer used for matching; they stay so older saved duties still load.</summary>
 public sealed record DutyAssignment
 {
     public string Id { get; init; } = "";
@@ -35,6 +36,30 @@ public sealed record DutyAssignment
     public DayOfWeek Day { get; init; }
     public string Start { get; init; } = "08:00";
     public string End { get; init; } = "09:00";
+}
+
+/// <summary>IMS Personnel assigned one class (a weekly schedule row) to a READS Scholar to check. The class lies inside one of the Scholar's
+/// vacant times. Building and Floor are copied from the class's room so the Scholar knows which floor to go to.</summary>
+public sealed record CheckAssignment
+{
+    public string Id { get; init; } = "";
+    public string ReadsUserId { get; init; } = "";
+    public string ScheduleId { get; init; } = "";
+    public string Building { get; init; } = "";
+    public string Floor { get; init; } = "";
+    /// <summary>Which checks of the class this Scholar does: "Both", "Start" (first check only) or "End" (end check only).
+    /// A class that runs past the end of a Scholar's vacant time is split: another Scholar takes over and does the end check.</summary>
+    public string Part { get; init; } = CheckPart.Both;
+
+    [System.Text.Json.Serialization.JsonIgnore] public bool DoesStart => Part != CheckPart.End;
+    [System.Text.Json.Serialization.JsonIgnore] public bool DoesEnd => Part != CheckPart.Start;
+}
+
+public static class CheckPart
+{
+    public const string Both = "Both";
+    public const string Start = "Start";
+    public const string End = "End";
 }
 
 /// <summary>A time when a READS Scholar has no class. Duties must fit inside a vacant slot.</summary>
@@ -71,6 +96,7 @@ public sealed record ChangeRequest
     public DateTime CreatedUtc { get; init; }
     public DateTime? DecidedUtc { get; init; }
     public string DecidedByName { get; init; } = "";
+    public string DeclineReason { get; init; } = "";   // why IMS Personnel declined (shown to the Faculty member)
     public DateTime? AppliedUtc { get; init; }
     public string AppliedByName { get; init; } = "";
 }
@@ -93,11 +119,28 @@ public sealed record AttendanceLog
     public string Date { get; init; } = "";             // monitoring date, yyyy-MM-dd
     public string ScheduledStart { get; init; } = "";
     public string ScheduledEnd { get; init; } = "";
+    /// <summary>Present, Late or Absent. After the first check it is provisional; it is final once the end check is done.</summary>
     public AttendanceStatus Status { get; init; }
-    public string Notes { get; init; } = "";
     public string CheckerUserId { get; init; } = "";
     public string CheckerName { get; init; } = "";
     public DateTime TimestampUtc { get; init; }
+    /// <summary>The Scholar who did the end check, when it was a different Scholar than the first check (shift handover). Empty = same checker.</summary>
+    public string EndCheckerUserId { get; init; } = "";
+    public string EndCheckerName { get; init; } = "";
+
+    // Two checks per class: 5 minutes after the start and in the last 15 minutes before the end.
+    public bool? StartInRoom { get; init; }
+    public DateTime? StartCheckUtc { get; init; }
+    public bool? EndInRoom { get; init; }
+    public DateTime? EndCheckUtc { get; init; }
+    /// <summary>What the checker observed, for example "Faculty not in the classroom".</summary>
+    public string Observation { get; init; } = "";
+    public string Notes { get; init; } = "";
+    /// <summary>True when the checker changed the status by hand (for example Present although the faculty was out for a bathroom break).</summary>
+    public bool StatusAdjusted { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsComplete => EndCheckUtc is not null;
 }
 
 public sealed record IrregularityReport
@@ -131,7 +174,79 @@ public sealed record AuditEntry
 }
 
 /// <summary>A generic two-line list item. Id is what a Remove / Edit / Approve button acts on.</summary>
+/// <summary>
+/// One notification (the bell). It is addressed either to one person (RecipientUserId) or to a role, optionally narrowed to a
+/// school and department (for example "the Chairperson of this department", or "IMS Personnel").
+/// Older records with no recipient at all belong to IMS Personnel.
+/// </summary>
+public sealed record AppNotification
+{
+    public string Id { get; init; } = "";
+    public string RecipientUserId { get; init; } = "";
+    public UserRole? RecipientRole { get; init; }
+    public string RecipientSchool { get; init; } = "";
+    public string RecipientDepartment { get; init; } = "";
+    public string Category { get; init; } = "";
+    public string RequestId { get; init; } = "";
+    public string Title { get; init; } = "";
+    public string Message { get; init; } = "";
+    public DateTime CreatedUtc { get; init; }
+    public bool IsRead { get; init; }
+}
+
+/// <summary>One line of the Notifications page.</summary>
+public sealed record NotificationRow(string Id, string Title, string Message, string TimeText, bool IsUnread)
+{
+    public bool IsRead => !IsUnread;
+    public Microsoft.Maui.Graphics.Color BackgroundColor =>
+        IsUnread ? Microsoft.Maui.Graphics.Color.FromArgb("#FFF1BF") : Microsoft.Maui.Graphics.Colors.White;
+}
+
+/// <summary>One block of the weekly timetable (a class, or a vacant time). Times are "HH:mm". ColorKey picks the block colour.</summary>
+public sealed record TimetableBlock(string Id, DayOfWeek Day, string Start, string End, string Title,
+    string Line2 = "", string Line3 = "", string ColorKey = "");
+
 public sealed record ListRow(string Id, string Title, string Detail, string Extra = "");
 
+/// <summary>One row of the IMS Rooms table: a room on a day, in a time, either Vacant or used by a class.</summary>
+public sealed record RoomAvailabilityRow(string Room, string Day, string Time, string Availability, string Faculty,
+    string Subject, string SchoolDepartment, bool IsVacant)
+{
+    public Microsoft.Maui.Graphics.Color StatusColor => IsVacant
+        ? Microsoft.Maui.Graphics.Colors.ForestGreen : Microsoft.Maui.Graphics.Colors.Firebrick;
+}
+
 /// <summary>A class a READS Scholar can see during duty, with whether it can be logged right now.</summary>
-public sealed record MonitorRow(string ScheduleId, string Title, string Detail, string State, bool CanLog);
+/// <summary>Stage: 0 = nothing to do now, 1 = first check (5 minutes after the start) is open, 2 = end check (last 15 minutes before the end) is open.</summary>
+public sealed record MonitorRow(string ScheduleId, string Title, string Detail, string State, bool CanLog, int Stage = 0)
+{
+    // Separate columns for the table on the READS Home page.
+    public string Room { get; init; } = "";
+    public string Time { get; init; } = "";
+    public string Subject { get; init; } = "";
+    public string Faculty { get; init; } = "";
+    public string FacultyUserId { get; init; } = "";
+    /// <summary>Faculty, Chairperson or Dean: whoever handles the subject.</summary>
+    public string FacultyRole { get; init; } = "Faculty";
+    /// <summary>"Both", "Start" or "End": which checks of this class belong to this Scholar.</summary>
+    public string Part { get; init; } = CheckPart.Both;
+    public string PartText => Part == CheckPart.Start ? "Your part: first check only (another Scholar takes over for the end check)"
+                            : Part == CheckPart.End ? "Your part: end check only (another Scholar does the first check)" : "";
+    public bool HasPartText => PartText.Length > 0;
+    public string Building { get; init; } = "";
+    public string Floor { get; init; } = "";
+    public string FloorText => Floor.Length == 0 ? "" : $"{Building} - Floor {Floor}";
+    public string PersonText => $"{FacultyRole}: {Faculty}";
+    /// <summary>Id of today's attendance entry for this class (empty until the first check is done).</summary>
+    public string LogId { get; init; } = "";
+    public bool HasLog => LogId.Length > 0;
+    /// <summary>True once the class has an entry that is complete (end check done) or the class is over: the table shows it as Finished.</summary>
+    public bool IsFinished { get; init; }
+    public bool NotFinished => !IsFinished;
+    /// <summary>Present / Late / Absent of a finished class.</summary>
+    public string Result { get; init; } = "";
+    public string FinishedText => IsFinished ? $"Finished: {Result}" : "";
+    public string Notes { get; init; } = "";
+    public bool HasNotes => Notes.Length > 0;
+    public string CheckCaption => Stage == 1 ? "First check (5 minutes after the start)" : Stage == 2 ? "End check (last 15 minutes of the class)" : "";
+}
