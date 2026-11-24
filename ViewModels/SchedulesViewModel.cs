@@ -15,6 +15,18 @@ public partial class SchedulesViewModel : PageViewModelBase
     private List<Subject> _subjects = new();
     private List<ClassSchedule> _allSchedules = new();
     private Dictionary<string, Classroom> _roomById = new();
+    private int _patternMinutes;   // length of one meeting for the chosen subject's units (0 = no pattern)
+
+    /// <summary>
+    /// Weekly meeting pattern by subject units: the days the class meets and the minutes of each meeting.
+    /// Choosing a subject fills the days and, once a start time is chosen, the end time. IMS can still change them.
+    /// To add or change a rule, edit this table (units -> days, minutes per meeting).
+    /// </summary>
+    private static readonly Dictionary<int, (string[] Days, int Minutes)> UnitPatterns = new()
+    {
+        [3] = (new[] { "Monday", "Wednesday", "Friday" }, 60),    // 3 units: MWF, 1 hour each
+        [2] = (new[] { "Tuesday", "Thursday" }, 90),              // 2 units: TTh, 1 hour 30 minutes each
+    };
 
     public SchedulesViewModel(ScheduleService service)
     {
@@ -120,6 +132,43 @@ public partial class SchedulesViewModel : PageViewModelBase
     }
 
     private static string SubjectLabel(Subject s) => $"{s.Code} - {s.Title}";
+
+    private Subject? ChosenSubject()
+    {
+        if (SelectedSubject is null || SelectedFaculty is null || !_faculty.TryGetValue(SelectedFaculty, out var f)) return null;
+        var department = f.Role == UserRole.Dean ? SelectedDepartment : f.Department;
+        return _subjects.FirstOrDefault(s => s.Department == department && SubjectLabel(s) == SelectedSubject);
+    }
+
+    // Choosing a subject applies the pattern for its units (days and meeting length).
+    partial void OnSelectedSubjectChanged(string? value)
+    {
+        _patternMinutes = 0;
+        var subject = ChosenSubject();
+        if (subject is null || !UnitPatterns.TryGetValue(subject.Units, out var pattern)) return;
+
+        _patternMinutes = pattern.Minutes;
+        SameTime = true;
+        foreach (var d in Days) d.IsSelected = pattern.Days.Contains(d.Name);
+        ApplyPatternEnd();
+
+        var length = pattern.Minutes % 60 == 0 ? $"{pattern.Minutes / 60} hour" : $"{pattern.Minutes / 60} hour {pattern.Minutes % 60} minutes";
+        ClearMessages();
+        Show(new OperationResult(true, $"{subject.Units}-unit subject: {string.Join(", ", pattern.Days)}, {length} each. You can still change the days and times."));
+    }
+
+    // With a pattern, choosing the start time fills the end time.
+    partial void OnSelectedStartChanged(string? value) => ApplyPatternEnd();
+
+    private void ApplyPatternEnd()
+    {
+        if (_patternMinutes == 0 || SelectedStart is null) return;
+        var start = TimeFormat.To24h(SelectedStart);
+        if (start is null) return;
+        var end = ScheduleRules.Minutes(start) + _patternMinutes;
+        if (end > 22 * 60) { SelectedEnd = null; return; }   // past the last time in the list: IMS chooses the end by hand
+        SelectedEnd = TimeFormat.To12h(ScheduleRules.HHmmOf(end));
+    }
 
     // Faculty are chosen school first, then department, then the person.
     partial void OnSelectedSchoolChanged(string? value)
