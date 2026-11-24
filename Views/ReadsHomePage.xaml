@@ -37,55 +37,6 @@
                 </Border>
                 <Border Style="{StaticResource Card}" Padding="20">
                   <VerticalStackLayout Spacing="12">
-                    <Label Text="My assigned classes today" Style="{StaticResource SectionTitle}" />
-                    <Label Text="Today's classes that IMS Personnel assigned to you, inside your vacant times. Do the first check (5 minutes after the start) and the end check (last 15 minutes before the end) right here; no need to open the Attendance tab." FontSize="13" TextColor="{StaticResource Gray600}" />
-                    <controls:Banners />
-                    <Label Text="{Binding ClassesEmptyText}" FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoClasses}" />
-                    <controls:LabeledEntry Caption="Notes for the check (optional)" Placeholder="Anything IMS should know" Text="{Binding CheckNotes, Mode=TwoWay}" IsVisible="{Binding HasClasses}" />
-                    <Label Text="Swipe the table sideways to see every column." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasClasses}" />
-                    <ScrollView Orientation="Horizontal" IsVisible="{Binding HasClasses}">
-                      <VerticalStackLayout Spacing="0">
-                        <Grid ColumnDefinitions="150,150,190,140,230,190" ColumnSpacing="8" Padding="4,8" BackgroundColor="{StaticResource Ivory}">
-                          <Label Grid.Column="0" Text="Room" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
-                          <Label Grid.Column="1" Text="Time" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
-                          <Label Grid.Column="2" Text="Subject" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
-                          <Label Grid.Column="3" Text="Faculty" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
-                          <Label Grid.Column="4" Text="Status" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
-                          <Label Grid.Column="5" Text="Check" FontAttributes="Bold" FontSize="13" TextColor="{StaticResource DeepGreen}" />
-                        </Grid>
-                        <VerticalStackLayout Spacing="0" BindableLayout.ItemsSource="{Binding Classes}">
-                          <BindableLayout.ItemTemplate>
-                            <DataTemplate x:DataType="models:MonitorRow">
-                              <Grid ColumnDefinitions="150,150,190,140,230,190" ColumnSpacing="8" Padding="4,8">
-                                <Label Grid.Column="0" Text="{Binding Room}" FontSize="13" FontAttributes="Bold" />
-                                <Label Grid.Column="1" Text="{Binding Time}" FontSize="13" />
-                                <Label Grid.Column="2" Text="{Binding Subject}" FontSize="13" />
-                                <Label Grid.Column="3" Text="{Binding Faculty}" FontSize="13" />
-                                <Label Grid.Column="4" Text="{Binding State}" FontSize="12" TextColor="{StaticResource ForestMid}" />
-                                <VerticalStackLayout Grid.Column="5" Spacing="2" IsVisible="{Binding IsFinished}">
-                                  <Label Text="✔ Finished" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" />
-                                  <Label Text="{Binding Result}" FontSize="12" TextColor="{StaticResource ForestMid}" />
-                                </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Column="5" Spacing="4" IsVisible="{Binding CanLog}">
-                                  <Label Text="{Binding CheckCaption}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" />
-                                  <Button Text="In the room" HeightRequest="38" FontSize="12"
-                                          Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ReadsHomeViewModel}}, Path=InRoomCommand}"
-                                          CommandParameter="{Binding .}" />
-                                  <Button Text="Not in the room" HeightRequest="38" FontSize="12" Style="{StaticResource OutlineButton}"
-                                          Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ReadsHomeViewModel}}, Path=NotInRoomCommand}"
-                                          CommandParameter="{Binding .}" />
-                                </VerticalStackLayout>
-                                <BoxView Grid.ColumnSpan="6" HeightRequest="1" VerticalOptions="End" Color="{StaticResource Gray200}" />
-                              </Grid>
-                            </DataTemplate>
-                          </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
-                      </VerticalStackLayout>
-                    </ScrollView>
-                  </VerticalStackLayout>
-                </Border>
-                <Border Style="{StaticResource Card}" Padding="20">
-                  <VerticalStackLayout Spacing="12">
                     <Label Text="Completed today" Style="{StaticResource SectionTitle}" />
                     <Label Text="No checks done yet today." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoChecks}" />
                     <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding Completed}">
