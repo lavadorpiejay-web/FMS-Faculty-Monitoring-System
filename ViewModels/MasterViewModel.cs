@@ -58,12 +58,12 @@ public partial class MasterViewModel : PageViewModelBase
         FillSchedules();
 
         DutyRows.Clear();
-        foreach (var d in await _duties.GetOverviewAsync()) DutyRows.Add(new ListRow(d.Name, d.Name, $"{d.Assignment}\n{d.VacantSummary}"));
+        foreach (var d in await _duties.GetDutiesAsync()) DutyRows.Add(new ListRow(d.Id, d.ReadsName, ScheduleRules.DutyText(d)));
 
         LogRows.Clear();
         foreach (var l in await _attendance.GetRecentLogsForImsAsync(15))
-            LogRows.Add(new ListRow(l.Id, $"{l.SubjectCode} - {l.Status} ({l.FacultyName})",
-                $"{l.Date} {ScheduleRules.Range(l.ScheduledStart, l.ScheduledEnd)} | {l.RoomLabel} | checked by {(l.EndCheckerName.Length > 0 ? $"{l.CheckerName} (first) and {l.EndCheckerName} (end)" : l.CheckerName)} at {l.TimestampUtc.ToLocalTime():h:mm tt}"));
+            LogRows.Add(new ListRow(l.Id, $"{l.SubjectCode} - {AttendanceService.StatusText(l.Status)} ({l.FacultyName})",
+                $"{l.Date} {ScheduleRules.Range(l.ScheduledStart, l.ScheduledEnd)} | {l.RoomLabel} | checked by {l.CheckerName} at {l.TimestampUtc.ToLocalTime():h:mm tt}" + (l.Notes.Length > 0 ? $"\nNotes: {l.Notes}" : "")));
 
         IrregularityRows.Clear();
         foreach (var r in await _attendance.GetIrregularitiesForImsAsync(15))
