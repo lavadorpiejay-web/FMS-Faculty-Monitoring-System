@@ -35,13 +35,24 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Border Style="{StaticResource Card}" IsVisible="{Binding IsConfirming}" BackgroundColor="{StaticResource GoldSoft}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{Binding ConfirmTitle}" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{Binding ConfirmText}" FontSize="13" />
+                    <controls:LabeledEntry Caption="Notes (optional)" Placeholder="Anything IMS should know, for example why you think the faculty is not in the room" Text="{Binding CheckNotes, Mode=TwoWay}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Text="{Binding ConfirmButtonText}" Command="{Binding ConfirmCommand}" IsEnabled="{Binding IsNotBusy}" />
+                        <Button Grid.Column="1" Text="Cancel" Style="{StaticResource OutlineButton}" Command="{Binding CancelCommand}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
             <Border Style="{StaticResource Card}">
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Classes to check today" Style="{StaticResource SectionTitle}" />
                     <Label Text="{Binding EmptyText}" IsVisible="{Binding HasNoClasses}"
                            FontSize="13" TextColor="{StaticResource Gray600}" />
                     <Label Text="{Binding ProgressText}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" IsVisible="{Binding HasClasses}" />
-                    <controls:LabeledEntry Caption="Notes for the check (optional)" Placeholder="Anything IMS should know, for example why you think the faculty is not in the room" Text="{Binding CheckNotes, Mode=TwoWay}" IsVisible="{Binding HasClasses}" />
                     <Label Text="A class stays in the list all day. When both checks are done it is marked Finished with its result." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasClasses}" />
                     <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding Rows}">
                         <BindableLayout.ItemTemplate>
@@ -81,20 +92,6 @@
                             </DataTemplate>
                         </BindableLayout.ItemTemplate>
                     </VerticalStackLayout>
-                </VerticalStackLayout>
-            </Border>
-
-            <Border Style="{StaticResource Card}" Padding="20">
-                <VerticalStackLayout Spacing="12">
-                    <Label Text="Report an irregularity" Style="{StaticResource SectionTitle}" />
-                    <Label Text="For example a faculty member who is not in the assigned room, or a class held in a room that was not approved."
-                           FontSize="13" TextColor="{StaticResource Gray600}" />
-                    <controls:LabeledPicker Caption="Class" Title="Choose a class from the list above" ItemsSource="{Binding ReportClassLabels}" SelectedItem="{Binding SelectedReportClass, Mode=TwoWay}" />
-                    <controls:LabeledPicker Caption="What did you observe?" Title="Choose" ItemsSource="{Binding ReportKinds}" SelectedItem="{Binding SelectedReportKind, Mode=TwoWay}" />
-                    <controls:LabeledPicker Caption="Room where the class was held" Title="Choose the room you saw" ItemsSource="{Binding RoomLabels}"
-                                            SelectedItem="{Binding SelectedObservedRoom, Mode=TwoWay}" IsVisible="{Binding AskRoom}" />
-                    <controls:LabeledEntry Caption="Notes (optional)" Placeholder="Anything IMS should know" Text="{Binding Notes, Mode=TwoWay}" />
-                    <Button Text="Submit report" Command="{Binding ReportCommand}" IsEnabled="{Binding IsNotBusy}" />
                 </VerticalStackLayout>
             </Border>
 

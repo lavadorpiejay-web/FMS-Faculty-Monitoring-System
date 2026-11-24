@@ -295,6 +295,7 @@ public sealed class AttendanceService
                 Notes = notes
             });
             await _storage.SaveAsync(JsonStorageService.AttendanceFile, logs);
+            if (!inRoom) await AddIrregularityAsync(me, IrregularityKind.FacultyNotInRoom, s, room, null, notes, now, false, "");
             return new OperationResult(true, inRoom
                 ? $"First check saved: {s.FacultyName} is in the room. Do the end check from {Hm(endOpen)}."
                 : $"First check saved: {s.FacultyName} is not in the room. Do the end check from {Hm(endOpen)}.");
@@ -334,6 +335,7 @@ public sealed class AttendanceService
             Observation = observation, Notes = allNotes
         };
         await _storage.SaveAsync(JsonStorageService.AttendanceFile, logs);
+        if (!inRoom) await AddIrregularityAsync(me, IrregularityKind.FacultyNotInRoom, s, room, null, notes, now, false, "");
         return new OperationResult(true, $"{s.SubjectCode} ({s.FacultyName}) recorded as {status}.");
     }
 

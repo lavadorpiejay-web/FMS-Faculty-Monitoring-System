@@ -146,7 +146,7 @@ Who does what (matches the 50% checklist):
 - **IMS Personnel**: *Schedules* tab (encode faculty, subject, room, day, time; no room or Faculty clash), *Rooms* tab (campus, owning school, building, floor, room, capacity), *Duty* tab (record each READS Scholar's vacant times, then assign duty day/time inside them plus the monitoring area: campus and optional building/floor; Edit modifies or reassigns), *Home* tab (approved requests waiting to be applied, with a note about READS duties that may need review, plus READS Scholar account approvals), *Master* tab (all schedules with duty assignments, recent attendance, irregularity reports and the change history).
 - **Faculty**: *Schedule* tab: own classes, and requests for a schedule change (day, time, subject) or a room change.
 - **Chairperson**: *Home* tab approves/declines schedule changes of the department. **Dean**: *Home* tab approves/declines room changes for rooms owned by the school.
-- **READS Scholar**: *Duty* tab (current, upcoming, completed today) and *Attendance* tab (classes inside the monitoring area during duty hours, Present/Late/Absent with a confirmation prompt, irregularity reports, own recent entries).
+- **READS Scholar**: *Duty* tab (current, upcoming, completed today) and *Attendance* tab (classes inside the monitoring area during duty hours, In the Room / Not in the Room buttons open a confirmation card (timestamped, cannot be changed) with a notes box; Not in the Room also files the irregularity report for IMS, there is no separate report form; own recent entries).
 
 Rules enforced in code (`Services\AttendanceService.cs`, `DutyService.cs`, `ChangeRequestService.cs`, `ScheduleService.cs`, `ScheduleRules.cs`):
 - A duty must fit inside a recorded vacant time and cannot overlap another duty of the same Scholar.
@@ -163,7 +163,7 @@ Quick test path (debug build, password in DUMMY_ACCOUNTS.txt):
 1. `ims01`: Schedules, Duty and Master show the seeded data. Duty: add a vacant time, assign a duty, edit it.
 2. `fac02`: Schedule tab, request a room change. `dean1`: Home tab, approve it. `ims01`: Home tab, apply it.
 3. `fac02`: request a time change. `chr02`: Home tab, approve. `ims01`: Home tab, apply.
-4. `rds02`: Attendance tab, turn on the test clock (Monday 08:30), log the Computer Engineering class, try again (duplicate refused), report an irregularity.
+4. `rds02`: Attendance tab, turn on the test clock (Monday 08:30), log the Computer Engineering class with In the Room (read the warning, add a note, submit), try again (duplicate refused), use Not in the Room on another class to file an irregularity.
 5. `rds01`: same day, log a class; `ims01`: Master tab shows the entries.
 
 ## Open items / next
