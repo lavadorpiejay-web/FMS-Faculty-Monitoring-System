@@ -3,158 +3,114 @@ using FacultyMonitoring.Models;
 namespace FacultyMonitoring.Services;
 
 /// <summary>
-/// Starting data written to local JSON on first launch.
-/// In DEBUG builds (running from Visual Studio) it also creates dummy accounts so you can sign in quickly:
-/// one Dean per school, one Chairperson and one Faculty per department, plus five READS Scholars (each with the school they study in
-/// and a different school assigned to monitor) and one IMS Personnel.
-/// Release builds get no accounts at all; everyone registers.
+/// Starting data written to local JSON on first launch (and again after the app is uninstalled and reinstalled).
+/// There is NO dummy data here any more. Everything you want to start with goes in the five clearly marked places below:
+///   1. MyAccounts   - sign-in accounts (IMS Personnel, READS Scholars, Deans, Chairpersons, Faculty)
+///   2. MySubjects   - subjects (code, title, units, department)
+///   3. MySchedules  - class schedules (faculty, subject, day, time, room)
+///   4. MyVacantTimes - READS Scholars' vacant times (they can also enter these themselves on the Duty tab)
+///   5. Classrooms   - generated from CampusLayout.cs (edit that file to change buildings, floors and rooms)
+/// Schools, departments and campuses are in AcademicCatalog.cs.
+/// Anything not listed here can be entered inside the app (registration, IMS Schedules tab, IMS Assign tab, READS Duty tab).
 /// </summary>
 public static class SeedData
 {
-    /// <summary>Password shared by every dummy account (debug builds only).</summary>
-    public const string DummyPassword = "Fm@2026!";
+    /// <summary>No longer used (there are no dummy accounts). Kept so older code that mentions it still compiles.</summary>
+    public const string DummyPassword = "";
 
     // Kept so older code that still reads SeedData.Departments keeps compiling; the catalog is the real source.
     public static IReadOnlyList<string> Departments => AcademicCatalog.AllDepartments;
 
     private const string Ims = AcademicCatalog.ImsOffice;
 
-    /// <summary>How many dummy READS Scholar accounts to create (rds01, rds02, ...).</summary>
-    private const int ReadsScholarCount = 5;
-
-    // Short codes used in dummy account codes (used in internal record IDs). Matched against the department name.
-    private static readonly (string Key, string Code)[] DepartmentCodes =
+    // =====================================================================================================================
+    // 1. ACCOUNTS: add one line per account.
+    //    (Id, Name, Role, School, Department, Password, Email, AssignedSchool, OwnSchool)
+    //    - Id: exactly 5 characters, no spaces (READS Scholars: 5 to 10). This is what they type to sign in.
+    //    - Role: UserRole.ImsPersonnel, UserRole.ReadsScholar, UserRole.Dean, UserRole.Chairperson or UserRole.Faculty.
+    //    - School / Department: must match AcademicCatalog.cs exactly. Dean: School only (Department = ""). IMS and READS: both "".
+    //    - Password: at least 8 characters with an uppercase letter, a lowercase letter, a number and a symbol.
+    //    - AssignedSchool / OwnSchool: only for READS Scholars (the school they monitor, and the school they study in; they differ).
+    //    Accounts added here are already email-verified and approved.
+    //    Example lines (remove the // to use):
+    //      ("ims01", "Your Name",   UserRole.ImsPersonnel, "", "", "Pass@word1", "ims@school.edu", "", ""),
+    //      ("dean1", "Dean Name",   UserRole.Dean, "School of Engineering and Architecture", "", "Pass@word1", "dean@school.edu", "", ""),
+    //      ("chr01", "Chair Name",  UserRole.Chairperson, "School of Engineering and Architecture", "Department of Computer Engineering", "Pass@word1", "chair@school.edu", "", ""),
+    //      ("fac01", "Faculty Name", UserRole.Faculty, "School of Engineering and Architecture", "Department of Computer Engineering", "Pass@word1", "fac@school.edu", "", ""),
+    //      ("rds01", "Student Name", UserRole.ReadsScholar, "", "", "Pass@word1", "rds@school.edu", "School of Engineering and Architecture", "School of Business and Management"),
+    // =====================================================================================================================
+    private static readonly (string Id, string Name, UserRole Role, string School, string Department, string Password,
+                             string Email, string AssignedSchool, string OwnSchool)[] MyAccounts =
     {
-        ("Electrical", "ee"), ("Computer", "cpe"), ("Civil", "ce"), ("Industrial", "ie"),
-        ("Mechanical", "me"), ("Architecture", "arch"), ("Electronics", "ece"),
     };
 
-    /// <summary>One department of the catalog with its short code.</summary>
-    private sealed record DeptUnit(string School, string SchoolCode, string Department, string Code);
-
-    private static List<DeptUnit> Units()
+    // =====================================================================================================================
+    // 2. SUBJECTS: add one line per subject, (Code, Title, Units, Department).
+    //    Units decide the weekly pattern on the IMS Schedules tab (3 units = MWF 1 hour, 2 units = TTh 1 hour 30 minutes).
+    //    Department must match AcademicCatalog.cs exactly. A subject belongs to one department.
+    //    Example lines:
+    //      ("CPE101", "Computer Engineering Fundamentals", 3, "Department of Computer Engineering"),
+    // =====================================================================================================================
+    private static readonly (string Code, string Title, int Units, string Department)[] MySubjects =
     {
-        var units = new List<DeptUnit>();
-        var used = new HashSet<string>();
-        for (var s = 0; s < AcademicCatalog.Schools.Count; s++)
-        {
-            var school = AcademicCatalog.Schools[s];
-            // "School of Engineering and Architecture" -> "sea"
-            var schoolCode = new string(school.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                .Where(w => char.IsUpper(w[0])).Select(w => char.ToLowerInvariant(w[0])).ToArray());
-            if (schoolCode.Length == 0) schoolCode = $"s{s + 1}";
-
-            for (var d = 0; d < school.Departments.Count; d++)
-            {
-                var dept = school.Departments[d];
-                var code = DepartmentCodes.FirstOrDefault(c => dept.Contains(c.Key)).Code ?? $"s{s + 1}d{d + 1}";
-                if (!used.Add(code)) code = $"{code}{s + 1}";   // keep every code unique
-                units.Add(new DeptUnit(school.Name, schoolCode, dept, code));
-            }
-        }
-        return units;
-    }
-
-#if DEBUG
-    private static UserAccount User(string id, string sis, string name, string school, string dept, UserRole role,
-        (string Hash, string Salt) pw, string assignedSchool = "", string assignedDept = "", string ownSchool = "") => new()
-    {
-        Id = id, SisId = sis, Email = $"{sis}@fms.test", FullName = name, School = school, Department = dept, Role = role,
-        AssignedSchool = assignedSchool, AssignedDepartment = assignedDept, OwnSchool = ownSchool, PasswordHash = pw.Hash, Salt = pw.Salt
     };
-#endif
+
+    // =====================================================================================================================
+    // 3. SCHEDULES: add one line per class meeting, (FacultyId, SubjectCode, Day, Start, End, Building, Floor, Room).
+    //    - FacultyId: the Id of the account in MyAccounts (Faculty, Chairperson or Dean).
+    //    - SubjectCode: a Code from MySubjects. Day: DayOfWeek.Monday ... DayOfWeek.Sunday.
+    //    - Start / End: 24-hour "HH:mm" in 30-minute steps from 06:00 to 22:00, for example "08:00", "09:30".
+    //    - Building / Floor / Room: as in CampusLayout.cs, for example "SA", "B-1", "B-1-01".
+    //    A line that does not match an account, subject or room is skipped (see the Output window in Visual Studio).
+    //    Example line:
+    //      ("fac01", "CPE101", DayOfWeek.Monday, "08:00", "09:00", "SA", "B-1", "B-1-01"),
+    // =====================================================================================================================
+    private static readonly (string FacultyId, string SubjectCode, DayOfWeek Day, string Start, string End,
+                             string Building, string Floor, string Room)[] MySchedules =
+    {
+    };
+
+    // =====================================================================================================================
+    // 4. VACANT TIMES (optional): (ReadsId, Day, Start, End). READS Scholars can enter their own on the Duty tab instead.
+    //    Example line:
+    //      ("rds01", DayOfWeek.Monday, "07:30", "12:00"),
+    // =====================================================================================================================
+    private static readonly (string ReadsId, DayOfWeek Day, string Start, string End)[] MyVacantTimes =
+    {
+    };
+
+    // ---------------------------------------------------------------------------------------------------------------------
+    // Code below turns the lists above into records. You normally do not need to edit it.
+    // ---------------------------------------------------------------------------------------------------------------------
+
+    private static string UserId(string id) => $"U-{id}";
 
     public static List<UserAccount> Users()
     {
-#if DEBUG
-        // Every dummy account shares one password, so hash it once instead of once per account.
-        var pw = PasswordHasher.Hash(DummyPassword);
-        var units = Units();
-
-        var users = new List<UserAccount>
+        var users = new List<UserAccount>();
+        foreach (var a in MyAccounts)
         {
-            User("U-IMS", "ims01", "IMS Personnel (dummy)", "", Ims, UserRole.ImsPersonnel, pw),
-        };
-
-        // A READS Scholar monitors a school other than the one they study in (to avoid favoritism toward their own faculty):
-        // rds01-rds03 study in the School of Business and Management and monitor the School of Engineering and Architecture;
-        // rds04-rds05 study in the School of Engineering and Architecture and monitor the School of Arts and Sciences.
-        var sea = AcademicCatalog.Schools[0].Name;
-        var sbm = AcademicCatalog.Schools.First(s => s.Name.Contains("Business")).Name;
-        var sas = AcademicCatalog.Schools.First(s => s.Name.Contains("Arts and Sciences")).Name;
-        for (var i = 1; i <= ReadsScholarCount; i++)
-        {
-            var own = i <= 3 ? sbm : sea;
-            var assigned = i <= 3 ? sea : sas;
-            users.Add(User($"U-READS-{i}", $"rds{i:00}", $"READS Scholar {i} (dummy)", "", Ims, UserRole.ReadsScholar, pw,
-                assignedSchool: assigned, ownSchool: own));
-        }
-
-        // Sign-in IDs are exactly 5 characters: dean1.., chr01.., fac01.. (in catalog order).
-        var schoolList = units.Select(u => (u.School, u.SchoolCode)).Distinct().ToList();
-        for (var i = 0; i < schoolList.Count; i++)
-        {
-            var school = schoolList[i];
-            users.Add(User($"U-DEAN-{school.SchoolCode}", $"dean{i + 1}",
-                $"Dean {school.SchoolCode.ToUpperInvariant()} (dummy)", school.School, "", UserRole.Dean, pw));
-        }
-
-        for (var i = 0; i < units.Count; i++)
-        {
-            var u = units[i];
-            users.Add(User($"U-CHAIR-{u.Code}", $"chr{i + 1:00}", $"Chairperson {u.Code.ToUpperInvariant()} (dummy)",
-                u.School, u.Department, UserRole.Chairperson, pw));
-            users.Add(User($"U-FAC-{u.Code}", $"fac{i + 1:00}", $"Faculty {u.Code.ToUpperInvariant()} (dummy)",
-                u.School, u.Department, UserRole.Faculty, pw));
+            var pw = PasswordHasher.Hash(a.Password);
+            users.Add(new UserAccount
+            {
+                Id = UserId(a.Id), SisId = a.Id, Email = a.Email, FullName = a.Name, School = a.School,
+                Department = (a.Role == UserRole.ImsPersonnel || a.Role == UserRole.ReadsScholar) ? Ims : a.Department, Role = a.Role,
+                AssignedSchool = a.AssignedSchool, OwnSchool = a.OwnSchool, PasswordHash = pw.Hash, Salt = pw.Salt
+            });
         }
         return users;
-#else
-        return new();   // Release builds: no pre-made accounts; everyone registers.
-#endif
     }
 
-    // Faculty records are normally created when a Faculty member registers. Dummy Faculty accounts get theirs here.
-    public static List<FacultyMember> Faculty()
-    {
-#if DEBUG
-        return Units().Select(u => new FacultyMember
+    // Faculty records are normally created when a Faculty member registers. Faculty accounts listed in MyAccounts get theirs here.
+    public static List<FacultyMember> Faculty() =>
+        MyAccounts.Where(a => a.Role == UserRole.Faculty).Select(a => new FacultyMember
         {
-            Id = $"F-{u.Code}", UserId = $"U-FAC-{u.Code}", EmployeeNo = $"EMP-{u.Code.ToUpperInvariant()}",
-            FullName = $"Faculty {u.Code.ToUpperInvariant()} (dummy)", School = u.School, Department = u.Department,
-            Email = $"fac{Units().IndexOf(u) + 1:00}@fms.test"
-        }).ToList();
-#else
-        return new();
-#endif
-    }
-
-    // One sample subject per department (two for Computer Engineering) so each Chairperson's "DeptUnit mapping" check passes.
-    public static List<Subject> Subjects()
-    {
-        var subjects = Units().Select(u => new Subject
-        {
-            Code = $"{u.Code.ToUpperInvariant()}101",
-            Title = "Introduction to " + u.Department.Replace("Department of ", ""),
-            Units = 3, Department = u.Department
+            Id = $"F-{a.Id}", UserId = UserId(a.Id), EmployeeNo = a.Id, FullName = a.Name,
+            School = a.School, Department = a.Department, Email = a.Email
         }).ToList();
 
-        var cpe = Units().FirstOrDefault(u => u.Code == "cpe");
-        if (cpe is not null)
-            subjects.Add(new Subject { Code = "CPE204", Title = "Microprocessor Systems", Units = 3, Department = cpe.Department });
-
-        // ---- Your own subjects: add one line per subject, (Code, Title, Units, Department). ----
-        // Department must match the name in AcademicCatalog.cs exactly, for example "Department of Electrical Engineering".
-        // Seed data is written only on first launch, so uninstall the app and reinstall it to see changes.
-        var extra = new (string Code, string Title, int Units, string Dept)[]
-        {
-            // ("EE201", "Circuit Analysis", 3, "Department of Electrical Engineering"),
-            // ("CE305", "Structural Design", 3, "Department of Civil Engineering"),
-        };
-        foreach (var e in extra)
-            subjects.Add(new Subject { Code = e.Code, Title = e.Title, Units = e.Units, Department = e.Dept });
-
-        return subjects;
-    }
+    public static List<Subject> Subjects() =>
+        MySubjects.Select(s => new Subject { Code = s.Code, Title = s.Title, Units = s.Units, Department = s.Department }).ToList();
 
     /// <summary>Main Campus classrooms from <see cref="CampusLayout"/>: RoomsPerFloor rooms on every floor of every enabled building.</summary>
     public static List<Classroom> Classrooms()
@@ -172,90 +128,38 @@ public static class SeedData
         return rooms;
     }
 
-    // ---- Sample schedule data (debug builds only) so every screen has something to show -------------------------------
-    // Every department's dummy Faculty teaches its "<CODE>101" subject on Mondays.
-    // School of Engineering and Architecture classes use the San Agustin basement rooms (B-1, then B-2);
-    // the other schools' sample classes use the San Agustin 2nd floor (rooms there are shared between schools).
-
     public static List<ClassSchedule> Schedules()
     {
-#if DEBUG
         var rooms = Classrooms();
         var subjects = Subjects();
-        var units = Units();
-        var engineering = AcademicCatalog.Schools[0].Name;
-        var basement = rooms.Where(r => r.Building == "SA" && r.Floor.StartsWith("B-")).ToList();   // B-1 then B-2 (20 rooms)
-        var shared = rooms.Where(r => r.Building == "SA" && r.Floor == "2").ToList();               // 2nd floor (10 rooms)
         var list = new List<ClassSchedule>();
-        var engIndex = 0; var otherIndex = 0;
-        for (var i = 0; i < units.Count; i++)
+        foreach (var s in MySchedules)
         {
-            var u = units[i];
-            var subject = subjects.First(s => s.Department == u.Department);
-            var isEng = u.School == engineering;
-            var pool = isEng ? basement : shared;
-            var n = isEng ? engIndex++ : otherIndex++;
-            var room = pool[n % pool.Count];
-            var startMinutes = 8 * 60 + (n / pool.Count) * 90;       // first pool-full of classes at 8:00, the next at 9:30
+            var who = MyAccounts.FirstOrDefault(a => a.Id == s.FacultyId);
+            var subject = subjects.FirstOrDefault(x => x.Code == s.SubjectCode);
+            var room = rooms.FirstOrDefault(r => r.Building == s.Building && r.Floor == s.Floor && r.RoomNo == s.Room);
+            if (who.Id is null || subject is null || room is null)
+            {
+                System.Diagnostics.Debug.WriteLine($"SeedData: schedule line skipped ({s.FacultyId}, {s.SubjectCode}, {s.Building} {s.Floor} {s.Room}): faculty, subject or room not found.");
+                continue;
+            }
             list.Add(new ClassSchedule
             {
-                Id = $"S-seed-{u.Code}", FacultyUserId = $"U-FAC-{u.Code}", FacultyName = $"Faculty {u.Code.ToUpperInvariant()} (dummy)",
-                School = u.School, Department = u.Department, SubjectCode = subject.Code, SubjectTitle = subject.Title,
-                ClassroomId = room.Id, Day = DayOfWeek.Monday,
-                Start = $"{startMinutes / 60:00}:{startMinutes % 60:00}", End = $"{(startMinutes + 90) / 60:00}:{(startMinutes + 90) % 60:00}"
+                Id = $"S-my-{list.Count + 1}", FacultyUserId = UserId(who.Id), FacultyName = who.Name,
+                School = who.School, Department = subject.Department, SubjectCode = subject.Code, SubjectTitle = subject.Title,
+                ClassroomId = room.Id, Day = s.Day, Start = s.Start, End = s.End
             });
         }
         return list;
-#else
-        return new();
-#endif
     }
 
-    // READS Scholars enter their own vacant times now, and monitor the classes of their assigned school inside them,
-    // so there are no duty assignments to seed. (The duties file and DutyAssignment record are kept only so older data still loads.)
+    // Duty assignments are no longer used (READS Scholars enter vacant times; IMS assigns classes on the Assign tab).
+    // The duties file and DutyAssignment record are kept only so older data still loads.
     public static List<DutyAssignment> Duties() => new();
 
-    // Sample vacant times (debug builds only), Mondays. rds01 and rds02 monitor the Engineering classes; rds04 monitors Arts and Sciences.
-    public static List<VacantSlot> Vacancies()
-    {
-#if DEBUG
-        return new()
-        {
-            new() { Id = "V-seed-1", ReadsUserId = "U-READS-1", Day = DayOfWeek.Monday, Start = "07:30", End = "12:00" },
-            new() { Id = "V-seed-2", ReadsUserId = "U-READS-2", Day = DayOfWeek.Monday, Start = "07:30", End = "12:00" },
-            new() { Id = "V-seed-3", ReadsUserId = "U-READS-4", Day = DayOfWeek.Monday, Start = "07:30", End = "12:00" },
-        };
-#else
-        return new();
-#endif
-    }
+    public static List<VacantSlot> Vacancies() =>
+        MyVacantTimes.Select((v, i) => new VacantSlot { Id = $"V-my-{i + 1}", ReadsUserId = UserId(v.ReadsId), Day = v.Day, Start = v.Start, End = v.End }).ToList();
 
-    // Sample class assignments (debug builds only): IMS gives each READS Scholar the classes of the school they monitor that lie inside
-    // their vacant times. rds01 and rds02 both monitor Engineering, so they share its classes (a class belongs to one Scholar only).
-    public static List<CheckAssignment> CheckAssignments()
-    {
-#if DEBUG
-        var rooms = Classrooms().ToDictionary(r => r.Id);
-        var vacancies = Vacancies();
-        var sea = AcademicCatalog.Schools[0].Name;
-        var sas = AcademicCatalog.Schools.First(x => x.Name.Contains("Arts and Sciences")).Name;
-        var list = new List<CheckAssignment>();
-        var n = 0;
-        foreach (var sch in Schedules())
-        {
-            string? reads = null;
-            if (sch.School == sea) reads = n++ % 2 == 0 ? "U-READS-1" : "U-READS-2";
-            else if (sch.School == sas) reads = "U-READS-4";
-            if (reads is null || !rooms.TryGetValue(sch.ClassroomId, out var room)) continue;
-            if (!vacancies.Any(v => v.ReadsUserId == reads && v.Day == sch.Day && ScheduleRules.Contains(v.Start, v.End, sch.Start, sch.End))) continue;
-            list.Add(new CheckAssignment
-            {
-                Id = $"CA-seed-{list.Count + 1}", ReadsUserId = reads, ScheduleId = sch.Id, Building = room.Building, Floor = room.Floor
-            });
-        }
-        return list;
-#else
-        return new();
-#endif
-    }
+    // Which classes each READS Scholar checks is decided by IMS Personnel on the Assign tab, so nothing is seeded.
+    public static List<CheckAssignment> CheckAssignments() => new();
 }
