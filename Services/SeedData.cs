@@ -7,8 +7,8 @@ namespace FacultyMonitoring.Services;
 /// There is NO dummy data here any more. Everything you want to start with goes in the five clearly marked places below:
 ///   1. MyAccounts   - sign-in accounts (IMS Personnel, READS, Deans, Chairpersons, Faculty)
 ///   2. MySubjects   - subjects (code, title, units, department)
-///   3. MySchedules  - class schedules (faculty, subject, day, time, room)
-///   4. MyVacantTimes - READS' vacant times (they can also enter these themselves on the Duty tab)
+///   3. MySchedules  - class schedules, one line per subject with day letters (faculty, subject, days, time, room)
+///   4. MyVacantTimes - READS' vacant times, one line per vacant time with day letters (they can also enter these themselves on the Duty tab)
 ///   5. Classrooms   - generated from CampusLayout.cs (edit that file to change buildings, floors and rooms)
 /// Schools, departments and campuses are in AcademicCatalog.cs.
 /// Anything not listed here can be entered inside the app (registration, IMS Schedules tab, IMS Assign tab, READS Duty tab).
@@ -179,11 +179,12 @@ public static class SeedData
     //    - Start / End: 24-hour "HH:mm" in 30-minute steps from 06:00 to 22:00, for example "08:00", "09:30". Every day on the line uses them.
     //    - Building / Floor / Room: as in CampusLayout.cs, for example "SA", "B-1", "B-1-01".
     //
-    //    ONE DAY AT A DIFFERENT TIME OR ROOM: add a second line for the same person and subject with just that day. It must come
-    //    AFTER the main line. Those days are taken out of the main line, so the rest of the days keep the main line's time. Example:
-    //      ("30001", "CPE 2A1", "MWF", "08:30", "09:30", "SA", "B-1", "B-1-02"),   // Monday and Wednesday stay 8:30 - 9:30
-    //      ("30001", "CPE 2A1", "F",   "10:30", "11:30", "SA", "B-1", "B-1-02"),   // Friday moves to 10:30 - 11:30 (the room can change too)
-    //    A line that does not match an account, subject, room or day letters is skipped (see the Output window in Visual Studio).
+    //    DAYS WITH A DIFFERENT TIME OR ROOM: write the days that share a time on one line and the other days on their own line, for the
+    //    same person and subject. Nothing is replaced, so do not repeat a day. Example (Monday and Wednesday 8:30, Friday 10:30):
+    //      ("30001", "CPE 2A1", "MW", "08:30", "09:30", "SA", "B-1", "B-1-02"),
+    //      ("30001", "CPE 2A1", "F",  "10:30", "11:30", "SA", "B-1", "B-1-02"),   // the room can be different too
+    //    A line that does not match an account, subject, room or day letters is skipped, and a day written twice for the same person
+    //    and subject is reported (see the Output window in Visual Studio).
     // =====================================================================================================================
     private static readonly (string FacultyId, string SubjectCode, string Days, string Start, string End,
                              string Building, string Floor, string Room)[] MySchedules =
@@ -222,11 +223,18 @@ public static class SeedData
     };
 
     // =====================================================================================================================
-    // 4. VACANT TIMES (optional): (ReadsId, Day, Start, End). READS can enter their own on the Duty tab instead.
-    //    Example line:
-    //      ("rds01", DayOfWeek.Monday, "07:30", "12:00"),
+    // 4. VACANT TIMES (optional): ONE LINE PER VACANT TIME, (ReadsId, Days, Start, End). READS can enter their own on the Duty tab instead.
+    //    - ReadsId: the Id of the READS account in MyAccounts.
+    //    - Days: letters, no spaces, written the same way as in the schedules: M, T, W, Th, F, Sa, Su ("MWF", "TTh", "Sa").
+    //    - Start / End: 24-hour "HH:mm" in 30-minute steps. Every day on the line uses them.
+    //    A READS may have several vacant times on the same day, so write one line per vacant time. Days that need a different time go
+    //    on their own line. Example (Monday and Wednesday 7:30 - 9:30, Friday 10:30 - 12:00, Tuesday and Thursday 1:00 - 3:00 PM):
+    //      ("2023123451", "MW",  "07:30", "09:30"),
+    //      ("2023123451", "F",   "10:30", "12:00"),
+    //      ("2023123451", "TTh", "13:00", "15:00"),
+    //    A line whose READS or day letters are not valid is skipped (see the Output window in Visual Studio).
     // =====================================================================================================================
-    private static readonly (string ReadsId, DayOfWeek Day, string Start, string End)[] MyVacantTimes =
+    private static readonly (string ReadsId, string Days, string Start, string End)[] MyVacantTimes =
     {
     };
 
@@ -305,10 +313,7 @@ public static class SeedData
         return days;
     }
 
-    /// <summary>
-    /// One MySchedules line becomes one meeting per day. A later line for the same person and subject replaces those days of the
-    /// earlier line, so "MWF 8:30" followed by "F 10:30" leaves Monday and Wednesday at 8:30 and Friday at 10:30.
-    /// </summary>
+    /// <summary>One MySchedules line becomes one meeting per day. A day written twice for the same person and subject is reported.</summary>
     private static List<(string FacultyId, string SubjectCode, DayOfWeek Day, string Start, string End, string Building, string Floor, string Room)> ExpandSchedules()
     {
         var meetings = new List<(string FacultyId, string SubjectCode, DayOfWeek Day, string Start, string End, string Building, string Floor, string Room)>();
@@ -320,9 +325,12 @@ public static class SeedData
                 System.Diagnostics.Debug.WriteLine($"SeedData: schedule line skipped ({line.FacultyId}, {line.SubjectCode}): the days \"{line.Days}\" are not valid. Use M, T, W, Th, F, Sa, Su.");
                 continue;
             }
-            meetings.RemoveAll(m => m.FacultyId == line.FacultyId && m.SubjectCode == line.SubjectCode && days.Contains(m.Day));
             foreach (var day in days)
+            {
+                if (meetings.Any(m => m.FacultyId == line.FacultyId && m.SubjectCode == line.SubjectCode && m.Day == day))
+                    System.Diagnostics.Debug.WriteLine($"SeedData: {line.SubjectCode} of {line.FacultyId} is written twice for {day}. Write each day once.");
                 meetings.Add((line.FacultyId, line.SubjectCode, day, line.Start, line.End, line.Building, line.Floor, line.Room));
+            }
         }
         return meetings;
     }
@@ -356,8 +364,25 @@ public static class SeedData
     // The duties file and DutyAssignment record are kept only so older data still loads.
     public static List<DutyAssignment> Duties() => new();
 
+    /// <summary>One MyVacantTimes line becomes one vacant time per day.</summary>
+    private static List<(string ReadsId, DayOfWeek Day, string Start, string End)> ExpandVacantTimes()
+    {
+        var slots = new List<(string ReadsId, DayOfWeek Day, string Start, string End)>();
+        foreach (var line in MyVacantTimes)
+        {
+            var days = ParseDays(line.Days);
+            if (days.Count == 0 || !MyAccounts.Any(a => a.Id == line.ReadsId && a.Role == UserRole.ReadsScholar))
+            {
+                System.Diagnostics.Debug.WriteLine($"SeedData: vacant time line skipped ({line.ReadsId}, \"{line.Days}\"): READS not found or the days are not valid. Use M, T, W, Th, F, Sa, Su.");
+                continue;
+            }
+            foreach (var day in days) slots.Add((line.ReadsId, day, line.Start, line.End));
+        }
+        return slots;
+    }
+
     public static List<VacantSlot> Vacancies() =>
-        MyVacantTimes.Select((v, i) => new VacantSlot { Id = $"V-my-{i + 1}", ReadsUserId = UserId(v.ReadsId), Day = v.Day, Start = v.Start, End = v.End }).ToList();
+        ExpandVacantTimes().Select((v, i) => new VacantSlot { Id = $"V-my-{i + 1}", ReadsUserId = UserId(v.ReadsId), Day = v.Day, Start = v.Start, End = v.End }).ToList();
 
     // Which classes each READS checks is decided by IMS Personnel on the Assign tab, so nothing is seeded.
     public static List<CheckAssignment> CheckAssignments() => new();
