@@ -230,8 +230,8 @@ public sealed record MonitorRow(string ScheduleId, string Title, string Detail, 
     public string FacultyRole { get; init; } = "Faculty";
     /// <summary>"Both", "Start" or "End": which checks of this class belong to this Scholar.</summary>
     public string Part { get; init; } = CheckPart.Both;
-    public string PartText => Part == CheckPart.Start ? "Your part: first check only (another Scholar takes over for the end check)"
-                            : Part == CheckPart.End ? "Your part: end check only (another Scholar does the first check)" : "";
+    public string PartText => Part == CheckPart.Start ? "Your part: first check only (another READS takes over for the end check)"
+                            : Part == CheckPart.End ? "Your part: end check only (another READS does the first check)" : "";
     public bool HasPartText => PartText.Length > 0;
     public string Building { get; init; } = "";
     public string Floor { get; init; } = "";

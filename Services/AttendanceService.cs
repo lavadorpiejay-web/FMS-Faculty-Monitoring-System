@@ -178,8 +178,8 @@ public sealed class AttendanceService
                 if (!doesStart)
                 {
                     // Another Scholar does the first check (their shift covers the start). This Scholar takes over for the end check.
-                    if (nowM >= endOpen) state = "The first check was not done by the other Scholar, so this class cannot be logged anymore";
-                    else state = $"Another Scholar does the first check. Your end check opens at {Hm(endOpen)}";
+                    if (nowM >= endOpen) state = "The first check was not done by the other READS, so this class cannot be logged anymore";
+                    else state = $"Another READS does the first check. Your end check opens at {Hm(endOpen)}";
                 }
                 else if (nowM < startOpen) state = $"First check opens at {Hm(startOpen)}";
                 else if (nowM >= endOpen) state = "The first check was not done, so this class cannot be logged anymore";
@@ -192,7 +192,7 @@ public sealed class AttendanceService
                 if (!doesEnd)
                 {
                     // This Scholar's part (the first check) is done; another Scholar finishes the class.
-                    state = $"First check done ({first}). Another Scholar does the end check";
+                    state = $"First check done ({first}). Another READS does the end check";
                     finished = true;
                     finishedResult = $"your first check is done ({first})";
                 }
@@ -236,7 +236,7 @@ public sealed class AttendanceService
     public async Task<OperationResult> CheckAsync(string scheduleId, bool inRoom, string? notes)
     {
         var me = await FreshMeAsync();
-        if (me is null) return Fail("Only READS Scholars can log attendance.");
+        if (me is null) return Fail("Only READS can log attendance.");
         var now = _clock.Now;
         var dateText = ScheduleRules.DateText(now);
         var nowM = ScheduleRules.Minutes(ScheduleRules.HHmm(now));
@@ -271,7 +271,7 @@ public sealed class AttendanceService
 
         if (log is null)
         {
-            if (!part.DoesStart) return Fail("The first check of this class belongs to another Scholar. You do the end check.");
+            if (!part.DoesStart) return Fail("The first check of this class belongs to another READS. You do the end check.");
             if (nowM < startOpen) return Fail($"The first check opens at {Hm(startOpen)}, 5 minutes after the class starts.");
             if (nowM >= endOpen) return Fail("The first check window has closed.");
 
@@ -302,7 +302,7 @@ public sealed class AttendanceService
         }
 
         if (log.IsComplete) return Fail($"Already finished: {log.Status}.");
-        if (!part.DoesEnd) return Fail("Your part of this class (the first check) is done. Another Scholar does the end check.");
+        if (!part.DoesEnd) return Fail("Your part of this class (the first check) is done. Another READS does the end check.");
         if (nowM < endOpen) return Fail($"The end check opens at {Hm(endOpen)}, 15 minutes before the class ends.");
         if (nowM >= endM) return Fail("The class has already ended.");
 
@@ -377,7 +377,7 @@ public sealed class AttendanceService
     public async Task<OperationResult> UpdateLogAsync(string logId, AttendanceStatus? newStatus, string? reason, string? notes)
     {
         var me = await FreshMeAsync();
-        if (me is null) return Fail("Only READS Scholars can change attendance notes.");
+        if (me is null) return Fail("Only READS can change attendance notes.");
         await _storage.InitializeAsync();
         var logs = await _storage.LoadAsync<AttendanceLog>(JsonStorageService.AttendanceFile);
         var i = logs.FindIndex(l => l.Id == logId && Mine(l, me));
@@ -424,7 +424,7 @@ public sealed class AttendanceService
     public async Task<OperationResult> ReportAsync(IrregularityKind kind, string scheduleId, string? observedRoomId, string notes)
     {
         var me = await FreshMeAsync();
-        if (me is null) return Fail("Only READS Scholars can report irregularities.");
+        if (me is null) return Fail("Only READS can report irregularities.");
         if (kind == IrregularityKind.OutsideAssignment) return Fail("Choose what you observed.");
         var now = _clock.Now;
 

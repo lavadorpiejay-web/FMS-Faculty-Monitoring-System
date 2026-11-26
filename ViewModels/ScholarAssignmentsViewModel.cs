@@ -61,6 +61,28 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
     private bool _hasScholars;
 
     public bool HasScholarSelected => SelectedScholarLabel is not null;
+
+    // A READS that already has a school only needs a building and a floor: the school pickers stay hidden unless IMS taps "Change school".
+    [ObservableProperty] private bool _isChangingSchool;
+    public bool HasAssignedSchool => CurrentScholar()?.AssignedSchool.Length > 0;
+    public bool ShowSchoolPicker => HasScholarSelected && (!HasAssignedSchool || IsChangingSchool);
+    public bool ShowAssignedSchool => HasScholarSelected && HasAssignedSchool && !IsChangingSchool;
+    public string AssignedSchoolText => CurrentScholar() is { AssignedSchool.Length: > 0 } c
+        ? $"Assigned school: {c.AssignedSchool}. Choose a building and a floor below."
+        : "";
+    /// <summary>Save / Remove assignment for the chosen floor are shown once a READS with a school, a building and a floor are chosen.</summary>
+    public bool CanAssignFloor => HasAssignedSchool && SelectedBuilding is not null && SelectedFloor is not null;
+
+    private void RefreshSchoolState()
+    {
+        OnPropertyChanged(nameof(HasAssignedSchool));
+        OnPropertyChanged(nameof(ShowSchoolPicker));
+        OnPropertyChanged(nameof(ShowAssignedSchool));
+        OnPropertyChanged(nameof(AssignedSchoolText));
+        OnPropertyChanged(nameof(CanAssignFloor));
+    }
+
+    partial void OnIsChangingSchoolChanged(bool value) => RefreshSchoolState();
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
     public bool HasSuccess => !string.IsNullOrEmpty(SuccessMessage);
     public bool IsNotBusy => !IsBusy;
@@ -77,7 +99,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
         {
             Schools = AcademicCatalog.SchoolNames.Where(s => !string.Equals(s, info.OwnSchool, StringComparison.OrdinalIgnoreCase)).ToList();
             OwnSchoolText = info.OwnSchool.Length > 0
-                ? $"This Scholar studies in the {info.OwnSchool}, so that school is not offered."
+                ? $"This READS studies in the {info.OwnSchool}, so that school is not offered."
                 : "";
             SelectedSchool = info.AssignedSchool.Length > 0 ? info.AssignedSchool : null;
         }
@@ -87,6 +109,8 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
             OwnSchoolText = "";
             SelectedSchool = null;
         }
+        IsChangingSchool = false;
+        RefreshSchoolState();
     }
 
     partial void OnSelectedBuildingChanged(string? value)
@@ -95,10 +119,15 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
         var plan = CampusLayout.MainCampus.FirstOrDefault(b => b.Code == code);
         Floors = plan is null ? Array.Empty<string>() : plan.Floors.Select(f => f.Floor).ToList();
         SelectedFloor = null;
+        RefreshSchoolState();
         _ = ReloadClassesAsync(refreshVacant: false);
     }
 
-    partial void OnSelectedFloorChanged(string? value) => _ = ReloadClassesAsync(refreshVacant: false);
+    partial void OnSelectedFloorChanged(string? value)
+    {
+        RefreshSchoolState();
+        _ = ReloadClassesAsync(refreshVacant: false);
+    }
 
     private ScholarInfo? CurrentScholar() =>
         SelectedScholarLabel is not null && _byLabel.TryGetValue(SelectedScholarLabel, out var found) ? found : null;
@@ -123,7 +152,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
         }
         if (SelectedBuilding is null || SelectedFloor is null)
         {
-            ClassesMessage = "Choose a building and a floor to see the classes you can give this Scholar.";
+            ClassesMessage = "Choose a building and a floor to see the classes you can give this READS.";
             return;
         }
 
@@ -146,6 +175,44 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
 
         Assignments.Clear();
         foreach (var s in scholars) Assignments.Add(new AssignmentRow(s.Name, s.Assignment));
+        RefreshSchoolState();
+    }
+
+    [RelayCommand]
+    private void ChangeSchool() => IsChangingSchool = true;
+
+    [RelayCommand]
+    private void CancelChangeSchool()
+    {
+        var info = CurrentScholar();
+        SelectedSchool = info is not null && info.AssignedSchool.Length > 0 ? info.AssignedSchool : null;
+        IsChangingSchool = false;
+    }
+
+    /// <summary>Takes every class of the chosen floor off the chosen READS' list (the same as saving with nothing ticked).</summary>
+    [RelayCommand]
+    private async Task RemoveFloorAsync()
+    {
+        if (IsBusy) return;
+        ErrorMessage = "";
+        SuccessMessage = "";
+
+        var info = CurrentScholar();
+        if (info is null) { ErrorMessage = "Choose a READS."; return; }
+        if (SelectedBuilding is null || SelectedFloor is null) { ErrorMessage = "Choose a building and a floor."; return; }
+
+        try
+        {
+            IsBusy = true;
+            var none = new List<(string ScheduleId, bool First, bool End)>();
+            var result = await _service.SaveClassesAsync(info.UserId, CampusLayout.BuildingCode(SelectedBuilding), SelectedFloor, none);
+            if (!result.Success) { ErrorMessage = result.Message; return; }
+
+            await LoadAsync();
+            await ReloadClassesAsync(refreshVacant: false);
+            SuccessMessage = result.Message;
+        }
+        finally { IsBusy = false; }
     }
 
     [RelayCommand]
@@ -172,7 +239,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
         SuccessMessage = "";
 
         var info = CurrentScholar();
-        if (info is null) { ErrorMessage = "Choose a READS Scholar."; return; }
+        if (info is null) { ErrorMessage = "Choose a READS."; return; }
         if (SelectedBuilding is null || SelectedFloor is null) { ErrorMessage = "Choose a building and a floor."; return; }
 
         try
@@ -197,7 +264,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
         SuccessMessage = "";
 
         if (SelectedScholarLabel is null || !_byLabel.TryGetValue(SelectedScholarLabel, out var info))
-        { ErrorMessage = "Choose a READS Scholar."; return; }
+        { ErrorMessage = "Choose a READS."; return; }
         if (SelectedSchool is null) { ErrorMessage = "Choose a school."; return; }
 
         try
@@ -207,6 +274,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
             if (!result.Success) { ErrorMessage = result.Message; return; }
 
             await LoadAsync();
+            IsChangingSchool = false;
             await ReloadClassesAsync(refreshVacant: false);
             SuccessMessage = result.Message;
         }
@@ -221,7 +289,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
         SuccessMessage = "";
 
         if (SelectedScholarLabel is null || !_byLabel.TryGetValue(SelectedScholarLabel, out var info))
-        { ErrorMessage = "Choose a READS Scholar."; return; }
+        { ErrorMessage = "Choose a READS."; return; }
 
         try
         {
@@ -231,6 +299,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
 
             SelectedSchool = null;
             await LoadAsync();
+            IsChangingSchool = false;
             await ReloadClassesAsync(refreshVacant: false);
             SuccessMessage = result.Message;
         }

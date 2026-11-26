@@ -65,7 +65,7 @@ public partial class ApprovalsHomeViewModel : PageViewModelBase
         AccountsExplanation = role switch
         {
             UserRole.Dean => "Chairpersons of your school who confirmed their email. They cannot sign in until you approve them.",
-            UserRole.ImsPersonnel => "READS Scholars who confirmed their email. They cannot sign in until you approve them.",
+            UserRole.ImsPersonnel => "READS who confirmed their email. They cannot sign in until you approve them.",
             _ => "Faculty of your department who confirmed their email. They cannot sign in until you approve them."
         };
         Accounts.Clear();

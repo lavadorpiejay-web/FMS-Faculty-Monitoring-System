@@ -10,7 +10,7 @@
     <controls:DraggableScrollView>
         <VerticalStackLayout Spacing="0">
             <VerticalStackLayout BackgroundColor="{StaticResource DeepGreen}" Padding="24,24,24,28" Spacing="4">
-                <Label Text="READS SCHOLAR" CharacterSpacing="2" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Gold}" />
+                <Label Text="READS" CharacterSpacing="2" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Gold}" />
                 <Label Text="{Binding Greeting}" FontSize="24" FontAttributes="Bold" TextColor="White" />
                 <Label Text="{Binding MonitoringText}" FontSize="14" TextColor="#CFE3D6" />
                 <Label Text="{Binding ClockText}" FontSize="12" TextColor="#CFE3D6" />

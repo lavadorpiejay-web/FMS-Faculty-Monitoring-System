@@ -6,34 +6,47 @@
              xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
              xmlns:models="clr-namespace:FacultyMonitoring.Models"
              x:DataType="vm:ScholarAssignmentsViewModel"
-             Title="Assign Scholars">
+             Title="Assign READS">
     <controls:DraggableScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
 
             <Border Style="{StaticResource Card}" Padding="20">
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="Assign a READS Scholar" Style="{StaticResource SectionTitle}" />
-                    <Label Text="The Scholar monitors the classes of every department of the school you choose, and sees that school's Dean, Chairpersons and Faculty. A Scholar cannot be assigned to the school they study in."
+                    <Label Text="Assign a READS" Style="{StaticResource SectionTitle}" />
+                    <Label Text="A READS monitors the classes of every department of one school and sees that school's Dean, Chairpersons and Faculty. A READS cannot be assigned to the school they study in. If the READS already has a school, you only choose a building and a floor in the next section."
                            FontSize="13" TextColor="{StaticResource Gray600}" />
 
-                    <Label Text="READS Scholar" Style="{StaticResource SectionTitle}" FontSize="13" />
+                    <Label Text="READS" Style="{StaticResource SectionTitle}" FontSize="13" />
                     <Border Stroke="{StaticResource Gray200}" Padding="12,0">
                         <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
-                        <Picker Title="Choose a READS Scholar" ItemsSource="{Binding ScholarLabels}"
+                        <Picker Title="Choose a READS" ItemsSource="{Binding ScholarLabels}"
                                 SelectedItem="{Binding SelectedScholarLabel}"
                                 TextColor="{StaticResource InkDark}" TitleColor="#8FA096" />
                     </Border>
-                    <Label Text="There are no READS Scholars yet." IsVisible="{Binding HasNoScholars}"
+                    <Label Text="There are no READS yet." IsVisible="{Binding HasNoScholars}"
                            FontSize="12" TextColor="{StaticResource Gray600}" />
 
-                    <Label Text="School" Style="{StaticResource SectionTitle}" FontSize="13" />
-                    <Border Stroke="{StaticResource Gray200}" Padding="12,0">
-                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
-                        <Picker Title="Choose school" ItemsSource="{Binding Schools}"
-                                SelectedItem="{Binding SelectedSchool}" IsEnabled="{Binding HasScholarSelected}"
-                                TextColor="{StaticResource InkDark}" TitleColor="#8FA096" />
-                    </Border>
-                    <Label Text="{Binding OwnSchoolText}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                    <Label Text="{Binding AssignedSchoolText}" IsVisible="{Binding ShowAssignedSchool}"
+                           FontSize="13" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" />
+                    <Button Text="Change school" Command="{Binding ChangeSchoolCommand}" IsVisible="{Binding ShowAssignedSchool}"
+                            Style="{StaticResource OutlineButton}" />
+
+                    <VerticalStackLayout Spacing="12" IsVisible="{Binding ShowSchoolPicker}">
+                        <Label Text="School" Style="{StaticResource SectionTitle}" FontSize="13" />
+                        <Border Stroke="{StaticResource Gray200}" Padding="12,0">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                            <Picker Title="Choose school" ItemsSource="{Binding Schools}"
+                                    SelectedItem="{Binding SelectedSchool}" IsEnabled="{Binding HasScholarSelected}"
+                                    TextColor="{StaticResource InkDark}" TitleColor="#8FA096" />
+                        </Border>
+                        <Label Text="{Binding OwnSchoolText}" FontSize="12" TextColor="{StaticResource Gray600}" />
+
+                        <Button Text="Save school" Command="{Binding SaveCommand}" IsEnabled="{Binding IsNotBusy}" />
+                        <Button Text="Remove school" Command="{Binding ClearCommand}" IsEnabled="{Binding IsNotBusy}"
+                                Style="{StaticResource OutlineButton}" />
+                        <Button Text="Cancel" Command="{Binding CancelChangeSchoolCommand}" IsVisible="{Binding IsChangingSchool}"
+                                Style="{StaticResource OutlineButton}" />
+                    </VerticalStackLayout>
 
                     <Border IsVisible="{Binding HasError}" BackgroundColor="{StaticResource ErrorSoft}"
                             StrokeThickness="0" Padding="12,10">
@@ -46,16 +59,13 @@
                         <Label Text="{Binding SuccessMessage}" FontSize="13" />
                     </Border>
 
-                    <Button Text="Save assignment" Command="{Binding SaveCommand}" IsEnabled="{Binding IsNotBusy}" />
-                    <Button Text="Remove assignment" Command="{Binding ClearCommand}" IsEnabled="{Binding IsNotBusy}"
-                            Style="{StaticResource OutlineButton}" />
                 </VerticalStackLayout>
             </Border>
 
             <Border Style="{StaticResource Card}" Padding="20">
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Classes and floor to check" Style="{StaticResource SectionTitle}" />
-                    <Label Text="Choose the READS Scholar above, then a building and a floor. Each class has two checks: the first check (5 minutes after it starts) and the end check (opens 15 minutes before it ends, so one Scholar can walk a whole floor). A check can be ticked when it falls inside the Scholar's vacant time. If a class runs past the end of the vacant time, tick only the first check here and give the end check to the Scholar whose vacant time starts there. The Scholar sees the classes (with the floor) on the Attendance tab."
+                    <Label Text="Choose the READS above, then a building and a floor. Each class has two checks: the first check (5 minutes after it starts) and the end check (opens 15 minutes before it ends, so one READS can walk a whole floor). A check can be ticked when it falls inside the READS' vacant time. If a class runs past the end of the vacant time, tick only the first check here and give the end check to the READS whose vacant time starts there. The READS sees the classes (with the floor) on the Attendance tab."
                            FontSize="13" TextColor="{StaticResource Gray600}" />
                     <Label Text="{Binding VacantText}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" IsVisible="{Binding HasScholarSelected}" />
 
@@ -110,8 +120,10 @@
                         <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
                         <Label Text="{Binding SuccessMessage}" FontSize="13" />
                     </Border>
-                    <Button Text="Save classes for this floor" Command="{Binding SaveClassesCommand}" IsEnabled="{Binding IsNotBusy}" IsVisible="{Binding HasClasses}" />
-                    <Label Text="Unticking every class and saving takes this floor off the Scholar's list." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasClasses}" />
+                    <Button Text="Save assignment" Command="{Binding SaveClassesCommand}" IsEnabled="{Binding IsNotBusy}" IsVisible="{Binding CanAssignFloor}" />
+                    <Button Text="Remove assignment" Command="{Binding RemoveFloorCommand}" IsEnabled="{Binding IsNotBusy}" IsVisible="{Binding CanAssignFloor}"
+                            Style="{StaticResource OutlineButton}" />
+                    <Label Text="Save assignment gives the ticked checks of this floor to the READS. Remove assignment takes every class of this floor off the READS' list." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding CanAssignFloor}" />
                 </VerticalStackLayout>
             </Border>
 

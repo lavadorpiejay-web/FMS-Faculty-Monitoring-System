@@ -11,10 +11,10 @@
         <VerticalStackLayout Padding="20" Spacing="16">
             <Border Style="{StaticResource Card}" Padding="20">
               <VerticalStackLayout Spacing="12">
-                <Label Text="READS Scholars and their vacant times" Style="{StaticResource SectionTitle}" />
-                <Label Text="Each READS Scholar enters their own vacant times on their Duty tab. They monitor the classes of the school you assign on the Assign tab. This list is read-only." FontSize="13" TextColor="{StaticResource Gray600}" />
-                <Label Text="There are no READS Scholars yet." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNone}" />
-                <Label Text="Tap a READS Scholar's name to show or hide their vacant schedule." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasScholars}" />
+                <Label Text="READS and their vacant times" Style="{StaticResource SectionTitle}" />
+                <Label Text="Each READS enters their own vacant times on their Duty tab. They monitor the classes of the school you assign on the Assign tab. This list is read-only." FontSize="13" TextColor="{StaticResource Gray600}" />
+                <Label Text="There are no READS yet." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNone}" />
+                <Label Text="Tap a READS' name to show or hide their vacant schedule." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasScholars}" />
                 <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding Scholars}">
                   <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="services:ScholarDutyRow">

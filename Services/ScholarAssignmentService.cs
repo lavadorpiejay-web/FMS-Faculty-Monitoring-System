@@ -81,12 +81,12 @@ public sealed class ScholarAssignmentService
 
     private async Task<OperationResult> UpdateAsync(string userId, string school)
     {
-        if (!IsIms) return new OperationResult(false, "Only IMS Personnel can assign READS Scholars.");
+        if (!IsIms) return new OperationResult(false, "Only IMS Personnel can assign READS.");
 
         await _storage.InitializeAsync();
         var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
         var i = users.FindIndex(u => u.Id == userId && u.Role == UserRole.ReadsScholar);
-        if (i < 0) return new OperationResult(false, "That READS Scholar was not found.");
+        if (i < 0) return new OperationResult(false, "That READS was not found.");
 
         var name = users[i].FullName;
         if (school.Length > 0 && string.Equals(users[i].OwnSchool, school, StringComparison.OrdinalIgnoreCase))
@@ -132,7 +132,7 @@ public sealed class ScholarAssignmentService
         var mine = vacancies.Where(v => v.ReadsUserId == userId)
             .OrderBy(v => v.Day == DayOfWeek.Sunday ? 7 : (int)v.Day).ThenBy(v => v.Start).ToList();
         return mine.Count == 0
-            ? "This Scholar has not entered vacant times yet (Duty tab), so no class can be assigned."
+            ? "This READS has not entered vacant times yet (Duty tab), so no class can be assigned."
             : "Vacant times: " + string.Join("; ", mine.Select(v => $"{v.Day.ToString()[..3]} {TimeFormat.Range(v.Start, v.End)}"));
     }
 
@@ -159,8 +159,8 @@ public sealed class ScholarAssignmentService
         await _storage.InitializeAsync();
         var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
         var me = users.FirstOrDefault(u => u.Id == userId && u.Role == UserRole.ReadsScholar);
-        if (me is null) return new(new(), "Choose a READS Scholar.");
-        if (me.AssignedSchool.Length == 0) return new(new(), "Assign this Scholar to a school first (above), then choose their classes.");
+        if (me is null) return new(new(), "Choose a READS.");
+        if (me.AssignedSchool.Length == 0) return new(new(), "Assign this READS to a school first (above), then choose their classes.");
 
         var rooms = (await _storage.LoadAsync<Classroom>(JsonStorageService.ClassroomsFile))
             .Where(r => r.Building == building && r.Floor == floor).ToDictionary(r => r.Id);
@@ -169,7 +169,7 @@ public sealed class ScholarAssignmentService
         var vacancies = (await _storage.LoadAsync<VacantSlot>(JsonStorageService.VacanciesFile)).Where(v => v.ReadsUserId == userId).ToList();
         var assigned = await _storage.LoadAsync<CheckAssignment>(JsonStorageService.CheckAssignmentsFile);
 
-        string NameOf(string id) => users.FirstOrDefault(u => u.Id == id)?.FullName ?? "another Scholar";
+        string NameOf(string id) => users.FirstOrDefault(u => u.Id == id)?.FullName ?? "another READS";
 
         var items = new List<ClassPick>();
         var outside = 0;
@@ -189,9 +189,9 @@ public sealed class ScholarAssignmentService
             var notes = new List<string>();
             if (otherStart is not null) notes.Add($"First check: {NameOf(otherStart.ReadsUserId)}");
             if (otherEnd is not null) notes.Add($"End check: {NameOf(otherEnd.ReadsUserId)}");
-            if (otherStart is null && !freeStart && !(mine?.DoesStart ?? false)) notes.Add($"First check ({TimeFormat.To12h(ScheduleRules.HHmmOf(CheckMoment(s, true)))}) is outside this Scholar's vacant time");
-            if (otherEnd is null && !freeEnd && !(mine?.DoesEnd ?? false)) notes.Add($"End check ({TimeFormat.To12h(ScheduleRules.HHmmOf(CheckMoment(s, false)))}) is outside this Scholar's vacant time: another Scholar must take over");
-            if (mine is not null && ((mine.DoesStart && !freeStart) || (mine.DoesEnd && !freeEnd))) notes.Add("No longer inside this Scholar's vacant time. Untick it to remove it");
+            if (otherStart is null && !freeStart && !(mine?.DoesStart ?? false)) notes.Add($"First check ({TimeFormat.To12h(ScheduleRules.HHmmOf(CheckMoment(s, true)))}) is outside this READS' vacant time");
+            if (otherEnd is null && !freeEnd && !(mine?.DoesEnd ?? false)) notes.Add($"End check ({TimeFormat.To12h(ScheduleRules.HHmmOf(CheckMoment(s, false)))}) is outside this READS' vacant time: another READS must take over");
+            if (mine is not null && ((mine.DoesStart && !freeStart) || (mine.DoesEnd && !freeEnd))) notes.Add("No longer inside this READS' vacant time. Untick it to remove it");
 
             var room = rooms[s.ClassroomId];
             items.Add(new ClassPick(s.Id,
@@ -201,7 +201,7 @@ public sealed class ScholarAssignmentService
         }
 
         var message = items.Count == 0
-            ? $"No class of the {me.AssignedSchool} on {FloorText(building, floor)} has a check inside this Scholar's vacant times."
+            ? $"No class of the {me.AssignedSchool} on {FloorText(building, floor)} has a check inside this READS' vacant times."
             : "";
         if (outside > 0)
             message += $"{(message.Length > 0 ? " " : "")}{outside} other class{(outside == 1 ? "" : "es")} on this floor {(outside == 1 ? "has" : "have")} no check inside the vacant times and {(outside == 1 ? "is" : "are")} not listed.";
@@ -214,13 +214,13 @@ public sealed class ScholarAssignmentService
     /// </summary>
     public async Task<OperationResult> SaveClassesAsync(string userId, string building, string floor, IReadOnlyList<(string ScheduleId, bool First, bool End)> picks)
     {
-        if (!IsIms) return new OperationResult(false, "Only IMS Personnel can assign classes to READS Scholars.");
+        if (!IsIms) return new OperationResult(false, "Only IMS Personnel can assign classes to READS.");
         await _storage.InitializeAsync();
 
         var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
         var me = users.FirstOrDefault(u => u.Id == userId && u.Role == UserRole.ReadsScholar);
-        if (me is null) return new OperationResult(false, "That READS Scholar was not found.");
-        if (me.AssignedSchool.Length == 0) return new OperationResult(false, "Assign this Scholar to a school first.");
+        if (me is null) return new OperationResult(false, "That READS was not found.");
+        if (me.AssignedSchool.Length == 0) return new OperationResult(false, "Assign this READS to a school first.");
 
         var rooms = (await _storage.LoadAsync<Classroom>(JsonStorageService.ClassroomsFile)).ToDictionary(r => r.Id);
         var schedules = await _storage.LoadAsync<ClassSchedule>(JsonStorageService.SchedulesFile);
@@ -241,16 +241,16 @@ public sealed class ScholarAssignmentService
             if (first)
             {
                 if (!(mineNow?.DoesStart ?? false) && !Free(vacancies, s, true))
-                    return new OperationResult(false, $"The first check of {label} is not inside this Scholar's vacant times.");
+                    return new OperationResult(false, $"The first check of {label} is not inside this READS' vacant times.");
                 if (all.Any(a => a.ScheduleId == s.Id && a.ReadsUserId != userId && a.DoesStart))
-                    return new OperationResult(false, $"The first check of {label} is already held by another Scholar.");
+                    return new OperationResult(false, $"The first check of {label} is already held by another READS.");
             }
             if (end)
             {
                 if (!(mineNow?.DoesEnd ?? false) && !Free(vacancies, s, false))
-                    return new OperationResult(false, $"The end check of {label} is not inside this Scholar's vacant times.");
+                    return new OperationResult(false, $"The end check of {label} is not inside this READS' vacant times.");
                 if (all.Any(a => a.ScheduleId == s.Id && a.ReadsUserId != userId && a.DoesEnd))
-                    return new OperationResult(false, $"The end check of {label} is already held by another Scholar.");
+                    return new OperationResult(false, $"The end check of {label} is already held by another READS.");
             }
             chosen.Add((s, first && end ? CheckPart.Both : first ? CheckPart.Start : CheckPart.End));
         }
@@ -272,7 +272,7 @@ public sealed class ScholarAssignmentService
             for (var j = i + 1; j < moments.Count; j++)
                 if (moments[i].Day == moments[j].Day && moments[i].Floor != moments[j].Floor
                     && Math.Abs(moments[i].Minute - moments[j].Minute) < AttendanceService.EndWindowMinutes)
-                    return new OperationResult(false, $"The end checks of {moments[i].Label} and {moments[j].Label} are on different floors at almost the same time on {moments[i].Day}. One Scholar cannot do both; give one of them to another Scholar.");
+                    return new OperationResult(false, $"The end checks of {moments[i].Label} and {moments[j].Label} are on different floors at almost the same time on {moments[i].Day}. One READS cannot do both; give one of them to another READS.");
 
         var before = all.Count(a => a.ReadsUserId == userId && a.Building == building && a.Floor == floor);
         all.RemoveAll(a => a.ReadsUserId == userId && a.Building == building && a.Floor == floor);
@@ -280,7 +280,7 @@ public sealed class ScholarAssignmentService
             all.Add(new CheckAssignment { Id = ScheduleRules.NewId("CA"), ReadsUserId = userId, ScheduleId = s.Id, Building = building, Floor = floor, Part = part });
         await _storage.SaveAsync(JsonStorageService.CheckAssignmentsFile, all);
 
-        await _audit.LogAsync("Classes assigned to READS Scholar",
+        await _audit.LogAsync("Classes assigned to READS",
             $"{me.FullName}: {chosen.Count} class{(chosen.Count == 1 ? "" : "es")} on {FloorText(building, floor)}");
 
         string PartText(string part) => part == CheckPart.Start ? " (first check only)" : part == CheckPart.End ? " (end check only)" : "";

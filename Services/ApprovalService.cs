@@ -22,7 +22,7 @@ public sealed class ApprovalService
     public static string WhatApproved(UserRole approver) => approver switch
     {
         UserRole.Dean => "Chairperson",
-        UserRole.ImsPersonnel => "READS Scholar",
+        UserRole.ImsPersonnel => "READS",
         _ => "Faculty"
     };
 
@@ -54,7 +54,7 @@ public sealed class ApprovalService
                 u.Role switch
                 {
                     UserRole.Chairperson => $"Chairperson, {u.Department}",
-                    UserRole.ReadsScholar => "READS Scholar",
+                    UserRole.ReadsScholar => "READS",
                     _ => $"Faculty, {u.Department}"
                 }))
             .ToList();

@@ -35,7 +35,7 @@ public sealed class VacantTimeService
     public async Task<OperationResult> AddAsync(IReadOnlyList<DayOfWeek> days, string? start, string? end)
     {
         var me = Reads;
-        if (me is null) return Fail("Only READS Scholars can record their vacant times.");
+        if (me is null) return Fail("Only READS can record their vacant times.");
         if (days.Count == 0) return Fail("Tick at least one day.");
         var timeError = ScheduleRules.CheckTimes(start, end);
         if (timeError is not null) return Fail(timeError);
@@ -60,7 +60,7 @@ public sealed class VacantTimeService
     public async Task<OperationResult> RemoveAsync(string slotId)
     {
         var me = Reads;
-        if (me is null) return Fail("Only READS Scholars can change their vacant times.");
+        if (me is null) return Fail("Only READS can change their vacant times.");
         await _storage.InitializeAsync();
         var all = await _storage.LoadAsync<VacantSlot>(JsonStorageService.VacanciesFile);
         var slot = all.FirstOrDefault(v => v.Id == slotId && v.ReadsUserId == me.Id);
@@ -76,7 +76,7 @@ public sealed class VacantTimeService
     public async Task<OperationResult> RemoveManyAsync(IReadOnlyCollection<string> slotIds)
     {
         var me = Reads;
-        if (me is null) return Fail("Only READS Scholars can change their vacant times.");
+        if (me is null) return Fail("Only READS can change their vacant times.");
         if (slotIds.Count == 0) return Fail("Nothing was chosen to remove.");
         await _storage.InitializeAsync();
         var all = await _storage.LoadAsync<VacantSlot>(JsonStorageService.VacanciesFile);

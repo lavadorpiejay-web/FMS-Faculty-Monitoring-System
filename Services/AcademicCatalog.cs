@@ -12,7 +12,7 @@ public static class AcademicCatalog
     /// <summary>Campuses READS Scholars can be assigned to. Edit this list to match the university.</summary>
     public static readonly IReadOnlyList<string> Campuses = new List<string>
     {
-        "Main Campus", "Basak Campus", "Talamban Campus", "Banilad Campus",
+        "Main Campus", "Basak Campus", "Quadricentennial Campus", "Balamban Campus",
     };
 
     public static readonly IReadOnlyList<School> Schools = new List<School>

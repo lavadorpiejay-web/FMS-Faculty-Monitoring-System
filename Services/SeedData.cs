@@ -5,10 +5,10 @@ namespace FacultyMonitoring.Services;
 /// <summary>
 /// Starting data written to local JSON on first launch (and again after the app is uninstalled and reinstalled).
 /// There is NO dummy data here any more. Everything you want to start with goes in the five clearly marked places below:
-///   1. MyAccounts   - sign-in accounts (IMS Personnel, READS Scholars, Deans, Chairpersons, Faculty)
+///   1. MyAccounts   - sign-in accounts (IMS Personnel, READS, Deans, Chairpersons, Faculty)
 ///   2. MySubjects   - subjects (code, title, units, department)
 ///   3. MySchedules  - class schedules (faculty, subject, day, time, room)
-///   4. MyVacantTimes - READS Scholars' vacant times (they can also enter these themselves on the Duty tab)
+///   4. MyVacantTimes - READS' vacant times (they can also enter these themselves on the Duty tab)
 ///   5. Classrooms   - generated from CampusLayout.cs (edit that file to change buildings, floors and rooms)
 /// Schools, departments and campuses are in AcademicCatalog.cs.
 /// Anything not listed here can be entered inside the app (registration, IMS Schedules tab, IMS Assign tab, READS Duty tab).
@@ -26,11 +26,11 @@ public static class SeedData
     // =====================================================================================================================
     // 1. ACCOUNTS: add one line per account.
     //    (Id, Name, Role, School, Department, Password, Email, AssignedSchool, OwnSchool)
-    //    - Id: exactly 5 characters, no spaces (READS Scholars: 5 to 10). This is what they type to sign in.
+    //    - Id: exactly 5 characters, no spaces (READS: 5 to 10). This is what they type to sign in.
     //    - Role: UserRole.ImsPersonnel, UserRole.ReadsScholar, UserRole.Dean, UserRole.Chairperson or UserRole.Faculty.
     //    - School / Department: must match AcademicCatalog.cs exactly. Dean: School only (Department = ""). IMS and READS: both "".
     //    - Password: at least 8 characters with an uppercase letter, a lowercase letter, a number and a symbol.
-    //    - AssignedSchool / OwnSchool: only for READS Scholars (the school they monitor, and the school they study in; they differ).
+    //    - AssignedSchool / OwnSchool: only for READS (the school they monitor, and the school they study in; they differ).
     //    Accounts added here are already email-verified and approved.
     //    Example lines (remove the // to use):
     //      ("ims01", "Your Name",   UserRole.ImsPersonnel, "", "", "Pass@word1", "ims@school.edu", "", ""),
@@ -46,7 +46,7 @@ public static class SeedData
         // IMS Personnel
 ("00000", "Juan Dela Cruz", UserRole.ImsPersonnel, "", "", "Fm@2026!", "ims01@school.edu", "", ""),
 
-// READS Scholar (last two: the school they monitor, then the school they study in)
+// READS (last two: the school they monitor, then the school they study in)
 ("2023123451", "Sydney Marzon", UserRole.ReadsScholar, "", "", "Fm@2026!", "rds01@school.edu", "School of Engineering and Architecture", "School of Business and Management"),
 ("2023123452", "Kyle Roma", UserRole.ReadsScholar, "", "", "Fm@2026!", "rds02@school.edu", "School of Engineering and Architecture", "School of Business and Management"),
 ("2023123453", "Sheena Lombrino", UserRole.ReadsScholar, "", "", "Fm@2026!", "rds03@school.edu", "School of Engineering and Architecture", "School of Business and Management"),
@@ -171,78 +171,58 @@ public static class SeedData
     };
 
     // =====================================================================================================================
-    // 3. SCHEDULES: add one line per class meeting, (FacultyId, SubjectCode, Day, Start, End, Building, Floor, Room).
+    // 3. SCHEDULES: ONE LINE PER SUBJECT, (FacultyId, SubjectCode, Days, Start, End, Building, Floor, Room).
     //    - FacultyId: the Id of the account in MyAccounts (Faculty, Chairperson or Dean).
-    //    - SubjectCode: a Code from MySubjects. Day: DayOfWeek.Monday ... DayOfWeek.Sunday.
-    //    - Start / End: 24-hour "HH:mm" in 30-minute steps from 06:00 to 22:00, for example "08:00", "09:30".
+    //    - SubjectCode: a Code from MySubjects.
+    //    - Days: letters, no spaces. M = Monday, T = Tuesday, W = Wednesday, Th = Thursday, F = Friday, Sa = Saturday, Su = Sunday.
+    //            "MWF" = Monday, Wednesday and Friday. "TTh" = Tuesday and Thursday. "Sa" = Saturday only.
+    //    - Start / End: 24-hour "HH:mm" in 30-minute steps from 06:00 to 22:00, for example "08:00", "09:30". Every day on the line uses them.
     //    - Building / Floor / Room: as in CampusLayout.cs, for example "SA", "B-1", "B-1-01".
-    //    A line that does not match an account, subject or room is skipped (see the Output window in Visual Studio).
-    //    Example line:
-    //      ("fac01", "CPE101", DayOfWeek.Monday, "08:00", "09:00", "SA", "B-1", "B-1-01"),
+    //
+    //    ONE DAY AT A DIFFERENT TIME OR ROOM: add a second line for the same person and subject with just that day. It must come
+    //    AFTER the main line. Those days are taken out of the main line, so the rest of the days keep the main line's time. Example:
+    //      ("30001", "CPE 2A1", "MWF", "08:30", "09:30", "SA", "B-1", "B-1-02"),   // Monday and Wednesday stay 8:30 - 9:30
+    //      ("30001", "CPE 2A1", "F",   "10:30", "11:30", "SA", "B-1", "B-1-02"),   // Friday moves to 10:30 - 11:30 (the room can change too)
+    //    A line that does not match an account, subject, room or day letters is skipped (see the Output window in Visual Studio).
     // =====================================================================================================================
-    private static readonly (string FacultyId, string SubjectCode, DayOfWeek Day, string Start, string End,
+    private static readonly (string FacultyId, string SubjectCode, string Days, string Start, string End,
                              string Building, string Floor, string Room)[] MySchedules =
     {
         // Alexis Dacanay (30001)
-        ("30001", "CPE 1A2", DayOfWeek.Monday, "08:00", "09:00", "SA", "B-1", "B-1-01"),
-        ("30001", "CPE 1A2", DayOfWeek.Wednesday, "08:00", "09:00", "SA", "B-1", "B-1-01"),
-        ("30001", "CPE 1A2", DayOfWeek.Friday, "08:00", "09:00", "SA", "B-1", "B-1-01"),
-        ("30001", "CPE 2A1", DayOfWeek.Monday, "10:00", "11:00", "SA", "B-1", "B-1-02"),
-        ("30001", "CPE 2A1", DayOfWeek.Wednesday, "10:00", "11:00", "SA", "B-1", "B-1-02"),
-        ("30001", "CPE 2A1", DayOfWeek.Friday, "10:00", "11:00", "SA", "B-1", "B-1-02"),
-        ("30001", "CPE 2A3", DayOfWeek.Monday, "13:00", "14:00", "SA", "2", "2-01"),
-        ("30001", "CPE 2A3", DayOfWeek.Wednesday, "13:00", "14:00", "SA", "2", "2-01"),
-        ("30001", "CPE 2A3", DayOfWeek.Friday, "13:00", "14:00", "SA", "2", "2-01"),
-        ("30001", "CPE 1A1", DayOfWeek.Tuesday, "13:00", "14:00", "SA", "B-1", "B-1-01"),
+        ("30001", "CPE 1A2", "MWF", "08:00", "09:00", "SA", "B-1", "B-1-01"),
+        ("30001", "CPE 2A1", "MWF", "10:00", "11:00", "SA", "B-1", "B-1-02"),
+        ("30001", "CPE 2A3", "MWF", "13:00", "14:00", "SA", "2", "2-01"),
+        ("30001", "CPE 1A1", "T", "13:00", "14:00", "SA", "B-1", "B-1-01"),
+
         // Jeren Yacanad (30002)
-        ("30002", "CPE 2B3", DayOfWeek.Monday, "09:00", "10:00", "SA", "B-2", "B-2-01"),
-        ("30002", "CPE 2B3", DayOfWeek.Wednesday, "09:00", "10:00", "SA", "B-2", "B-2-01"),
-        ("30002", "CPE 2B3", DayOfWeek.Friday, "09:00", "10:00", "SA", "B-2", "B-2-01"),
-        ("30002", "CPE 3A1", DayOfWeek.Monday, "14:00", "15:00", "SA", "B-2", "B-2-02"),
-        ("30002", "CPE 3A1", DayOfWeek.Wednesday, "14:00", "15:00", "SA", "B-2", "B-2-02"),
-        ("30002", "CPE 3A1", DayOfWeek.Friday, "14:00", "15:00", "SA", "B-2", "B-2-02"),
-        ("30002", "CPE 2S4", DayOfWeek.Tuesday, "10:30", "12:00", "SA", "2", "2-02"),
-        ("30002", "CPE 2S4", DayOfWeek.Thursday, "10:30", "12:00", "SA", "2", "2-02"),
-        ("30002", "CPE 3A4", DayOfWeek.Tuesday, "13:00", "16:00", "SA", "B-2", "B-2-03"),
+        ("30002", "CPE 2B3", "MWF", "09:00", "10:00", "SA", "B-2", "B-2-01"),
+        ("30002", "CPE 3A1", "MWF", "14:00", "15:00", "SA", "B-2", "B-2-02"),
+        ("30002", "CPE 2S4", "TTh", "10:30", "12:00", "SA", "2", "2-02"),
+        ("30002", "CPE 3A4", "T", "13:00", "16:00", "SA", "B-2", "B-2-03"),
+
         // Robel Branianola (30003)
-        ("30003", "CPE 3A5", DayOfWeek.Monday, "08:00", "09:00", "SA", "2", "2-04"),
-        ("30003", "CPE 3A5", DayOfWeek.Wednesday, "08:00", "09:00", "SA", "2", "2-04"),
-        ("30003", "CPE 3A5", DayOfWeek.Friday, "08:00", "09:00", "SA", "2", "2-04"),
-        ("30003", "CPE 4A1", DayOfWeek.Monday, "11:00", "12:00", "SA", "B-1", "B-1-03"),
-        ("30003", "CPE 4A1", DayOfWeek.Wednesday, "11:00", "12:00", "SA", "B-1", "B-1-03"),
-        ("30003", "CPE 4A1", DayOfWeek.Friday, "11:00", "12:00", "SA", "B-1", "B-1-03"),
-        ("30003", "CPE 4A9", DayOfWeek.Monday, "15:00", "16:00", "SA", "2", "2-05"),
-        ("30003", "CPE 4A9", DayOfWeek.Wednesday, "15:00", "16:00", "SA", "2", "2-05"),
-        ("30003", "CPE 4A9", DayOfWeek.Friday, "15:00", "16:00", "SA", "2", "2-05"),
-        ("30003", "CPE 4A5", DayOfWeek.Tuesday, "08:00", "09:30", "SA", "B-1", "B-1-04"),
-        ("30003", "CPE 4A5", DayOfWeek.Thursday, "08:00", "09:30", "SA", "B-1", "B-1-04"),
-        ("30003", "CPE 4A2", DayOfWeek.Thursday, "13:00", "16:00", "SA", "B-1", "B-1-05"),
-        // Sean Pareja (Chairperson) (20001)
-        ("20001", "CPE 3B3", DayOfWeek.Monday, "10:00", "11:00", "SA", "B-2", "B-2-04"),
-        ("20001", "CPE 3B3", DayOfWeek.Wednesday, "10:00", "11:00", "SA", "B-2", "B-2-04"),
-        ("20001", "CPE 3B3", DayOfWeek.Friday, "10:00", "11:00", "SA", "B-2", "B-2-04"),
-        ("20001", "CPE 3B5", DayOfWeek.Monday, "13:00", "14:00", "SA", "2", "2-06"),
-        ("20001", "CPE 3B5", DayOfWeek.Wednesday, "13:00", "14:00", "SA", "2", "2-06"),
-        ("20001", "CPE 3B5", DayOfWeek.Friday, "13:00", "14:00", "SA", "2", "2-06"),
-        ("20001", "CPE 3B7", DayOfWeek.Monday, "16:00", "17:00", "SA", "2", "2-07"),
-        ("20001", "CPE 3B7", DayOfWeek.Wednesday, "16:00", "17:00", "SA", "2", "2-07"),
-        ("20001", "CPE 3B7", DayOfWeek.Friday, "16:00", "17:00", "SA", "2", "2-07"),
-        ("20001", "CPE 3B4", DayOfWeek.Tuesday, "08:00", "11:00", "SA", "B-2", "B-2-05"),
-        // Dennis Trillo (Dean) (10001)
-        ("10001", "ES 8", DayOfWeek.Monday, "09:00", "10:00", "SA", "2", "2-08"),
-        ("10001", "ES 8", DayOfWeek.Wednesday, "09:00", "10:00", "SA", "2", "2-08"),
-        ("10001", "ES 8", DayOfWeek.Friday, "09:00", "10:00", "SA", "2", "2-08"),
-        ("10001", "AC 2A1", DayOfWeek.Monday, "11:00", "12:00", "SA", "B-2", "B-2-06"),
-        ("10001", "AC 2A1", DayOfWeek.Wednesday, "11:00", "12:00", "SA", "B-2", "B-2-06"),
-        ("10001", "AC 2A1", DayOfWeek.Friday, "11:00", "12:00", "SA", "B-2", "B-2-06"),
-        ("10001", "EM 1A1", DayOfWeek.Tuesday, "13:00", "15:00", "SA", "B-1", "B-1-06"),
-        ("10001", "EM 1A1", DayOfWeek.Thursday, "13:00", "15:00", "SA", "B-1", "B-1-06"),
-        ("10001", "ES 2A", DayOfWeek.Tuesday, "15:30", "17:00", "SA", "2", "2-09"),
-        ("10001", "ES 2A", DayOfWeek.Thursday, "15:30", "17:00", "SA", "2", "2-09"),
+        ("30003", "CPE 3A5", "MWF", "08:00", "09:00", "SA", "2", "2-04"),
+        ("30003", "CPE 4A1", "MWF", "11:00", "12:00", "SA", "B-1", "B-1-03"),
+        ("30003", "CPE 4A9", "MWF", "15:00", "16:00", "SA", "2", "2-05"),
+        ("30003", "CPE 4A5", "TTh", "08:00", "09:30", "SA", "B-1", "B-1-04"),
+        ("30003", "CPE 4A2", "Th", "13:00", "16:00", "SA", "B-1", "B-1-05"),
+
+        // Sean Pareja, Chairperson (20001)
+        ("20001", "CPE 3B3", "MWF", "10:00", "11:00", "SA", "B-2", "B-2-04"),
+        ("20001", "CPE 3B5", "MWF", "13:00", "14:00", "SA", "2", "2-06"),
+        ("20001", "CPE 3B7", "MWF", "16:00", "17:00", "SA", "2", "2-07"),
+        ("20001", "CPE 3B4", "T", "08:00", "11:00", "SA", "B-2", "B-2-05"),
+
+        // Dennis Trillo, Dean (10001)
+        ("10001", "ES 8", "MWF", "09:00", "10:00", "SA", "2", "2-08"),
+        ("10001", "AC 2A1", "MWF", "11:00", "12:00", "SA", "B-2", "B-2-06"),
+        ("10001", "EM 1A1", "TTh", "13:00", "15:00", "SA", "B-1", "B-1-06"),
+        ("10001", "ES 2A", "TTh", "15:30", "17:00", "SA", "2", "2-09"),
+
     };
 
     // =====================================================================================================================
-    // 4. VACANT TIMES (optional): (ReadsId, Day, Start, End). READS Scholars can enter their own on the Duty tab instead.
+    // 4. VACANT TIMES (optional): (ReadsId, Day, Start, End). READS can enter their own on the Duty tab instead.
     //    Example line:
     //      ("rds01", DayOfWeek.Monday, "07:30", "12:00"),
     // =====================================================================================================================
@@ -299,12 +279,60 @@ public static class SeedData
         return rooms;
     }
 
+    /// <summary>Day letters (M, T, W, Th, F, Sa, Su) turned into days, in the order written. An unknown letter gives an empty list.</summary>
+    private static List<DayOfWeek> ParseDays(string text)
+    {
+        var days = new List<DayOfWeek>();
+        for (var i = 0; i < text.Length; i++)
+        {
+            var c = text[i];
+            var next = i + 1 < text.Length ? text[i + 1] : '\0';
+            DayOfWeek? day = c switch
+            {
+                'M' => DayOfWeek.Monday,
+                'W' => DayOfWeek.Wednesday,
+                'F' => DayOfWeek.Friday,
+                'T' when next == 'h' => DayOfWeek.Thursday,
+                'T' => DayOfWeek.Tuesday,
+                'S' when next == 'a' => DayOfWeek.Saturday,
+                'S' when next == 'u' => DayOfWeek.Sunday,
+                _ => null
+            };
+            if (day is null) return new();
+            if ((c == 'T' && next == 'h') || (c == 'S' && (next == 'a' || next == 'u'))) i++;   // two-letter day
+            if (!days.Contains(day.Value)) days.Add(day.Value);
+        }
+        return days;
+    }
+
+    /// <summary>
+    /// One MySchedules line becomes one meeting per day. A later line for the same person and subject replaces those days of the
+    /// earlier line, so "MWF 8:30" followed by "F 10:30" leaves Monday and Wednesday at 8:30 and Friday at 10:30.
+    /// </summary>
+    private static List<(string FacultyId, string SubjectCode, DayOfWeek Day, string Start, string End, string Building, string Floor, string Room)> ExpandSchedules()
+    {
+        var meetings = new List<(string FacultyId, string SubjectCode, DayOfWeek Day, string Start, string End, string Building, string Floor, string Room)>();
+        foreach (var line in MySchedules)
+        {
+            var days = ParseDays(line.Days);
+            if (days.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"SeedData: schedule line skipped ({line.FacultyId}, {line.SubjectCode}): the days \"{line.Days}\" are not valid. Use M, T, W, Th, F, Sa, Su.");
+                continue;
+            }
+            meetings.RemoveAll(m => m.FacultyId == line.FacultyId && m.SubjectCode == line.SubjectCode && days.Contains(m.Day));
+            foreach (var day in days)
+                meetings.Add((line.FacultyId, line.SubjectCode, day, line.Start, line.End, line.Building, line.Floor, line.Room));
+        }
+        return meetings;
+    }
+
     public static List<ClassSchedule> Schedules()
     {
         var rooms = Classrooms();
         var subjects = Subjects();
         var list = new List<ClassSchedule>();
-        foreach (var s in MySchedules)
+        foreach (var s in ExpandSchedules())
         {
             var who = MyAccounts.FirstOrDefault(a => a.Id == s.FacultyId);
             var subject = subjects.FirstOrDefault(x => x.Code == s.SubjectCode);
@@ -324,13 +352,13 @@ public static class SeedData
         return list;
     }
 
-    // Duty assignments are no longer used (READS Scholars enter vacant times; IMS assigns classes on the Assign tab).
+    // Duty assignments are no longer used (READS enter vacant times; IMS assigns classes on the Assign tab).
     // The duties file and DutyAssignment record are kept only so older data still loads.
     public static List<DutyAssignment> Duties() => new();
 
     public static List<VacantSlot> Vacancies() =>
         MyVacantTimes.Select((v, i) => new VacantSlot { Id = $"V-my-{i + 1}", ReadsUserId = UserId(v.ReadsId), Day = v.Day, Start = v.Start, End = v.End }).ToList();
 
-    // Which classes each READS Scholar checks is decided by IMS Personnel on the Assign tab, so nothing is seeded.
+    // Which classes each READS checks is decided by IMS Personnel on the Assign tab, so nothing is seeded.
     public static List<CheckAssignment> CheckAssignments() => new();
 }

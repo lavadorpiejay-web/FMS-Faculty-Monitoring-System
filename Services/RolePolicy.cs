@@ -41,17 +41,17 @@ public static class RolePolicy
             Restricted: new[] { "Attendance checking controls", "Managing other users", "Administrative controls" }),
 
         UserRole.ReadsScholar => new RoleInfo(
-            "READS Scholar", "Working student who checks faculty attendance in the classes of the school assigned by IMS Personnel, during their own vacant times.",
+            "READS", "Working student who checks faculty attendance in the classes of the school assigned by IMS Personnel, during their own vacant times.",
             "Infrastructure initialization",
             ReportsTo: "IMS Personnel (when assigned to the IMS Office)", Oversees: "",
             Allowed: new[] { "Enter your vacant times (your duty hours)", "Home: today's duty hours and completed checks", "Two checks per class (5 minutes after the start, last 15 minutes before the end) with notes", "Report attendance irregularities", "Read-only directory of the Dean, Chairpersons and Faculty of your assigned school" },
             Restricted: new[] { "Classes outside your assigned school and vacant times", "Managing other users", "Administrative overrides" }),
 
         UserRole.ImsPersonnel => new RoleInfo(
-            "IMS Personnel", "Manages the application and supervises READS Scholars.",
+            "IMS Personnel", "Manages the application and supervises READS.",
             "Infrastructure initialization",
-            ReportsTo: "", Oversees: "The application and READS Scholars assigned to the IMS Office",
-            Allowed: new[] { "Encode faculty schedules and see room availability", "Apply approved schedule and room changes", "See the vacant times READS Scholars entered", "Master schedule, duty, attendance and audit oversight", "Assign READS Scholars to a school (never their own)", "Approve new READS Scholar accounts" },
+            ReportsTo: "", Oversees: "The application and READS assigned to the IMS Office",
+            Allowed: new[] { "Encode faculty schedules and see room availability", "Apply approved schedule and room changes", "See the vacant times READS entered", "Master schedule, duty, attendance and audit oversight", "Assign READS to a school (never their own)", "Approve new READS accounts" },
             Restricted: new[] { "Active attendance logging", "Managing Faculty, Chairperson and Dean accounts", "Chairperson and Dean controls", "Administrative overrides on academic units" }),
 
         UserRole.Chairperson => new RoleInfo(
