@@ -11,23 +11,28 @@ namespace FacultyMonitoring.ViewModels;
 /// Chairperson: Faculty accounts + schedule change requests of the department.
 /// Dean: Chairperson accounts + classroom change requests of the school's Faculty.
 /// IMS Personnel: READS Scholar accounts + approved changes waiting for their availability check and final approval.
-/// All rules stay in ApprovalService and ChangeRequestService; this page only shows their lists and calls them.
+/// Every role also sees the resignations waiting for it (Chairperson: Faculty of the department, Dean: Chairpersons and Faculty of the school,
+/// IMS Personnel: the ones forwarded by the Dean, who make them official).
+/// All rules stay in ApprovalService, ChangeRequestService and ResignationService; this page only shows their lists and calls them.
 /// </summary>
 public partial class ApprovalsHomeViewModel : PageViewModelBase
 {
     private readonly ApprovalService _approvals;
     private readonly ChangeRequestService _changes;
+    private readonly ResignationService _resignations;
     private readonly SessionService _session;
 
-    public ApprovalsHomeViewModel(ApprovalService approvals, ChangeRequestService changes, SessionService session)
+    public ApprovalsHomeViewModel(ApprovalService approvals, ChangeRequestService changes, ResignationService resignations, SessionService session)
     {
         _approvals = approvals;
         _changes = changes;
+        _resignations = resignations;
         _session = session;
     }
 
     public ObservableCollection<PendingApproval> Accounts { get; } = new();
     public ObservableCollection<ListRow> Requests { get; } = new();
+    public ObservableCollection<ListRow> Resignations { get; } = new();
 
     [ObservableProperty] private string _welcome = "";
     [ObservableProperty] private string _summary = "";
@@ -38,6 +43,10 @@ public partial class ApprovalsHomeViewModel : PageViewModelBase
     [ObservableProperty] private string _requestsExplanation = "";
     [ObservableProperty] private string _requestsEmptyText = "";
     [ObservableProperty] private bool _requestsEmpty;
+    [ObservableProperty] private string _resignationsHeading = "Resignations";
+    [ObservableProperty] private string _resignationsExplanation = "";
+    [ObservableProperty] private bool _resignationsEmpty;
+    [ObservableProperty] private string _resignationApproveText = "Forward";
     [ObservableProperty] private string _pendingText = "";
     [ObservableProperty] private bool _hasPendingText;
 
@@ -111,7 +120,25 @@ public partial class ApprovalsHomeViewModel : PageViewModelBase
         RequestsEmpty = Requests.Count == 0;
         HasPendingText = PendingText.Length > 0;
 
-        var total = Accounts.Count + Requests.Count;
+        // ---- Resignations
+        ResignationApproveText = role switch
+        {
+            UserRole.Chairperson => "Forward to Dean",
+            UserRole.Dean => "Forward to IMS",
+            _ => "Make official"
+        };
+        ResignationsExplanation = role switch
+        {
+            UserRole.Chairperson => "Faculty of your department who want to resign. Forward the resignation to your Dean, or decline it with a reason.",
+            UserRole.Dean => "Chairpersons and Faculty of your school who want to resign, after their Chairperson forwarded them. Forward the resignation to IMS Personnel, or decline it with a reason.",
+            _ => "Resignations forwarded by the Dean (a Dean's or a READS' own resignation comes straight to you). Making one official turns the account inactive, so the person can no longer sign in."
+        };
+        Resignations.Clear();
+        foreach (var row in await _resignations.GetRowsForMeAsync()) Resignations.Add(row);
+        ResignationsEmpty = Resignations.Count == 0;
+        ResignationsHeading = Resignations.Count == 0 ? "Resignations" : $"Resignations waiting ({Resignations.Count})";
+
+        var total = Accounts.Count + Requests.Count + Resignations.Count;
         Summary = total == 0 ? "Nothing is waiting for you."
             : total == 1 ? "1 item is waiting for you." : $"{total} items are waiting for you.";
     }
@@ -139,6 +166,46 @@ public partial class ApprovalsHomeViewModel : PageViewModelBase
             ClearMessages();
             var (ok, text) = await _approvals.DecideAsync(item.UserId, approve);
             if (ok) SuccessMessage = text; else ErrorMessage = text;
+            await RefreshAsync();
+        }
+        finally { IsBusy = false; }
+    }
+
+    // ------------------------------------------------------------- Resignations
+
+    /// <summary>Chairperson and Dean forward the resignation; IMS Personnel make it official (the account becomes inactive).</summary>
+    [RelayCommand]
+    private async Task ApproveResignationAsync(ListRow? row)
+    {
+        if (row is null || IsBusy) return;
+        if (IsIms)
+        {
+            var yes = await Shell.Current.DisplayAlertAsync("Make resignation official",
+                $"{row.Title}\n\nThe account becomes inactive and the person can no longer sign in. Continue?", "Make official", "Cancel");
+            if (!yes) return;
+        }
+        try
+        {
+            IsBusy = true;
+            ClearMessages();
+            Show(await _resignations.ApproveAsync(row.Id));
+            await RefreshAsync();
+        }
+        finally { IsBusy = false; }
+    }
+
+    [RelayCommand]
+    private async Task DeclineResignationAsync(ListRow? row)
+    {
+        if (row is null || IsBusy) return;
+        var reason = await Shell.Current.DisplayPromptAsync("Decline resignation",
+            $"Why are you declining the resignation of {row.Title}? They will see this reason.", "Decline", "Cancel", "Reason", 200);
+        if (reason is null) return;   // cancelled
+        try
+        {
+            IsBusy = true;
+            ClearMessages();
+            Show(await _resignations.DeclineAsync(row.Id, reason));
             await RefreshAsync();
         }
         finally { IsBusy = false; }

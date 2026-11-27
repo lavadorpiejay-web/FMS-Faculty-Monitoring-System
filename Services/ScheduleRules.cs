@@ -28,6 +28,20 @@ public static class ScheduleRules
 
     public static DayOfWeek ParseDay(string name) => Enum.Parse<DayOfWeek>(name);
 
+    /// <summary>Days written as letters, Monday first: "MWF", "TTh", "Sa". Used to show one class that meets on several days as one line.</summary>
+    public static string DayLetters(IEnumerable<DayOfWeek> days) => string.Concat(days.Distinct()
+        .OrderBy(d => d == DayOfWeek.Sunday ? 7 : (int)d)
+        .Select(d => d switch
+        {
+            DayOfWeek.Monday => "M",
+            DayOfWeek.Tuesday => "T",
+            DayOfWeek.Wednesday => "W",
+            DayOfWeek.Thursday => "Th",
+            DayOfWeek.Friday => "F",
+            DayOfWeek.Saturday => "Sa",
+            _ => "Su"
+        }));
+
     public static int Minutes(string hhmm)
     {
         var p = hhmm.Split(':');

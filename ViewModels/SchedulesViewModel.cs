@@ -239,12 +239,16 @@ public partial class SchedulesViewModel : PageViewModelBase
                     .Select(d =>
                     {
                         var key = $"{g.Key}|{d.Key}";
-                        var rows = d.Select(s =>
-                        {
-                            byId.TryGetValue(s.ClassroomId, out var room);
-                            return new ListRow(s.Id, $"{s.SubjectCode} - {s.SubjectTitle}",
-                                $"{s.FacultyName} | {s.Day} {TimeFormat.Range(s.Start, s.End)} | {ScheduleRules.RoomLabel(room)}");
-                        }).ToList();
+                        // One row per class that meets at the same time in the same room: AC 2A1 on Monday, Wednesday and Friday at
+                        // 11:00 shows once as "MWF 11:00 AM - 12:00 PM". A day with a different time or room gets its own row.
+                        var rows = d.GroupBy(s => (s.FacultyUserId, s.SubjectCode, s.Start, s.End, s.ClassroomId))
+                            .Select(grp =>
+                            {
+                                var s = grp.OrderBy(x => DayOrder(x.Day)).First();
+                                byId.TryGetValue(s.ClassroomId, out var room);
+                                return new ListRow(s.Id, $"{s.SubjectCode} - {s.SubjectTitle}",
+                                    $"{s.FacultyName} | {ScheduleRules.DayLetters(grp.Select(x => x.Day))} {TimeFormat.Range(s.Start, s.End)} | {ScheduleRules.RoomLabel(room)}");
+                            }).ToList();
                         return new RowGroup(key, d.Key, "", rows, openDepts.Contains(key));
                     }).ToList();
                 return new SchoolGroup(g.Key, depts, openSchools.Contains(g.Key));
@@ -304,14 +308,31 @@ public partial class SchedulesViewModel : PageViewModelBase
         var theirs = _allSchedules.Where(s => s.FacultyUserId == tapped.FacultyUserId).ToList();
 
         string Line(ClassSchedule s) => $"{s.Day} {TimeFormat.Range(s.Start, s.End)}";
-        var scopes = new List<RemovePrompt.Scope> { new($"Only this one ({tapped.SubjectCode}, {Line(tapped)})", new[] { tapped.Id }) };
+
+        // The tapped row stands for every day of the same subject, time and room (for example the Monday, Wednesday and Friday of AC 2A1).
+        var group = theirs.Where(s => s.SubjectCode == tapped.SubjectCode && s.Start == tapped.Start
+                                      && s.End == tapped.End && s.ClassroomId == tapped.ClassroomId)
+                          .OrderBy(s => DayOrder(s.Day)).ToList();
+        var scopes = new List<RemovePrompt.Scope>();
+        if (group.Count > 1)
+        {
+            var letters = ScheduleRules.DayLetters(group.Select(s => s.Day));
+            scopes.Add(new($"This schedule ({tapped.SubjectCode} {letters} {TimeFormat.Range(tapped.Start, tapped.End)}, {group.Count} days)", group.Select(s => s.Id).ToList()));
+            foreach (var s in group) scopes.Add(new($"Only {s.Day} ({tapped.SubjectCode})", new[] { s.Id }));
+        }
+        else
+        {
+            scopes.Add(new($"Only this one ({tapped.SubjectCode}, {Line(tapped)})", new[] { tapped.Id }));
+        }
         void Add(string label, IEnumerable<ClassSchedule> items)
         {
             var found = items.Select(s => s.Id).ToList();
-            if (found.Count > 1) scopes.Add(new($"{label} ({found.Count})", found));
+            // Skip an option that would delete exactly what an earlier option already deletes.
+            if (found.Count > 1 && !scopes.Any(x => x.Ids.Count == found.Count && !x.Ids.Except(found).Any()))
+                scopes.Add(new($"{label} ({found.Count})", found));
         }
         Add($"All {tapped.SubjectCode} classes of {tapped.FacultyName}", theirs.Where(s => s.SubjectCode == tapped.SubjectCode));
-        Add($"All classes of {tapped.FacultyName} on {tapped.Day}", theirs.Where(s => s.Day == tapped.Day));
+        if (group.Count == 1) Add($"All classes of {tapped.FacultyName} on {tapped.Day}", theirs.Where(s => s.Day == tapped.Day));
         Add($"All classes of {tapped.FacultyName} at {TimeFormat.Range(tapped.Start, tapped.End)}", theirs.Where(s => s.Start == tapped.Start && s.End == tapped.End));
         Add($"Every class of {tapped.FacultyName}", theirs);
 

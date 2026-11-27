@@ -62,7 +62,7 @@
             <Border Style="{StaticResource Card}" Padding="20">
               <VerticalStackLayout Spacing="12">
                 <Label Text="Encoded schedules" Style="{StaticResource SectionTitle}" />
-                <Label Text="Grouped by school, then department. Tap a heading to show or hide it. Remove asks whether to delete only that class, the same subject, the same day, the same time, or the ones you choose." FontSize="12" TextColor="{StaticResource Gray600}" />
+                <Label Text="Grouped by school, then department. A class that meets at the same time in the same room shows once with its days (for example MWF); a day with a different time or room shows on its own. Tap a heading to show or hide it. Remove asks whether to delete the whole schedule, only one of its days, the same subject, the same time, or the ones you choose." FontSize="12" TextColor="{StaticResource Gray600}" />
                 <Label Text="No schedules encoded yet." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoRows}" />
                 <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding Schools}">
                   <BindableLayout.ItemTemplate>
