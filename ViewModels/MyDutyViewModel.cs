@@ -7,8 +7,8 @@ using FacultyMonitoring.Services;
 namespace FacultyMonitoring.ViewModels;
 
 /// <summary>
-/// READS Scholar's own Duty tab: enter vacant (no-class) times for several days at once, and see them in a table.
-/// The vacant times are the Scholar's duty hours.
+/// READS Scholar's own Duty tab: enter Work Time (free, no-class times) for several days at once, and see them in a table.
+/// The Work Time are the Scholar's duty hours.
 /// </summary>
 public partial class MyDutyViewModel : PageViewModelBase
 {
@@ -24,7 +24,7 @@ public partial class MyDutyViewModel : PageViewModelBase
     public ObservableCollection<DayChoice> Days { get; } = new();
     public IReadOnlyList<string> Times { get; } = ScheduleRules.Times.Select(TimeFormat.To12h).ToList();
 
-    /// <summary>The weekly timetable of the vacant times. Replaced in one assignment so it redraws once.</summary>
+    /// <summary>The weekly timetable of the Work Time. Replaced in one assignment so it redraws once.</summary>
     [ObservableProperty] private IReadOnlyList<TimetableBlock> _timetable = Array.Empty<TimetableBlock>();
 
     [ObservableProperty] private string? _selectedStart;
@@ -39,7 +39,7 @@ public partial class MyDutyViewModel : PageViewModelBase
     {
         _slots = await _service.GetMineAsync();
         Timetable = _slots
-            .Select(v => new TimetableBlock(v.Id, v.Day, v.Start, v.End, "Vacant", TimeFormat.Range(v.Start, v.End), "", "Vacant"))
+            .Select(v => new TimetableBlock(v.Id, v.Day, v.Start, v.End, "Work Time", TimeFormat.Range(v.Start, v.End), "", "Vacant"))
             .ToList();
         HasNoSlots = Timetable.Count == 0;
     }
@@ -65,7 +65,7 @@ public partial class MyDutyViewModel : PageViewModelBase
     private static string Describe(VacantSlot v) => $"{v.Day} {TimeFormat.Range(v.Start, v.End)}";
 
     /// <summary>
-    /// Tapping a block asks what to delete: only that block, every vacant time on that day, every vacant time with that same
+    /// Tapping a block asks what to delete: only that block, every Work Time on that day, every Work Time with that same
     /// start and end (any day), all of them, or exactly the ones the Scholar ticks.
     /// </summary>
     [RelayCommand]
@@ -83,10 +83,10 @@ public partial class MyDutyViewModel : PageViewModelBase
         }
         Add($"All on {tapped.Day}", _slots.Where(s => s.Day == tapped.Day));
         Add($"All at {TimeFormat.Range(tapped.Start, tapped.End)} (any day)", _slots.Where(s => s.Start == tapped.Start && s.End == tapped.End));
-        Add("All my vacant times", _slots);
+        Add("All my Work Time", _slots);
 
         var candidates = _slots.Select(s => new ListRow(s.Id, Describe(s), "")).ToList();
-        var ids = await RemovePrompt.AskAsync("Remove vacant time", "vacant time", scopes, candidates);
+        var ids = await RemovePrompt.AskAsync("Remove Work Time", "Work Time slot", scopes, candidates);
         if (ids is null) return;
 
         try

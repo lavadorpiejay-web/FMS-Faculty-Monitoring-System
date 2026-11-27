@@ -156,8 +156,8 @@ public sealed class DirectoryDepartment
 
 /// <summary>
 /// One class IMS Personnel can give to a READS Scholar. A class has two checks (first: 5 minutes after the start, end: last 15 minutes before the end),
-/// each ticked on its own, because the Scholar's vacant time may cover only one of them and another Scholar takes over for the other.
-/// CanStart / CanEnd say whether the check lies inside the Scholar's vacant time and is not held by someone else.
+/// each ticked on its own, because the Scholar's Work Time may cover only one of them and another Scholar takes over for the other.
+/// CanStart / CanEnd say whether the check lies inside the Scholar's Work Time and is not held by someone else.
 /// </summary>
 public partial class ClassPick : ObservableObject
 {

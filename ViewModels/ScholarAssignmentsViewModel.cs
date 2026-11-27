@@ -14,7 +14,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
     public ScholarAssignmentsViewModel(ScholarAssignmentService service) => _service = service;
 
     public ObservableCollection<AssignmentRow> Assignments { get; } = new();
-    /// <summary>Classes on the chosen floor that can be given to the chosen Scholar (inside their vacant times).</summary>
+    /// <summary>Classes on the chosen floor that can be given to the chosen Scholar (inside their Work Time).</summary>
     public ObservableCollection<ClassPick> Classes { get; } = new();
 
     public IReadOnlyList<string> Buildings { get; } = CampusLayout.MainCampus.Where(b => b.Enabled).Select(b => CampusLayout.BuildingLabel(b.Code)).ToList();
@@ -33,7 +33,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
     public bool HasClassesMessage => !string.IsNullOrEmpty(ClassesMessage);
     partial void OnClassesMessageChanged(string value) => OnPropertyChanged(nameof(HasClassesMessage));
     // The school the Scholar studies in is left out: a Scholar monitors another school, never their own.
-    [ObservableProperty] private IReadOnlyList<string> _schools = AcademicCatalog.SchoolNames;
+    [ObservableProperty] private IReadOnlyList<string> _schools = AcademicCatalog.UnitNames;
 
     [ObservableProperty] private IReadOnlyList<string> _scholarLabels = Array.Empty<string>();
 
@@ -97,7 +97,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
 
         if (value is not null && _byLabel.TryGetValue(value, out var info))
         {
-            Schools = AcademicCatalog.SchoolNames.Where(s => !string.Equals(s, info.OwnSchool, StringComparison.OrdinalIgnoreCase)).ToList();
+            Schools = AcademicCatalog.UnitNames.Where(s => !string.Equals(s, info.OwnSchool, StringComparison.OrdinalIgnoreCase)).ToList();
             OwnSchoolText = info.OwnSchool.Length > 0
                 ? $"This READS studies in the {info.OwnSchool}, so that school is not offered."
                 : "";
@@ -105,7 +105,7 @@ public partial class ScholarAssignmentsViewModel : ObservableObject
         }
         else
         {
-            Schools = AcademicCatalog.SchoolNames;
+            Schools = AcademicCatalog.UnitNames;
             OwnSchoolText = "";
             SelectedSchool = null;
         }

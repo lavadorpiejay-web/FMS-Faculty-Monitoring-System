@@ -1,62 +1,65 @@
 namespace FacultyMonitoring.Services;
 
-/// <summary>One floor (or basement level) of a building. AssignedSchool is no longer used (schools share floors); it stays so the table keeps its shape.</summary>
+/// <summary>One floor (or basement level) of a building. AssignedSchool = the school that OWNS the floor (null = nobody owns it).</summary>
 public sealed record FloorPlan(string Floor, string? AssignedSchool);
 
-/// <summary>A building of a campus. A building is a place, not owned by a school. Enabled = its rooms are created in the starting data.</summary>
+/// <summary>A building of a campus. Enabled = its rooms are created in the starting data.</summary>
 public sealed record BuildingPlan(string Code, string Name, IReadOnlyList<FloorPlan> Floors, bool Enabled);
 
 /// <summary>
 /// Main Campus layout. Building codes: MC, SN, SA, SJ. Room names are "&lt;floor&gt;-&lt;two-digit number&gt;",
 /// for example B-1-01 (upper basement), B-2-01 (lower basement), 2-01 (second floor), 4-01 (fourth floor).
-/// Rooms are fixed: they are created from this table, never typed in. No school owns a room or a floor.
+/// Rooms are fixed: they are created from this table, never typed in.
+///
+/// FLOOR OWNERSHIP: a school "owns" the floors it holds its classes on. Its own classes use them freely. Any other school that wants a
+/// room on an owned floor must first get permission from the Dean of the owning school (see ChangeRequestService). Floors that nobody
+/// owns need no permission. To change who owns a floor, edit the table below (the second argument of each FloorPlan).
+/// The Center for Religious Education (CRE) is not a school and owns nothing.
 /// </summary>
 public static class CampusLayout
 {
     /// <summary>Assumed number of classrooms on each floor of each building.</summary>
     public const int RoomsPerFloor = 10;
 
-    private static string Engineering => AcademicCatalog.Schools[0].Name;
+    private const string Sea = AcademicCatalog.SeaName;
+    private const string Sbm = AcademicCatalog.SbmName;
 
     public static IReadOnlyList<BuildingPlan> MainCampus { get; } = new List<BuildingPlan>
     {
-        // Mount Carmel: classrooms on the 4th floor only.
+        // Mount Carmel: classrooms on the 4th floor only. Not owned.
         new("MC", "Mount Carmel Building", new List<FloorPlan> { new("4", null) }, Enabled: true),
 
-        // San Nicolas: only the 2nd and 3rd floors are used.
-        new("SN", "San Nicolas Building", new List<FloorPlan> { new("2", null), new("3", null) }, Enabled: true),
+        // San Nicolas: only the 2nd and 3rd floors are used. The 2nd floor belongs to the School of Business and Management.
+        new("SN", "San Nicolas Building", new List<FloorPlan> { new("2", Sbm), new("3", null) }, Enabled: true),
 
-        // San Agustin: where the School of Engineering and Architecture is situated.
-        // B-1 = upper basement, B-2 = lower basement. The 2nd floor is also used by engineering classes,
-        // but other schools may use its rooms too because rooms are limited.
+        // San Agustin: the 2nd floor and both basement levels (B-1 upper, B-2 lower) belong to the School of Engineering and Architecture.
         new("SA", "San Agustin Building", new List<FloorPlan>
         {
-            new("B-1", Engineering), new("B-2", Engineering), new("2", Engineering),
+            new("B-1", Sea), new("B-2", Sea), new("2", Sea),
         }, Enabled: true),
 
-        // San Jose: only the 3rd to 5th floors are used.
-        new("SJ", "San Jose Building", new List<FloorPlan> { new("3", null), new("4", null), new("5", null) }, Enabled: true),
+        // San Jose: only the 3rd to 5th floors are used. The 3rd floor belongs to the School of Business and Management.
+        new("SJ", "San Jose Building", new List<FloorPlan> { new("3", Sbm), new("4", null), new("5", null) }, Enabled: true),
     };
 
-    /// <summary>
-    /// Buildings a school is situated in. A school listed here may only use rooms of these buildings
-    /// (the School of Engineering and Architecture is in SA). A school not listed has no restriction yet.
-    /// </summary>
-    private static readonly IReadOnlyDictionary<string, string[]> SchoolBuildings = new Dictionary<string, string[]>
-    {
-        [Engineering] = new[] { "SA" },
-    };
+    /// <summary>The school that owns this floor, or null when nobody owns it.</summary>
+    public static string? OwnerOf(string building, string floor) =>
+        MainCampus.FirstOrDefault(b => string.Equals(b.Code, building, StringComparison.OrdinalIgnoreCase))
+            ?.Floors.FirstOrDefault(f => string.Equals(f.Floor, floor, StringComparison.OrdinalIgnoreCase))?.AssignedSchool;
 
-    /// <summary>Building codes the school is limited to, or null when it is not limited yet.</summary>
-    public static IReadOnlyList<string>? BuildingsOf(string? school) =>
-        school is not null && SchoolBuildings.TryGetValue(school, out var codes) ? codes : null;
+    public static string? OwnerOf(Models.Classroom room) => OwnerOf(room.Building, room.Floor);
 
-    /// <summary>True when the school may use this room (its building is one of the school's buildings, or the school has no limit).</summary>
-    public static bool IsRoomAllowed(string? school, Models.Classroom room)
-    {
-        var codes = BuildingsOf(school);
-        return codes is null || codes.Contains(room.Building, StringComparer.OrdinalIgnoreCase);
-    }
+    /// <summary>True when the school must ask the owner's Dean before using this room: the floor is owned by a different school.</summary>
+    public static bool NeedsPermission(string? school, Models.Classroom room) =>
+        OwnerOf(room) is { } owner && !string.Equals(owner, school, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The floors a school owns, for example "SA floor B-1, SA floor B-2, SA floor 2".</summary>
+    public static string FloorsOwnedBy(string school) =>
+        string.Join(", ", MainCampus.SelectMany(b => b.Floors.Where(f => f.AssignedSchool == school).Select(f => $"{b.Code} floor {f.Floor}")));
+
+    /// <summary>"owned by SEA" for a room on an owned floor, "" otherwise.</summary>
+    public static string OwnerNote(Models.Classroom room) =>
+        OwnerOf(room) is { } owner ? $"owned by {AcademicCatalog.ShortName(owner)}" : "";
 
     public static string RoomName(string floor, int number) => $"{floor}-{number:00}";
 

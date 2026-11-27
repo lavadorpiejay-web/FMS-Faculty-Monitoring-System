@@ -43,7 +43,7 @@ public partial class ApprovalsViewModel : ObservableObject
         Explanation = role switch
         {
             UserRole.Dean => "Chairpersons of your school who confirmed their email appear here. They cannot sign in until you approve them.",
-            UserRole.ImsPersonnel => "READS who confirmed their email appear here. They cannot sign in until you approve them.",
+            UserRole.ImsPersonnel => "READS, and the Chairperson of the Center for Religious Education (CRE has no Dean), who confirmed their email appear here. They cannot sign in until you approve them.",
             _ => "Faculty of your department who confirmed their email appear here. They cannot sign in until you approve them."
         };
 

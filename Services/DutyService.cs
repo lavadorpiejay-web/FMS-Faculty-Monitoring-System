@@ -5,8 +5,8 @@ using FacultyMonitoring.Models;
 namespace FacultyMonitoring.Services;
 
 /// <summary>
-/// One READS Scholar as IMS Personnel see them: the school they monitor and the vacant times they entered.
-/// The name is a toggle: tapping it opens or closes that Scholar's weekly vacant-time timetable.
+/// One READS Scholar as IMS Personnel see them: the school they monitor and the Work Time they entered.
+/// The name is a toggle: tapping it opens or closes that Scholar's weekly Work Time timetable.
 /// </summary>
 public partial class ScholarDutyRow : ObservableObject
 {
@@ -28,7 +28,7 @@ public partial class ScholarDutyRow : ObservableObject
     public IReadOnlyList<TimetableBlock> Blocks { get; }
     public bool HasBlocks => Blocks.Count > 0;
     public bool HasNoBlocks => Blocks.Count == 0;
-    public string CountText => Blocks.Count == 0 ? "No vacant times yet" : Blocks.Count == 1 ? "1 vacant time" : $"{Blocks.Count} vacant times";
+    public string CountText => Blocks.Count == 0 ? "No Work Time yet" : Blocks.Count == 1 ? "1 Work Time slot" : $"{Blocks.Count} Work Time slots";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Arrow))]
@@ -41,7 +41,7 @@ public partial class ScholarDutyRow : ObservableObject
 }
 
 /// <summary>
-/// IMS Personnel overview of READS Scholars. READS Scholars enter their own vacant times (see <see cref="VacantTimeService"/>);
+/// IMS Personnel overview of READS Scholars. READS Scholars enter their own Work Time (see <see cref="VacantTimeService"/>);
 /// IMS only looks at them, and assigns the school on the Assign tab.
 /// </summary>
 public sealed class DutyService
@@ -68,12 +68,12 @@ public sealed class DutyService
             .Select(u =>
             {
                 var slots = vacancies.Where(v => v.ReadsUserId == u.Id).OrderBy(v => DayOrder(v.Day)).ThenBy(v => v.Start)
-                    .Select(v => new TimetableBlock(v.Id, v.Day, v.Start, v.End, "Vacant", TimeFormat.Range(v.Start, v.End), "", "Vacant")).ToList();
+                    .Select(v => new TimetableBlock(v.Id, v.Day, v.Start, v.End, "Work Time", TimeFormat.Range(v.Start, v.End), "", "Vacant")).ToList();
                 var assignment = u.AssignedSchool.Length == 0
                     ? "Not assigned to a school yet"
                     : $"Monitors: {u.AssignedSchool}";
                 if (u.OwnSchool.Length > 0) assignment += $" (studies in {u.OwnSchool})";
-                return new ScholarDutyRow(u.Id, u.FullName, assignment, "No vacant times entered yet", slots);
+                return new ScholarDutyRow(u.Id, u.FullName, assignment, "No Work Time entered yet", slots);
             }).ToList();
     }
 }

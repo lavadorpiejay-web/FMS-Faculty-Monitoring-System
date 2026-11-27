@@ -1,7 +1,9 @@
 namespace FacultyMonitoring.Models;
 
 public enum AttendanceStatus { Present, Late, Absent }
-public enum ChangeKind { Schedule, Room }
+/// <summary>Schedule = day/time/subject change (Chairperson). Room = move a class to another room (Dean). RoomUse = IMS encoded a new class in a room on a floor
+/// owned by another school: the owner's Dean must give permission before the class is saved.</summary>
+public enum ChangeKind { Schedule, Room, RoomUse }
 public enum ChangeStatus { Pending, Approved, Declined, Applied }
 public enum IrregularityKind { FacultyNotInRoom, UnapprovedRoom, OutsideAssignment }
 
@@ -39,7 +41,7 @@ public sealed record DutyAssignment
 }
 
 /// <summary>IMS Personnel assigned one class (a weekly schedule row) to a READS Scholar to check. The class lies inside one of the Scholar's
-/// vacant times. Building and Floor are copied from the class's room so the Scholar knows which floor to go to.</summary>
+/// work times. Building and Floor are copied from the class's room so the Scholar knows which floor to go to.</summary>
 public sealed record CheckAssignment
 {
     public string Id { get; init; } = "";
@@ -48,7 +50,7 @@ public sealed record CheckAssignment
     public string Building { get; init; } = "";
     public string Floor { get; init; } = "";
     /// <summary>Which checks of the class this Scholar does: "Both", "Start" (first check only) or "End" (end check only).
-    /// A class that runs past the end of a Scholar's vacant time is split: another Scholar takes over and does the end check.</summary>
+    /// A class that runs past the end of a Scholar's work time is split: another Scholar takes over and does the end check.</summary>
     public string Part { get; init; } = CheckPart.Both;
 
     [System.Text.Json.Serialization.JsonIgnore] public bool DoesStart => Part != CheckPart.End;
@@ -62,7 +64,7 @@ public static class CheckPart
     public const string End = "End";
 }
 
-/// <summary>A time when a READS Scholar has no class. Duties must fit inside a vacant slot.</summary>
+/// <summary>A Work Time of a READS Scholar: when they are free to work (no class). Checks must fit inside a Work Time. (Class name kept as VacantSlot so saved data still loads.)</summary>
 public sealed record VacantSlot
 {
     public string Id { get; init; } = "";
@@ -92,6 +94,8 @@ public sealed record ChangeRequest
     public string ProposedClassroomId { get; init; } = "";
     public string Reason { get; init; } = "";
     public string Summary { get; init; } = "";
+    /// <summary>RoomUse only: JSON of the classes waiting for the owner's permission (see RoomUsePlan). Empty for other requests.</summary>
+    public string RoomUsePlan { get; init; } = "";
     public ChangeStatus Status { get; init; } = ChangeStatus.Pending;
     public DateTime CreatedUtc { get; init; }
     public DateTime? DecidedUtc { get; init; }
@@ -100,6 +104,20 @@ public sealed record ChangeRequest
     public DateTime? AppliedUtc { get; init; }
     public string AppliedByName { get; init; } = "";
 }
+
+/// <summary>The classes IMS encoded for a room that needs the owner Dean's permission, kept inside the request until it is decided.</summary>
+public sealed record RoomUsePlanData
+{
+    public string FacultyUserId { get; init; } = "";
+    public string SubjectCode { get; init; } = "";
+    public string ClassroomId { get; init; } = "";
+    public List<RoomUseDay> Days { get; init; } = new();
+    /// <summary>READS chosen on the Schedules page (user ids; empty = none). Assigned automatically once the classes are saved.</summary>
+    public string FirstReadsId { get; init; } = "";
+    public string EndReadsId { get; init; } = "";
+}
+
+public sealed record RoomUseDay(DayOfWeek Day, string Start, string End);
 
 /// <summary>One digital attendance entry. Everything the checklist asks to be associated with it is stored on the record.</summary>
 public sealed record AttendanceLog

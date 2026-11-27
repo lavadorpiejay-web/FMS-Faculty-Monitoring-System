@@ -5,8 +5,8 @@ using FacultyMonitoring.Services;
 namespace FacultyMonitoring.ViewModels;
 
 /// <summary>
-/// IMS Personnel Duty tab: read-only overview of every READS Scholar, the school they monitor and the vacant times they entered.
-/// READS Scholars enter their own vacant times; IMS assigns the school on the Assign tab.
+/// IMS Personnel Duty tab: read-only overview of every READS Scholar, the school they monitor and the Work Time they entered.
+/// READS Scholars enter their own Work Time; IMS assigns the school on the Assign tab.
 /// </summary>
 public partial class DutyViewModel : ObservableObject
 {

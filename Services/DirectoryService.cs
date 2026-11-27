@@ -51,7 +51,7 @@ public sealed class DirectoryService
 
         // Re-read the account so an assignment made by IMS Personnel shows up without signing out.
         var me = users.FirstOrDefault(u => u.Id == current.Id && u.IsActive && u.Role == UserRole.ReadsScholar);
-        if (me is null || !AcademicCatalog.IsValidSchool(me.AssignedSchool))
+        if (me is null || !AcademicCatalog.IsValidUnit(me.AssignedSchool))
             return DirectoryResult.NotAssigned;
 
         // A READS Scholar is assigned to a whole school: every department's Chairperson and Faculty.
@@ -111,7 +111,7 @@ public sealed class DirectoryService
         await _storage.InitializeAsync();
         var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
         var me = users.FirstOrDefault(u => u.Id == current.Id && u.IsActive && u.Role == UserRole.ReadsScholar);
-        if (me is null || !AcademicCatalog.IsValidSchool(me.AssignedSchool) || entry.School != me.AssignedSchool) return invalid;
+        if (me is null || !AcademicCatalog.IsValidUnit(me.AssignedSchool) || entry.School != me.AssignedSchool) return invalid;
 
         var faculty = Visible(await _storage.LoadAsync<FacultyMember>(JsonStorageService.FacultyFile), users);
         var schedules = await _storage.LoadAsync<ClassSchedule>(JsonStorageService.SchedulesFile);

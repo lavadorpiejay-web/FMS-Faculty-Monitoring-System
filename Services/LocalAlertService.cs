@@ -5,7 +5,7 @@ namespace FacultyMonitoring.Services;
 
 /// <summary>
 /// Phone alerts made by the app itself (Plugin.LocalNotification). They need no server, but they only reach the phone the app is on.
-/// 1. Reminders, repeating weekly: READS Scholar "Duty starts in 10 minutes" (from their own vacant times) and
+/// 1. Reminders, repeating weekly: READS Scholar "Duty starts in 10 minutes" (from their own Work Time) and
 ///    Faculty "Class starts in 10 minutes" (from their schedule).
 /// 2. When the app is opened or resumed (or someone signs in), one alert if there are bell notifications that were not alerted yet.
 /// Every call is wrapped so a problem with alerts can never break the app.
@@ -28,7 +28,7 @@ public sealed class LocalAlertService
         _notifications = notifications;
     }
 
-    /// <summary>Sign-in, app resume, or a change to the vacant times: refresh the reminders and alert about new notifications.</summary>
+    /// <summary>Sign-in, app resume, or a change to the Work Time: refresh the reminders and alert about new notifications.</summary>
     public async Task SyncAsync()
     {
         var me = _session.CurrentUser;
@@ -69,7 +69,7 @@ public sealed class LocalAlertService
     private async Task ScheduleRemindersAsync(UserAccount session)
     {
         await _storage.InitializeAsync();
-        CancelReminders();   // start clean: removed vacant times or changed classes must not keep ringing
+        CancelReminders();   // start clean: removed Work Time or changed classes must not keep ringing
 
         var reminders = new List<(string Key, DayOfWeek Day, string Start, string Title, string Text)>();
 

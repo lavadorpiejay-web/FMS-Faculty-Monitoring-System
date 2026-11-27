@@ -74,10 +74,10 @@
             <Border Style="{StaticResource Card}" Padding="20" IsVisible="{Binding IsFaculty}">
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Today's classes to check" Style="{StaticResource SectionTitle}" />
-                    <Label Text="The classes of this faculty member that fall inside your vacant times today. Use the same two checks as on the Attendance tab, then add or change your notes and the status here."
+                    <Label Text="The classes of this faculty member that fall inside your Work Time today. Use the same two checks as on the Attendance tab, then add or change your notes and the status here."
                            FontSize="13" TextColor="{StaticResource Gray600}" />
                     <controls:Banners />
-                    <Label Text="None of this faculty member's classes are in your vacant times today." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoTodayClasses}" />
+                    <Label Text="None of this faculty member's classes are in your Work Time today." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoTodayClasses}" />
                     <controls:LabeledEntry Caption="Notes for the check (optional)" Placeholder="For example: students said the instructor is on a bathroom break" Text="{Binding CheckNotes, Mode=TwoWay}" IsVisible="{Binding HasTodayClasses}" />
                     <VerticalStackLayout Spacing="16" BindableLayout.ItemsSource="{Binding TodayClasses}">
                         <BindableLayout.ItemTemplate>

@@ -30,7 +30,7 @@ public partial class ProfileViewModel : ObservableObject
         FullName = u.FullName;
         SisId = u.SisId;
         RoleName = info.DisplayName;
-        Department = string.Join(" · ", new[] { u.School, u.Department }.Where(x => !string.IsNullOrEmpty(x)));
+        Department = AcademicCatalog.UnitLine(u.School, u.Department);
         ReportsTo = info.ReportsTo;
         Oversees = info.Oversees;
     }

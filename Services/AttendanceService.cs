@@ -5,8 +5,8 @@ namespace FacultyMonitoring.Services;
 public sealed record DutyView(string Id, string Title, string Detail, string State);
 
 /// <summary>
-/// READS Scholars see their duty hours (their own vacant times) and the classes IMS Personnel assigned to them (classes of their school that lie
-/// inside those vacant times, on the floors IMS chose).
+/// READS Scholars see their duty hours (their own Work Time) and the classes IMS Personnel assigned to them (classes of their school that lie
+/// inside those Work Time, on the floors IMS chose).
 /// Every class is checked twice: 5 minutes after it starts, and in the last 15 minutes before it ends.
 ///   In the room at the first check                       -> Present (the end check confirms they stayed).
 ///   Not in the room at the first check, in it at the end -> Late.
@@ -61,7 +61,7 @@ public sealed class AttendanceService
 
     /// <summary>
     /// A class is in scope when IMS assigned it (or one of its two checks) to this Scholar, it belongs to the assigned school and it is today.
-    /// Whether the Scholar is free at the moment of the check is tested when the check is done (they must be inside a vacant time).
+    /// Whether the Scholar is free at the moment of the check is tested when the check is done (they must be inside a Work Time).
     /// </summary>
     private static bool InScope(UserAccount me, IReadOnlyDictionary<string, CheckAssignment> assigned, ClassSchedule s, DateTime now) =>
         me.AssignedSchool.Length > 0 && s.School == me.AssignedSchool && s.Day == now.DayOfWeek && assigned.ContainsKey(s.Id);
@@ -88,7 +88,7 @@ public sealed class AttendanceService
         return me?.AssignedSchool ?? "";
     }
 
-    /// <summary>Today's duty hours (the Scholar's vacant times today): Current, Upcoming or Completed.</summary>
+    /// <summary>Today's duty hours (the Scholar's Work Time today): Current, Upcoming or Completed.</summary>
     public async Task<List<DutyView>> GetMyDutiesAsync()
     {
         var me = await FreshMeAsync();
@@ -183,7 +183,7 @@ public sealed class AttendanceService
                 }
                 else if (nowM < startOpen) state = $"First check opens at {Hm(startOpen)}";
                 else if (nowM >= endOpen) state = "The first check was not done, so this class cannot be logged anymore";
-                else if (!inVacantTime) state = "Ready, but you are outside your vacant time";
+                else if (!inVacantTime) state = "Ready, but you are outside your Work Time";
                 else { state = "First check is open (5 minutes after the start)"; stage = 1; }
             }
             else
@@ -198,7 +198,7 @@ public sealed class AttendanceService
                 }
                 else if (nowM < endOpen) state = $"First check done ({first}). End check opens at {Hm(endOpen)}";
                 else if (nowM >= endM) { state = $"Class ended without the end check. Recorded as {log.Status}"; finished = true; finishedResult = log.Status.ToString(); }
-                else if (!inVacantTime) state = $"First check done ({first}). Ready for the end check, but you are outside your vacant time";
+                else if (!inVacantTime) state = $"First check done ({first}). Ready for the end check, but you are outside your Work Time";
                 else { state = $"First check done ({first}). End check is open (15 minutes before the end)"; stage = 2; }
             }
             var teacher = people.FirstOrDefault(u => u.Id == s.FacultyUserId);
@@ -250,16 +250,16 @@ public sealed class AttendanceService
         var vacancies = await MyVacanciesAsync(me);
         var assigned = await MyAssignedIdsAsync(me);
 
-        // A class IMS did not assign to this Scholar, or one outside the vacant times, is refused and flagged for IMS Personnel.
+        // A class IMS did not assign to this Scholar, or one outside the Work Time, is refused and flagged for IMS Personnel.
         if (!InScope(me, assigned, s, now))
         {
             await AddIrregularityAsync(me, IrregularityKind.OutsideAssignment, s, room, null,
-                "Tried to log a class that IMS did not assign, or outside the vacant times.", now, true,
+                "Tried to log a class that IMS did not assign, or outside the Work Time.", now, true,
                 "Entry does not match the checker's assigned schedule");
-            return Fail("IMS Personnel did not assign this class to you (or it is outside your vacant times). The attempt was flagged for IMS Personnel.");
+            return Fail("IMS Personnel did not assign this class to you (or it is outside your Work Time). The attempt was flagged for IMS Personnel.");
         }
         if (!vacancies.Any(v => v.Day == now.DayOfWeek && ScheduleRules.NowWithin(now, v.Start, v.End)))
-            return Fail("You can check classes only during your vacant time.");
+            return Fail("You can check classes only during your Work Time.");
         var part = assigned[s.Id];
 
         var startOpen = ScheduleRules.Minutes(s.Start) + CheckMinutes;
@@ -447,7 +447,7 @@ public sealed class AttendanceService
             inScope ? "" : "Report does not match the checker's assigned schedule");
         return new OperationResult(true, inScope
             ? "Irregularity report submitted to IMS Personnel."
-            : "Report submitted and flagged, because IMS did not assign this class to you (or it is outside your vacant times).");
+            : "Report submitted and flagged, because IMS did not assign this class to you (or it is outside your Work Time).");
     }
 
     // ------------------------------------------------- IMS oversight lists

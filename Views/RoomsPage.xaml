@@ -54,7 +54,7 @@
             <Border Style="{StaticResource Card}" Padding="20">
               <VerticalStackLayout Spacing="12">
                 <Label Text="Room availability" Style="{StaticResource SectionTitle}" />
-                <Label Text="Main Campus classrooms are fixed and belong to no school. Choose a building, a floor and optionally one room to see which rooms are occupied or vacant at the day and time above. To use a room, add a schedule on the Schedules tab." FontSize="13" TextColor="{StaticResource Gray600}" />
+                <Label Text="Main Campus classrooms are fixed. Some floors are owned by a school (SEA: SA basements and 2nd floor; SBM: SN 2nd floor and SJ 3rd floor), and another school needs that school's Dean to allow it. Choose a building, a floor and optionally one room to see which rooms are occupied or vacant at the day and time above. To use a room, add a schedule on the Schedules tab." FontSize="13" TextColor="{StaticResource Gray600}" />
                 <controls:LabeledPicker Caption="Building" Title="Choose building" ItemsSource="{Binding BuildingChoices}" SelectedItem="{Binding SelectedBuilding, Mode=TwoWay}" />
                 <controls:LabeledPicker Caption="Floor" Title="Choose building first, then floor" ItemsSource="{Binding FloorChoices}" SelectedItem="{Binding SelectedFloor, Mode=TwoWay}" />
                 <controls:LabeledPicker Caption="Room (or all rooms of the floor)" Title="Choose floor first, then room" ItemsSource="{Binding RoomChoices}" SelectedItem="{Binding SelectedRoom, Mode=TwoWay}" />

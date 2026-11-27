@@ -4,7 +4,7 @@ namespace FacultyMonitoring.Services;
 
 /// <summary>
 /// A Chairperson approves the Faculty of their own department; a Dean approves the Chairpersons of their own school;
-/// IMS Personnel approve READS Scholars.
+/// IMS Personnel approve READS Scholars and the Chairperson of the Center for Religious Education (which has no Dean).
 /// Only accounts whose email is already verified are listed. The approver's school and department always come from
 /// the stored account, never from the screen.
 /// </summary>
@@ -22,7 +22,7 @@ public sealed class ApprovalService
     public static string WhatApproved(UserRole approver) => approver switch
     {
         UserRole.Dean => "Chairperson",
-        UserRole.ImsPersonnel => "READS",
+        UserRole.ImsPersonnel => "READS and CRE",
         _ => "Faculty"
     };
 
@@ -42,6 +42,8 @@ public sealed class ApprovalService
         ((me.Role == UserRole.Chairperson && target.Role == UserRole.Faculty &&
           target.School == me.School && target.Department == me.Department) ||
          (me.Role == UserRole.Dean && target.Role == UserRole.Chairperson && target.School == me.School) ||
+         // The Chairperson of the Center for Religious Education has no Dean (CRE is not under a school): IMS Personnel approve it.
+         (me.Role == UserRole.ImsPersonnel && target.Role == UserRole.Chairperson && AcademicCatalog.IsIndependent(target.School)) ||
          (me.Role == UserRole.ImsPersonnel && target.Role == UserRole.ReadsScholar));
 
     public async Task<IReadOnlyList<PendingApproval>> GetPendingAsync()

@@ -79,18 +79,20 @@ public partial class FacultyScheduleViewModel : PageViewModelBase
     partial void OnSelectedClassChanged(string? value) => RebuildRoomChoices();
 
     /// <summary>
-    /// New-room choices: only rooms of the building(s) the class's school is situated in
-    /// (School of Engineering and Architecture = SA), and never the room the class already uses.
+    /// New-room choices: every room except the one the class already uses. A room on a floor owned by ANOTHER school is marked
+    /// "(owned by SBM, needs the Dean's permission)": the request then goes to that school's Dean.
     /// </summary>
     private void RebuildRoomChoices()
     {
         var chosen = _mine.FirstOrDefault(s => ScheduleRules.ScheduleLabel(s) == SelectedClass);
         var school = chosen?.School ?? _mine.FirstOrDefault()?.School;
         var allowed = _allRooms
-            .Where(r => CampusLayout.IsRoomAllowed(school, r) && r.Id != chosen?.ClassroomId)
+            .Where(r => r.Id != chosen?.ClassroomId)
             .OrderBy(r => r.Building).ThenBy(r => r.Floor).ThenBy(r => r.RoomNo)
             .ToList();
-        _rooms = allowed.ToDictionary(r => ScheduleRules.RoomLabel(r));
+        _rooms = allowed.ToDictionary(r => CampusLayout.NeedsPermission(school, r)
+            ? $"{ScheduleRules.RoomLabel(r)} ({CampusLayout.OwnerNote(r)}, needs the Dean's permission)"
+            : ScheduleRules.RoomLabel(r));
         var labels = _rooms.Keys.ToList();
         if (!RoomLabels.SequenceEqual(labels)) RoomLabels = labels;
         if (NewRoom is not null && !_rooms.ContainsKey(NewRoom)) NewRoom = null;
@@ -134,7 +136,8 @@ public partial class FacultyScheduleViewModel : PageViewModelBase
         {
             var decided = r.Status switch
             {
-                ChangeStatus.Pending => r.Kind == ChangeKind.Room ? "waiting for the Dean" : "waiting for your Chairperson",
+                ChangeStatus.Pending => r.ApproverRole == UserRole.Chairperson ? "waiting for your Chairperson"
+                    : r.ApproverSchool != _mine.FirstOrDefault()?.School ? $"waiting for the Dean of the {r.ApproverSchool}" : "waiting for the Dean",
                 ChangeStatus.Approved => "approved, IMS Personnel notified and will apply it",
                 _ => r.Status.ToString().ToLowerInvariant()
             };

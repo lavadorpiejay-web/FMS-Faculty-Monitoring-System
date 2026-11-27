@@ -74,7 +74,7 @@ public partial class ApprovalsHomeViewModel : PageViewModelBase
         AccountsExplanation = role switch
         {
             UserRole.Dean => "Chairpersons of your school who confirmed their email. They cannot sign in until you approve them.",
-            UserRole.ImsPersonnel => "READS who confirmed their email. They cannot sign in until you approve them.",
+            UserRole.ImsPersonnel => "READS, and the Chairperson of the Center for Religious Education (CRE has no Dean), who confirmed their email. They cannot sign in until you approve them.",
             _ => "Faculty of your department who confirmed their email. They cannot sign in until you approve them."
         };
         Accounts.Clear();
@@ -107,13 +107,13 @@ public partial class ApprovalsHomeViewModel : PageViewModelBase
         {
             var dean = role == UserRole.Dean;
             RequestsExplanation = dean
-                ? "Faculty of your school asking to move a class into another room. After you approve, IMS Personnel check the room availability and give the final approval."
+                ? "Faculty of your school asking to move a class into another room, and requests from other schools (or IMS Personnel) to use a room on a floor your school owns. After you approve a room change, IMS Personnel check the availability and give the final approval; an approved room permission saves the class straight away."
                 : "Faculty of your department asking to change the day, time or subject of a class. After you approve, IMS Personnel check the availability and give the final approval.";
             RequestsEmptyText = "No requests are waiting for you.";
             foreach (var r in await _changes.GetPendingForMeAsync())
                 Requests.Add(new ListRow(r.Id, $"{r.RequesterName}: {r.ScheduleLabel}", $"{r.Summary}\nReason: {r.Reason}",
                     $"Sent {r.CreatedUtc.ToLocalTime():MMM d, h:mm tt}"));
-            var name = dean ? "Classroom change requests" : "Schedule change requests";
+            var name = dean ? "Classroom requests" : "Schedule change requests";
             RequestsHeading = Requests.Count == 0 ? name : $"{name} ({Requests.Count})";
             PendingText = "";
         }

@@ -31,7 +31,7 @@ public partial class DashboardViewModel : ObservableObject
         var info = RolePolicy.Describe(user.Role);
         Greeting = $"Welcome, {user.FullName}";
         RoleName = info.DisplayName;
-        Department = string.Join(" · ", new[] { user.School, user.Department }.Where(x => !string.IsNullOrEmpty(x)));
+        Department = AcademicCatalog.UnitLine(user.School, user.Department);
         Tagline = info.Tagline;
         ReportsTo = info.ReportsTo;
         Oversees = info.Oversees;

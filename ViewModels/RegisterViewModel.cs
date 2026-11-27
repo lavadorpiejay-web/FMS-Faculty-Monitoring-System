@@ -18,7 +18,8 @@ public partial class RegisterViewModel : ObservableObject
     public IReadOnlyList<string> RoleLabels { get; } =
         RolePolicy.AllRoles.Select(r => RolePolicy.Describe(r).DisplayName).ToList();
 
-    public IReadOnlyList<string> Schools { get; } = AcademicCatalog.SchoolNames;
+    /// <summary>Faculty and Chairperson may also pick the Center for Religious Education (an independent department, not under any school). Deans and READS pick a real school.</summary>
+    public IReadOnlyList<string> Schools => CurrentRole is UserRole.Faculty or UserRole.Chairperson ? AcademicCatalog.UnitNames : AcademicCatalog.SchoolNames;
 
     [ObservableProperty] private string _fullName = "";
     [ObservableProperty] private string _sisId = "";
@@ -36,7 +37,7 @@ public partial class RegisterViewModel : ObservableObject
 
     // Who must approve this account after the email is verified.
     public bool HasApprovalNote => ApprovalNote.Length > 0;
-    public string ApprovalNote => LocalAuthService.ApproverOf(CurrentRole ?? UserRole.Dean) is { } approver
+    public string ApprovalNote => LocalAuthService.ApproverOf(CurrentRole ?? UserRole.Dean, SelectedSchool) is { } approver
         ? $"After you confirm your email, your {RolePolicy.Describe(approver).DisplayName} must approve your account before you can sign in."
         : "";
 
@@ -105,6 +106,8 @@ public partial class RegisterViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSchool))]
+    [NotifyPropertyChangedFor(nameof(ApprovalNote))]
+    [NotifyPropertyChangedFor(nameof(HasApprovalNote))]
     private string? _selectedSchool;
 
     public bool HasSchool => SelectedSchool is not null;
@@ -114,7 +117,8 @@ public partial class RegisterViewModel : ObservableObject
     // Faculty, Chairperson and Dean belong to a school; Faculty and Chairperson also to a department.
     // A READS Scholar also picks a school: the school they study in (IMS never assigns them to monitor it).
     public bool NeedsSchool => CurrentRole is UserRole.Faculty or UserRole.Chairperson or UserRole.Dean or UserRole.ReadsScholar;
-    public string SchoolCaption => CurrentRole == UserRole.ReadsScholar ? "Your school (the school you study in)" : "School";
+    public string SchoolCaption => CurrentRole == UserRole.ReadsScholar ? "Your school (the school you study in)"
+        : CurrentRole is UserRole.Faculty or UserRole.Chairperson ? "School (or Center for Religious Education)" : "School";
     public bool NeedsDepartment => CurrentRole is UserRole.Faculty or UserRole.Chairperson;
     // READS Scholar and IMS Personnel are placed in the IMS Office automatically.
     public bool IsOfficeRole => CurrentRole is UserRole.ReadsScholar or UserRole.ImsPersonnel;
@@ -152,6 +156,8 @@ public partial class RegisterViewModel : ObservableObject
     {
         if (!NeedsSchool) SelectedSchool = null;          // also clears the department
         else if (!NeedsDepartment) SelectedDepartment = null;
+        // Only a Dean or a READS Scholar needs a real school: the Center for Religious Education is not one.
+        if (CurrentRole is UserRole.Dean or UserRole.ReadsScholar && AcademicCatalog.IsIndependent(SelectedSchool)) SelectedSchool = null;
         _ = CheckOccupiedAsync();
     }
 
@@ -159,6 +165,7 @@ public partial class RegisterViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(RoleHint))]
     [NotifyPropertyChangedFor(nameof(HasRoleHint))]
     [NotifyPropertyChangedFor(nameof(NeedsSchool))]
+    [NotifyPropertyChangedFor(nameof(Schools))]
     [NotifyPropertyChangedFor(nameof(SchoolCaption))]
     [NotifyPropertyChangedFor(nameof(NeedsDepartment))]
     [NotifyPropertyChangedFor(nameof(IsOfficeRole))]

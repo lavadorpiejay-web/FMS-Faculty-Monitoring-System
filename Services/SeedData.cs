@@ -8,7 +8,7 @@ namespace FacultyMonitoring.Services;
 ///   1. MyAccounts   - sign-in accounts (IMS Personnel, READS, Deans, Chairpersons, Faculty)
 ///   2. MySubjects   - subjects (code, title, units, department)
 ///   3. MySchedules  - class schedules, one line per subject with day letters (faculty, subject, days, time, room)
-///   4. MyVacantTimes - READS' vacant times, one line per vacant time with day letters (they can also enter these themselves on the Duty tab)
+///   4. MyVacantTimes - READS' Work Time, one line per Work Time with day letters (they can also enter these themselves on the Duty tab)
 ///   5. Classrooms   - generated from CampusLayout.cs (edit that file to change buildings, floors and rooms)
 /// Schools, departments and campuses are in AcademicCatalog.cs.
 /// Anything not listed here can be entered inside the app (registration, IMS Schedules tab, IMS Assign tab, READS Duty tab).
@@ -28,7 +28,8 @@ public static class SeedData
     //    (Id, Name, Role, School, Department, Password, Email, AssignedSchool, OwnSchool)
     //    - Id: exactly 5 characters, no spaces (READS: 5 to 10). This is what they type to sign in.
     //    - Role: UserRole.ImsPersonnel, UserRole.ReadsScholar, UserRole.Dean, UserRole.Chairperson or UserRole.Faculty.
-    //    - School / Department: must match AcademicCatalog.cs exactly. Dean: School only (Department = ""). IMS and READS: both "".
+    //    - School / Department: must match AcademicCatalog.cs exactly. The Center for Religious Education (CRE) is not under a school: for its
+    //      Chairperson and Faculty write AcademicCatalog.CreName in BOTH the School and the Department columns. It has no Dean. Dean: School only (Department = ""). IMS and READS: both "".
     //    - Password: at least 8 characters with an uppercase letter, a lowercase letter, a number and a symbol.
     //    - AssignedSchool / OwnSchool: only for READS (the school they monitor, and the school they study in; they differ).
     //    Accounts added here are already email-verified and approved.
@@ -84,7 +85,7 @@ public static class SeedData
     ("GE TCW", "The Contemporary World", 3, "Department of Communication, Languages, and Literature"),
     ("PE 1", "Physical Education 1", 2, "Department of Physical Education"),
     ("CWTS 11*", "Civic Welfare Training Services 11", 3, ""),
-    ("ReEd 1", "Initium Fidei: An Introduction to Doing Catholic Theology", 3, ""),
+    ("ReEd 1", "Initium Fidei: An Introduction to Doing Catholic Theology", 3, AcademicCatalog.CreName),
     ("Guidance 1", "Adjustment to College Life Phase 1", 1, ""),
     // 1st Year 2nd Semester
     ("EM 1B1", "Engineering Calculus 2", 4, "Department of Engineering, Mathematics, and Enhancement Program"),
@@ -96,7 +97,7 @@ public static class SeedData
     ("EP 1", "English Proficiency Level 1 (lec/lab)", 3, "Department of Communication, Languages, and Literature"),
     ("PE 2", "Physical Education 2", 2, "Department of Physical Education"),
     ("CWTS 12*", "Civic Welfare Training Services 12", 3, ""),
-    ("ReEd 2", "Written That You May Believe: An Introduction to Biblical Exegesis", 3, ""),
+    ("ReEd 2", "Written That You May Believe: An Introduction to Biblical Exegesis", 3, AcademicCatalog.CreName),
     ("Guidance 2", "Adjustment to College Life Phase 2", 1, ""),
     // 2nd Year 1st Semester
     ("ES 2A", "Computer-Aided Drafting", 2, "Department of Engineering, Mathematics, and Enhancement Program"),
@@ -109,7 +110,7 @@ public static class SeedData
     ("AC 2A2", "Fundamentals of Electrical Circuits", 1, "Department of Electrical Engineering"),
     ("GE PC", "Purposive Communication", 3, "Department of Communication, Languages, and Literature"),
     ("PE 3", "Physical Education 3", 2, "Department of Physical Education"),
-    ("ReEd 3", "Our Restless Hearts: An Introduction to Doing Catholic Morality", 3, ""),
+    ("ReEd 3", "Our Restless Hearts: An Introduction to Doing Catholic Morality", 3, AcademicCatalog.CreName),
     // 2nd Year 2nd Semester
     ("CPE 2B1", "Advanced Engineering Mathematics for Computer Engineering", 3, "Department of Computer Engineering"),
     ("CPE 2B3", "Data Structures and Algorithms", 3, "Department of Computer Engineering"),
@@ -119,7 +120,7 @@ public static class SeedData
     ("ES 8", "Engineering Mechanics", 3, "Department of Engineering, Mathematics, and Enhancement Program"),
     ("Rizal", "Life and Works of Dr. Jose Rizal", 3, "Department of Social Sciences and Philosophy"),
     ("PE 4", "Physical Education 4", 2, "Department of Physical Education"),
-    ("ReEd 4", "A Call to Action: An Introduction to Catholic Social Thought", 3, ""),
+    ("ReEd 4", "A Call to Action: An Introduction to Catholic Social Thought", 3, AcademicCatalog.CreName),
     ("EfCom", "Effective Communication & Human Relations", 3, "Department of Communication, Languages, and Literature"),
     // 2nd Year Summer
     ("CPE 2S1", "Software Design", 4, "Department of Computer Engineering"),
@@ -223,11 +224,11 @@ public static class SeedData
     };
 
     // =====================================================================================================================
-    // 4. VACANT TIMES (optional): ONE LINE PER VACANT TIME, (ReadsId, Days, Start, End). READS can enter their own on the Duty tab instead.
+    // 4. WORK TIME (optional): ONE LINE PER WORK TIME SLOT, (ReadsId, Days, Start, End). READS can enter their own on the Duty tab instead.
     //    - ReadsId: the Id of the READS account in MyAccounts.
     //    - Days: letters, no spaces, written the same way as in the schedules: M, T, W, Th, F, Sa, Su ("MWF", "TTh", "Sa").
     //    - Start / End: 24-hour "HH:mm" in 30-minute steps. Every day on the line uses them.
-    //    A READS may have several vacant times on the same day, so write one line per vacant time. Days that need a different time go
+    //    A READS may have several Work Time on the same day, so write one line per Work Time. Days that need a different time go
     //    on their own line. Example (Monday and Wednesday 7:30 - 9:30, Friday 10:30 - 12:00, Tuesday and Thursday 1:00 - 3:00 PM):
     //      ("2023123451", "MW",  "07:30", "09:30"),
     //      ("2023123451", "F",   "10:30", "12:00"),
@@ -281,7 +282,7 @@ public static class SeedData
                     rooms.Add(new Classroom
                     {
                         Id = $"R-{rooms.Count + 1:000}", Campus = AcademicCatalog.DefaultCampus,
-                        // Rooms belong to no school: schools share buildings and floors, so the requesting Faculty's own Dean approves a room change.
+                        // Floor ownership (which school owns which floor) lives in CampusLayout.cs, not on the room itself.
                         Building = building.Code, Floor = floor.Floor, RoomNo = CampusLayout.RoomName(floor.Floor, n)
                     });
         return rooms;
@@ -360,11 +361,11 @@ public static class SeedData
         return list;
     }
 
-    // Duty assignments are no longer used (READS enter vacant times; IMS assigns classes on the Assign tab).
+    // Duty assignments are no longer used (READS enter Work Time; IMS assigns classes on the Assign tab).
     // The duties file and DutyAssignment record are kept only so older data still loads.
     public static List<DutyAssignment> Duties() => new();
 
-    /// <summary>One MyVacantTimes line becomes one vacant time per day.</summary>
+    /// <summary>One MyVacantTimes line becomes one Work Time per day.</summary>
     private static List<(string ReadsId, DayOfWeek Day, string Start, string End)> ExpandVacantTimes()
     {
         var slots = new List<(string ReadsId, DayOfWeek Day, string Start, string End)>();
@@ -373,7 +374,7 @@ public static class SeedData
             var days = ParseDays(line.Days);
             if (days.Count == 0 || !MyAccounts.Any(a => a.Id == line.ReadsId && a.Role == UserRole.ReadsScholar))
             {
-                System.Diagnostics.Debug.WriteLine($"SeedData: vacant time line skipped ({line.ReadsId}, \"{line.Days}\"): READS not found or the days are not valid. Use M, T, W, Th, F, Sa, Su.");
+                System.Diagnostics.Debug.WriteLine($"SeedData: Work Time line skipped ({line.ReadsId}, \"{line.Days}\"): READS not found or the days are not valid. Use M, T, W, Th, F, Sa, Su.");
                 continue;
             }
             foreach (var day in days) slots.Add((line.ReadsId, day, line.Start, line.End));

@@ -38,6 +38,10 @@ public sealed class LocalAuthService : IAuthService
         : $"Employee ID: exactly {EmployeeIdLength} characters, no spaces.";
 
     /// <summary>Who has to approve a new account of this role (null: nobody, it is approved automatically).</summary>
+    /// <summary>Who approves an account of this role and school. The Chairperson of the Center for Religious Education (no school, so no Dean) is approved by IMS Personnel.</summary>
+    public static UserRole? ApproverOf(UserRole role, string? school) =>
+        role == UserRole.Chairperson && AcademicCatalog.IsIndependent(school) ? UserRole.ImsPersonnel : ApproverOf(role);
+
     public static UserRole? ApproverOf(UserRole role) => role switch
     {
         UserRole.Faculty => UserRole.Chairperson,
@@ -85,7 +89,7 @@ public sealed class LocalAuthService : IAuthService
         if (!user.EmailVerified)
             return new AuthResult(false, "Your email is not verified yet. Enter the code we sent you.", user, AuthIssue.EmailNotVerified);
 
-        var approver = ApproverOf(user.Role);
+        var approver = ApproverOf(user.Role, user.School);
         if (user.Status == ApprovalStatus.Pending)
             return new AuthResult(false,
                 $"Your account is waiting for approval from your {RolePolicy.Describe(approver ?? user.Role).DisplayName}. You can sign in once it is approved.",
@@ -186,7 +190,7 @@ public sealed class LocalAuthService : IAuthService
         {
             case UserRole.Faculty:
             case UserRole.Chairperson:
-                if (!AcademicCatalog.IsValidSchool(req.School)) return Fail("Choose your school.");
+                if (!AcademicCatalog.IsValidUnit(req.School)) return Fail("Choose your school (or the Center for Religious Education).");
                 if (!AcademicCatalog.IsValidDepartment(req.School, req.Department)) return Fail("Choose your department.");
                 school = req.School; department = req.Department;
                 break;
@@ -229,7 +233,7 @@ public sealed class LocalAuthService : IAuthService
             Id = "U-" + Guid.NewGuid().ToString("N")[..8],
             SisId = sis, FullName = name, Email = email, School = school, Department = department, Role = req.Role, OwnSchool = ownSchool,
             EmailVerified = false,
-            Status = ApproverOf(req.Role) is null ? ApprovalStatus.Approved : ApprovalStatus.Pending,
+            Status = ApproverOf(req.Role, school) is null ? ApprovalStatus.Approved : ApprovalStatus.Pending,
             PasswordHash = hash, Salt = salt
         };
         users.Add(user);

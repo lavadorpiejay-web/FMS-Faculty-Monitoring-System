@@ -6,13 +6,13 @@
              xmlns:vm="clr-namespace:FacultyMonitoring.ViewModels"
              xmlns:models="clr-namespace:FacultyMonitoring.Models"
              x:DataType="vm:MyDutyViewModel"
-             Title="My vacant times">
+             Title="My Work Time">
     <controls:DraggableScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
             <Border Style="{StaticResource Card}" Padding="20">
               <VerticalStackLayout Spacing="12">
-                <Label Text="Enter my vacant times" Style="{StaticResource SectionTitle}" />
-                <Label Text="Your vacant times are your duty hours. Tick every day that has the same free time, choose the start and end, then save." FontSize="13" TextColor="{StaticResource Gray600}" />
+                <Label Text="Enter my Work Time" Style="{StaticResource SectionTitle}" />
+                <Label Text="Your Work Time is your duty hours: the times you are free to work. Tick every day that has the same free time, choose the start and end, then save." FontSize="13" TextColor="{StaticResource Gray600}" />
                 <VerticalStackLayout Spacing="4">
                   <Label Text="Days (tick all that apply)" FontSize="12" TextColor="{StaticResource Gray600}" />
                   <FlexLayout Wrap="Wrap" JustifyContent="Start" BindableLayout.ItemsSource="{Binding Days}">
@@ -29,13 +29,13 @@
                 <controls:LabeledPicker Caption="From" Title="Choose start" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedStart, Mode=TwoWay}" />
                 <controls:LabeledPicker Caption="To" Title="Choose end" ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedEnd, Mode=TwoWay}" />
                 <controls:Banners />
-                <Button Text="Save vacant times" Command="{Binding SaveCommand}" IsEnabled="{Binding IsNotBusy}" />
+                <Button Text="Save Work Time" Command="{Binding SaveCommand}" IsEnabled="{Binding IsNotBusy}" />
               </VerticalStackLayout>
             </Border>
             <Border Style="{StaticResource Card}" Padding="20">
               <VerticalStackLayout Spacing="12">
-                <Label Text="My vacant times" Style="{StaticResource SectionTitle}" />
-                <Label Text="You have not entered any vacant times yet." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoSlots}" />
+                <Label Text="My Work Time" Style="{StaticResource SectionTitle}" />
+                <Label Text="You have not entered your Work Time yet." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoSlots}" />
                 <Label Text="Tap a block to remove it: you can delete only that one, everything on that day, everything at that time, or choose which ones. Swipe sideways to see the whole week." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasSlots}" />
                 <controls:WeeklyTimetable Blocks="{Binding Timetable}" BlockTappedCommand="{Binding RemoveCommand}" IsVisible="{Binding HasSlots}" />
               </VerticalStackLayout>

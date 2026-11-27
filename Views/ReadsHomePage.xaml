@@ -21,7 +21,7 @@
                 <Border Style="{StaticResource Card}" Padding="20">
                   <VerticalStackLayout Spacing="12">
                     <Label Text="My duty hours today" Style="{StaticResource SectionTitle}" />
-                    <Label Text="No duty hours today. Enter your vacant times on the Duty tab." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoDuty}" />
+                    <Label Text="No duty hours today. Enter your Work Time on the Duty tab." FontSize="13" TextColor="{StaticResource Gray600}" IsVisible="{Binding HasNoDuty}" />
                     <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding DutyHours}">
                       <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="models:ListRow">

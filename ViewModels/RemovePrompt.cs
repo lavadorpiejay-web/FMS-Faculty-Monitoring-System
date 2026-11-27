@@ -5,7 +5,7 @@ namespace FacultyMonitoring.ViewModels;
 
 /// <summary>
 /// The "what do you want to delete?" question shared by every screen that removes schedule-like rows
-/// (READS vacant times, IMS schedules). The person picks a scope (only this one, the same day, the same time,
+/// (READS Work Time, IMS schedules). The person picks a scope (only this one, the same day, the same time,
 /// the same subject, everything) or chooses exactly which rows to delete, then confirms the count.
 /// Returns the ids to delete, or null when cancelled.
 /// </summary>

@@ -6,10 +6,15 @@ using FacultyMonitoring.Services;
 
 namespace FacultyMonitoring.ViewModels;
 
-/// <summary>IMS Personnel: encode the initial faculty schedules (faculty, subject, classroom, day, time) and remove mistakes.</summary>
+/// <summary>IMS Personnel: encode faculty schedules (faculty, subject, classroom, day, time), give the class's checks to READS from their Work Time, and remove mistakes.</summary>
 public partial class SchedulesViewModel : PageViewModelBase
 {
     private readonly ScheduleService _service;
+    private readonly ScholarAssignmentService _scholars;
+    private const string NoReads = "(none - assign later)";
+    private Dictionary<string, string> _firstReadsIds = new();
+    private Dictionary<string, string> _endReadsIds = new();
+    private int _readsRefreshId;
     private Dictionary<string, UserAccount> _faculty = new();
     private List<Classroom> _rooms = new();
     private List<Subject> _subjects = new();
@@ -28,13 +33,18 @@ public partial class SchedulesViewModel : PageViewModelBase
         [2] = (new[] { "Tuesday", "Thursday" }, 90),              // 2 units: TTh, 1 hour 30 minutes each
     };
 
-    public SchedulesViewModel(ScheduleService service)
+    public SchedulesViewModel(ScheduleService service, ScholarAssignmentService scholars)
     {
         _service = service;
+        _scholars = scholars;
         foreach (var name in ScheduleRules.DayNames)
         {
             var day = new DayChoice(name);
-            day.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(DayChoice.IsSelected)) RefreshCustomDays(); };
+            day.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(DayChoice.IsSelected)) RefreshCustomDays();
+                _ = RefreshReadsOptionsAsync();   // a day or a time changed: who is free may change
+            };
             Days.Add(day);
         }
     }
@@ -45,7 +55,8 @@ public partial class SchedulesViewModel : PageViewModelBase
     public ObservableCollection<DayChoice> CustomDays { get; } = new();
 
     public ObservableCollection<SchoolGroup> Schools { get; } = new();
-    public IReadOnlyList<string> SchoolChoices { get; } = AcademicCatalog.SchoolNames;
+    /// <summary>Schools plus the independent Center for Religious Education.</summary>
+    public IReadOnlyList<string> SchoolChoices { get; } = AcademicCatalog.UnitNames;
     public IReadOnlyList<string> Times { get; } = ScheduleRules.Times.Select(TimeFormat.To12h).ToList();
 
     [ObservableProperty] private IReadOnlyList<string> _departmentChoices = Array.Empty<string>();
@@ -61,6 +72,15 @@ public partial class SchedulesViewModel : PageViewModelBase
     [ObservableProperty] private string? _selectedFaculty;
     [ObservableProperty] private string? _selectedSubject;
     [ObservableProperty] private string? _selectedRoom;
+    [ObservableProperty] private string _roomOwnerNote = "";
+    [ObservableProperty] private bool _hasRoomOwnerNote;
+
+    // READS for this class, chosen from the READS whose Work Time covers the check on every class day.
+    [ObservableProperty] private IReadOnlyList<string> _firstReadsChoices = new[] { NoReads };
+    [ObservableProperty] private IReadOnlyList<string> _endReadsChoices = new[] { NoReads };
+    [ObservableProperty] private string? _selectedFirstReads = NoReads;
+    [ObservableProperty] private string? _selectedEndReads = NoReads;
+    [ObservableProperty] private string _readsHint = "Choose the Faculty member, the days and the times to see which READS are free.";
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DifferentTimes))]
     private bool _sameTime = true;
@@ -75,7 +95,58 @@ public partial class SchedulesViewModel : PageViewModelBase
     /// <summary>When off, every ticked day gets its own start and end time.</summary>
     public bool DifferentTimes => !SameTime;
 
-    partial void OnSameTimeChanged(bool value) => RefreshCustomDays();
+    partial void OnSameTimeChanged(bool value) { RefreshCustomDays(); _ = RefreshReadsOptionsAsync(); }
+
+    partial void OnSelectedEndChanged(string? value) => _ = RefreshReadsOptionsAsync();
+
+    /// <summary>The class meetings as typed so far (the same rule Save uses). Null when a ticked day has no complete time yet.</summary>
+    private List<(DayOfWeek Day, string Start, string End)>? CurrentMeetings()
+    {
+        var picked = Days.Where(d => d.IsSelected).ToList();
+        if (picked.Count == 0) return null;
+        var list = new List<(DayOfWeek, string, string)>();
+        foreach (var d in picked)
+        {
+            var start = TimeFormat.To24h(SameTime ? SelectedStart : (d.Start ?? SelectedStart));
+            var end = TimeFormat.To24h(SameTime ? SelectedEnd : (d.End ?? SelectedEnd));
+            if (start is null || end is null || ScheduleRules.CheckTimes(start, end) is not null) return null;
+            list.Add((ScheduleRules.ParseDay(d.Name), start, end));
+        }
+        return list;
+    }
+
+    /// <summary>Fills the two READS pickers with the READS whose Work Time covers the first check / the end check on every class day.</summary>
+    private async Task RefreshReadsOptionsAsync()
+    {
+        var id = ++_readsRefreshId;
+        var school = SelectedFaculty is not null && _faculty.TryGetValue(SelectedFaculty, out var f) ? f.School : "";
+        var meetings = CurrentMeetings();
+
+        if (school.Length == 0 || meetings is null)
+        {
+            SetReadsChoices(new(), new(), "Choose the Faculty member, the days and the times to see which READS are free.");
+            return;
+        }
+        var first = await _scholars.GetOptionsAsync(school, meetings, first: true);
+        var end = await _scholars.GetOptionsAsync(school, meetings, first: false);
+        if (id != _readsRefreshId) return;   // a newer change replaced this one
+
+        var hint = first.Count == 0 && end.Count == 0
+            ? $"No READS assigned to the {school} has a Work Time covering these checks. Assign a READS to the school on the Assign tab, or change the times. You can still save the class and assign READS later."
+            : "Only READS assigned to this school whose Work Time covers the check on every class day are listed. The first check is 5 minutes after the start, the end check is in the last 15 minutes. Choose the same READS for both, or two READS if one cannot stay for the whole class.";
+        SetReadsChoices(first, end, hint);
+    }
+
+    private void SetReadsChoices(List<ScholarAssignmentService.ReadsOption> first, List<ScholarAssignmentService.ReadsOption> end, string hint)
+    {
+        _firstReadsIds = first.ToDictionary(o => o.Label, o => o.UserId);
+        _endReadsIds = end.ToDictionary(o => o.Label, o => o.UserId);
+        FirstReadsChoices = new[] { NoReads }.Concat(first.Select(o => o.Label)).ToList();
+        EndReadsChoices = new[] { NoReads }.Concat(end.Select(o => o.Label)).ToList();
+        if (SelectedFirstReads is null || !FirstReadsChoices.Contains(SelectedFirstReads)) SelectedFirstReads = NoReads;
+        if (SelectedEndReads is null || !EndReadsChoices.Contains(SelectedEndReads)) SelectedEndReads = NoReads;
+        ReadsHint = hint;
+    }
 
     private void RefreshCustomDays()
     {
@@ -100,8 +171,23 @@ public partial class SchedulesViewModel : PageViewModelBase
                     .OrderBy(FloorKey).ToList();
     }
 
+    /// <summary>Says who owns the chosen floor, and that another school's Dean must allow it.</summary>
+    private void RefreshRoomOwnerNote()
+    {
+        var owner = SelectedBuilding is null || SelectedFloor is null ? null : CampusLayout.OwnerOf(CampusLayout.BuildingCode(SelectedBuilding), SelectedFloor);
+        var school = SelectedFaculty is not null && _faculty.TryGetValue(SelectedFaculty, out var f) ? f.School : "";
+        RoomOwnerNote = owner is null ? ""
+            : string.Equals(owner, school, StringComparison.OrdinalIgnoreCase)
+                ? $"This floor belongs to the {AcademicCatalog.ShortName(owner)}, the same school as the class: no permission needed."
+                : school.Length == 0
+                    ? $"This floor belongs to the {AcademicCatalog.ShortName(owner)}. A class of another school needs the Dean of the {AcademicCatalog.ShortName(owner)} to allow it."
+                    : $"This floor belongs to the {AcademicCatalog.ShortName(owner)}. This class is not theirs, so the Dean of the {AcademicCatalog.ShortName(owner)} must allow it first. The class is saved only after the Dean approves.";
+        HasRoomOwnerNote = RoomOwnerNote.Length > 0;
+    }
+
     partial void OnSelectedFloorChanged(string? value)
     {
+        RefreshRoomOwnerNote();
         SelectedRoom = null;
         RoomChoices = value is null || SelectedBuilding is null ? Array.Empty<string>()
             : _rooms.Where(r => r.Building == CampusLayout.BuildingCode(SelectedBuilding) && r.Floor == value)
@@ -158,7 +244,7 @@ public partial class SchedulesViewModel : PageViewModelBase
     }
 
     // With a pattern, choosing the start time fills the end time.
-    partial void OnSelectedStartChanged(string? value) => ApplyPatternEnd();
+    partial void OnSelectedStartChanged(string? value) { ApplyPatternEnd(); _ = RefreshReadsOptionsAsync(); }
 
     private void ApplyPatternEnd()
     {
@@ -197,6 +283,8 @@ public partial class SchedulesViewModel : PageViewModelBase
     // The subject list follows the chosen Faculty member's department.
     partial void OnSelectedFacultyChanged(string? value)
     {
+        RefreshRoomOwnerNote();
+        _ = RefreshReadsOptionsAsync();
         SelectedSubject = null;
         SubjectLabels = value is not null && _faculty.TryGetValue(value, out var f)
             ? _subjects.Where(s => s.Department == (f.Role == UserRole.Dean ? SelectedDepartment : f.Department)).Select(SubjectLabel).ToList()
@@ -285,9 +373,17 @@ public partial class SchedulesViewModel : PageViewModelBase
         try
         {
             IsBusy = true;
-            var result = await _service.AddManyAsync(faculty.Id, subject.Code, room.Id, days);
+            var firstId = SelectedFirstReads is not null && _firstReadsIds.TryGetValue(SelectedFirstReads, out var fid) ? fid : null;
+            var endId = SelectedEndReads is not null && _endReadsIds.TryGetValue(SelectedEndReads, out var eid) ? eid : null;
+            var result = await _service.AddManyAsync(faculty.Id, subject.Code, room.Id, days, firstId, endId);
             Show(result);
-            if (result.Success) await LoadAsync();
+            if (result.Success)
+            {
+                SelectedFirstReads = NoReads;
+                SelectedEndReads = NoReads;
+                await LoadAsync();
+                _ = RefreshReadsOptionsAsync();
+            }
         }
         finally { IsBusy = false; }
     }

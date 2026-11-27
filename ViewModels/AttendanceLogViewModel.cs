@@ -7,7 +7,7 @@ using FacultyMonitoring.Services;
 namespace FacultyMonitoring.ViewModels;
 
 /// <summary>
-/// READS Scholar: the classes IMS Personnel assigned to you (inside your vacant times, on your floors), one card per class.
+/// READS Scholar: the classes IMS Personnel assigned to you (inside your Work Time, on your floors), one card per class.
 /// Each class has two checks (5 minutes after the start, last 15 minutes before the end): two buttons, In the Room or Not in the Room, with optional notes.
 /// The status (Present / Late / Absent) follows from the two checks. Tapping either button opens a confirmation card (timestamped, cannot be changed) with a notes box;
 /// Not in the Room also files the irregularity report for IMS, so there is no separate report form. Debug builds have a test clock.
@@ -101,7 +101,7 @@ public partial class AttendanceLogViewModel : PageViewModelBase
         EmptyText = school.Length == 0
             ? "IMS Personnel have not assigned you to a school yet."
             : assignment.ClassCount == 0
-                ? "IMS Personnel have not given you classes to check yet. Enter your vacant times on the Duty tab so they can assign classes inside them."
+                ? "IMS Personnel have not given you classes to check yet. Enter your Work Time on the Duty tab so they can assign classes inside them."
                 : "None of your assigned classes are scheduled today.";
 
         Rows.Clear();

@@ -65,7 +65,7 @@
             <Border Style="{StaticResource Card}" Padding="20">
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Classes and floor to check" Style="{StaticResource SectionTitle}" />
-                    <Label Text="Choose the READS above, then a building and a floor. Each class has two checks: the first check (5 minutes after it starts) and the end check (opens 15 minutes before it ends, so one READS can walk a whole floor). A check can be ticked when it falls inside the READS' vacant time. If a class runs past the end of the vacant time, tick only the first check here and give the end check to the READS whose vacant time starts there. The READS sees the classes (with the floor) on the Attendance tab."
+                    <Label Text="Choose the READS above, then a building and a floor. Each class has two checks: the first check (5 minutes after it starts) and the end check (opens 15 minutes before it ends, so one READS can walk a whole floor). A check can be ticked when it falls inside the READS' Work Time. If a class runs past the end of the Work Time, tick only the first check here and give the end check to the READS whose Work Time starts there. The READS sees the classes (with the floor) on the Attendance tab."
                            FontSize="13" TextColor="{StaticResource Gray600}" />
                     <Label Text="{Binding VacantText}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource DeepGreen}" IsVisible="{Binding HasScholarSelected}" />
 

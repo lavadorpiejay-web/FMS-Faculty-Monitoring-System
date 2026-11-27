@@ -7,7 +7,7 @@ using FacultyMonitoring.Services;
 namespace FacultyMonitoring.ViewModels;
 
 /// <summary>
-/// READS Scholar Home: today's duty hours (their vacant times) and the checks completed today. Checks are done on the Attendance tab.
+/// READS Scholar Home: today's duty hours (their Work Time) and the checks completed today. Checks are done on the Attendance tab.
 /// </summary>
 public partial class ReadsHomeViewModel : PageViewModelBase
 {

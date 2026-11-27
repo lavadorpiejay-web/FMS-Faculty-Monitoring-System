@@ -1,11 +1,15 @@
+using System.Text.Json;
 using FacultyMonitoring.Models;
 
 namespace FacultyMonitoring.Services;
 
 /// <summary>
-/// Faculty ask for a schedule change (approved by their department's Chairperson) or a room change (approved by the Dean of the
-/// requesting Faculty's school; rooms belong to no school). Once approved, IMS Personnel check the room availability and either
-/// approve and apply it to the master schedule or decline it. A room change therefore needs both the Dean and IMS Personnel.
+/// Faculty ask for a schedule change (approved by their department's Chairperson) or a room change. Who approves a room change depends on
+/// who owns the floor of the new room (CampusLayout): a floor of the Faculty's own school or an unowned floor, the Faculty's own Dean
+/// (CRE has no Dean: its Chairperson); a floor owned by ANOTHER school, the Dean of that owning school. Once approved, IMS Personnel check the
+/// room availability and either approve and apply it to the master schedule or decline it.
+/// A third kind, RoomUse, is created by the Schedules page when IMS encode a class in a room owned by another school; the owner's Dean decides it
+/// and the classes are saved only on approval.
 /// </summary>
 public sealed class ChangeRequestService
 {
@@ -13,19 +17,22 @@ public sealed class ChangeRequestService
     private readonly SessionService _session;
     private readonly AuditService _audit;
     private readonly NotificationService _notifications;
+    private readonly ScheduleService _schedulesService;
 
-    public ChangeRequestService(JsonStorageService storage, SessionService session, AuditService audit, NotificationService notifications)
+    public ChangeRequestService(JsonStorageService storage, SessionService session, AuditService audit, NotificationService notifications,
+        ScheduleService schedulesService)
     {
         _storage = storage;
         _session = session;
         _audit = audit;
         _notifications = notifications;
+        _schedulesService = schedulesService;
     }
 
     /// <summary>
     /// Which checkers (READS Scholars) are touched by a change, so IMS can adjust the checker assignments.
     /// The checkers touched are the ones IMS assigned this class to. When the day or time changes, IMS also sees which Scholars of the
-    /// school are free at the new time and whether the assigned checkers still have the class inside their vacant times.
+    /// school are free at the new time and whether the assigned checkers still have the class inside their work times.
     /// </summary>
     private async Task<string> CheckerImpactAsync(ClassSchedule before, ClassSchedule after)
     {
@@ -54,7 +61,7 @@ public sealed class ChangeRequestService
             : "No checker was assigned to this class.";
         var lost = assigned.Where(u => !Fits(u, after)).Select(u => u.FullName).ToList();
         if (lost.Count > 0)
-            text += $" At the new time ({after.Day} {ScheduleRules.Range(after.Start, after.End)}) it is no longer inside the vacant times of {string.Join(", ", lost)}; assign it again.";
+            text += $" At the new time ({after.Day} {ScheduleRules.Range(after.Start, after.End)}) it is no longer inside the work times of {string.Join(", ", lost)}; assign it again.";
 
         var free = scholars.Where(u => Fits(u, after)).Select(u => u.FullName).OrderBy(n => n).ToList();
         text += free.Count > 0
@@ -100,7 +107,7 @@ public sealed class ChangeRequestService
             {
                 RecipientUserId = u.Id, Category = NotificationService.ForChecker, RequestId = request.Id,
                 Title = title,
-                Message = fits ? message : message + "\nThe new time is outside your vacant times, so IMS Personnel will assign the class again."
+                Message = fits ? message : message + "\nThe new time is outside your work times, so IMS Personnel will assign the class again."
             });
             told++;
         }
@@ -195,14 +202,33 @@ public sealed class ChangeRequestService
             var room = rooms.FirstOrDefault(r => r.Id == newClassroomId);
             if (room is null) return Fail("Choose the new classroom.");
             if (room.Id == s.ClassroomId) return Fail("That is already the class's room.");
-            if (!CampusLayout.IsRoomAllowed(s.School, room))
-                return Fail($"Classes of the {s.School} are held in building {string.Join(", ", CampusLayout.BuildingsOf(s.School)!)}. Choose a room there.");
+            // Who must say yes depends on who owns the floor of the new room.
+            var owner = CampusLayout.OwnerOf(room);
+            var foreign = owner is not null && !string.Equals(owner, s.School, StringComparison.OrdinalIgnoreCase);
+            var approverRole = UserRole.Dean;
+            var approverSchool = s.School;
+            var approverDepartment = "";
+            string note = "";
+            if (foreign)
+            {
+                var users = await _storage.LoadAsync<UserAccount>(JsonStorageService.UsersFile);
+                if (!users.Any(u => u.IsUsable && u.Role == UserRole.Dean && u.School == owner))
+                    return Fail($"{ScheduleRules.RoomLabel(room)} is on a floor of the {owner}. Its Dean must give permission, but that school has no Dean in the app yet. Choose another room.");
+                approverSchool = owner!;
+                note = $" (floor owned by {AcademicCatalog.ShortName(owner)}: needs permission from its Dean)";
+            }
+            else if (AcademicCatalog.IsIndependent(s.School))
+            {
+                // The Center for Religious Education has no Dean: its Chairperson approves.
+                approverRole = UserRole.Chairperson;
+                approverDepartment = s.Department;
+            }
 
             request = new ChangeRequest
             {
-                Kind = kind, ProposedClassroomId = room.Id, ApproverRole = UserRole.Dean,
-                ApproverSchool = s.School,   // rooms belong to no school: the requesting Faculty's own Dean approves
-                Summary = $"Room: {ScheduleRules.RoomLabel(oldRoom)} to {ScheduleRules.RoomLabel(room)}"
+                Kind = kind, ProposedClassroomId = room.Id, ApproverRole = approverRole,
+                ApproverSchool = approverSchool, ApproverDepartment = approverDepartment,
+                Summary = $"Room: {ScheduleRules.RoomLabel(oldRoom)} to {ScheduleRules.RoomLabel(room)}{note}"
             };
             var conflict = ScheduleService.FindConflict(schedules, Apply(s, request, subjects));
             if (conflict is not null) return Fail(conflict);
@@ -218,24 +244,25 @@ public sealed class ChangeRequestService
         await _storage.SaveAsync(JsonStorageService.RequestsFile, requests);
         await _audit.LogAsync("Change requested", $"{me.FullName}: {request.ScheduleLabel}. {request.Summary}");
 
-        // Bell: tell the Chairperson (schedule change) or the Dean (room change) that a request is waiting.
+        // Bell: tell whoever must approve (the Chairperson, or the Dean of the school that owns the floor) that a request is waiting.
         await _notifications.NotifyAsync(new AppNotification
         {
-            RecipientRole = kind == ChangeKind.Schedule ? UserRole.Chairperson : UserRole.Dean,
-            RecipientSchool = s.School,
-            RecipientDepartment = kind == ChangeKind.Schedule ? s.Department : "",
+            RecipientRole = request.ApproverRole,
+            RecipientSchool = request.ApproverSchool,
+            RecipientDepartment = request.ApproverRole == UserRole.Chairperson ? request.ApproverDepartment : "",
             Category = NotificationService.ForApprover, RequestId = request.Id,
             Title = $"{(kind == ChangeKind.Room ? "Room" : "Schedule")} change request from {me.FullName}",
             Message = $"{request.ScheduleLabel}\n{request.Summary}\nReason: {reason}"
         });
 
-        var who = kind == ChangeKind.Schedule ? "your Chairperson" : "the Dean";
+        var who = request.ApproverRole == UserRole.Chairperson ? "your Chairperson"
+            : request.ApproverSchool != s.School ? $"the Dean of the {request.ApproverSchool}" : "the Dean";
         return new OperationResult(true, $"Request sent to {who} for approval. IMS Personnel then check the availability and give the final approval.");
     }
 
     // ------------------------------------------------------ Chairperson / Dean
 
-    /// <summary>Chairperson: schedule requests of the department. Dean: room requests of the Faculty of the school.</summary>
+    /// <summary>Chairperson: schedule requests of the department (and room requests of CRE Faculty). Dean: room requests of the school's own Faculty, and permission requests for rooms on the school's floors, from any school.</summary>
     public async Task<List<ChangeRequest>> GetPendingForMeAsync()
     {
         var me = _session.CurrentUser;
@@ -243,8 +270,9 @@ public sealed class ChangeRequestService
         var all = await LoadAsync();
         var pending = me.Role switch
         {
-            UserRole.Chairperson => all.Where(r => r.Kind == ChangeKind.Schedule && r.ApproverSchool == me.School && r.ApproverDepartment == me.Department),
-            UserRole.Dean => all.Where(r => r.Kind == ChangeKind.Room && r.ApproverSchool == me.School),
+            UserRole.Chairperson => all.Where(r => (r.Kind == ChangeKind.Schedule || (r.Kind == ChangeKind.Room && r.ApproverRole == UserRole.Chairperson))
+                                                   && r.ApproverSchool == me.School && r.ApproverDepartment == me.Department),
+            UserRole.Dean => all.Where(r => r.Kind is ChangeKind.Room or ChangeKind.RoomUse && r.ApproverRole == UserRole.Dean && r.ApproverSchool == me.School),
             _ => Enumerable.Empty<ChangeRequest>()
         };
         return pending.Where(r => r.Status == ChangeStatus.Pending).OrderBy(r => r.CreatedUtc).ToList();
@@ -259,6 +287,7 @@ public sealed class ChangeRequestService
 
         var all = await LoadAsync();
         var i = all.FindIndex(r => r.Id == requestId);
+        if (all[i].Kind == ChangeKind.RoomUse) return await DecideRoomUseAsync(all, i, me, approve);
         all[i] = all[i] with
         {
             Status = approve ? ChangeStatus.Approved : ChangeStatus.Declined,
@@ -280,6 +309,38 @@ public sealed class ChangeRequestService
         return new OperationResult(true, approve
             ? "Approved. IMS Personnel have been notified and will check the availability and give the final approval."
             : "Declined. The Faculty member will see the decision.");
+    }
+
+    /// <summary>The owner's Dean decides a RoomUse request. Approving saves the classes IMS encoded (and gives their READS); declining saves nothing.</summary>
+    private async Task<OperationResult> DecideRoomUseAsync(List<ChangeRequest> all, int i, UserAccount me, bool approve)
+    {
+        var request = all[i];
+        var message = "";
+        if (approve)
+        {
+            var plan = JsonSerializer.Deserialize<RoomUsePlanData>(request.RoomUsePlan, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            if (plan is null) return Fail("This request is damaged. Decline it and ask IMS Personnel to encode the class again.");
+            var saved = await _schedulesService.SaveApprovedRoomUseAsync(plan);
+            if (!saved.Success) return Fail("Cannot approve yet: " + saved.Message + " Decline the request if it cannot be fixed.");
+            message = saved.Message;
+        }
+
+        all[i] = request with
+        {
+            Status = approve ? ChangeStatus.Applied : ChangeStatus.Declined,
+            DecidedUtc = DateTime.UtcNow, DecidedByName = me.FullName,
+            AppliedUtc = approve ? DateTime.UtcNow : null, AppliedByName = approve ? me.FullName : ""
+        };
+        await _storage.SaveAsync(JsonStorageService.RequestsFile, all);
+        await _audit.LogAsync(approve ? "Room permission granted" : "Room permission declined", $"{request.Summary} (Dean {me.FullName})");
+        await _notifications.MarkRequestHandledAsync(request.Id, NotificationService.ForApprover);
+        await _notifications.NotifyAsync(new AppNotification
+        {
+            RecipientUserId = request.RequesterUserId, Category = NotificationService.ForRequester, RequestId = request.Id,
+            Title = approve ? $"The Dean of the {me.School} allowed the room" : $"The Dean of the {me.School} declined the room",
+            Message = $"{request.Summary}\n" + (approve ? message : "The class was not saved. Choose another room on the Schedules page.")
+        });
+        return new OperationResult(true, approve ? "Permission granted. " + message : "Declined. The class was not saved and IMS Personnel were told.");
     }
 
     /// <summary>Tell IMS Personnel that a Chairperson or Dean approved a request, with the checkers they may need to adjust.</summary>
@@ -409,7 +470,7 @@ public sealed class ChangeRequestService
             Message = $"{request.ScheduleLabel}\n{request.Summary}\nIt is now in the master schedule."
         });
 
-        // Checkers (READS Scholars) of this school whose vacant times touch the class before or after the change get a bell notice.
+        // Checkers (READS Scholars) of this school whose work times touch the class before or after the change get a bell notice.
         var told = await NotifyCheckersAsync(request, before, after, rooms);
         var message = $"Applied: {before.SubjectCode} ({before.FacultyName}) updated."
             + (told > 0 ? $" {told} READS checker{(told == 1 ? " was" : "s were")} notified." : " No READS checker is assigned to this class, so no checker was notified.");

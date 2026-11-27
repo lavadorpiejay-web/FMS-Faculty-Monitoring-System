@@ -6,7 +6,7 @@ using Microsoft.Maui.Controls.Shapes;
 namespace FacultyMonitoring.Controls;
 
 /// <summary>
-/// A weekly timetable: Monday to Sunday across, the hours down, one coloured block per class or vacant time.
+/// A weekly timetable: Monday to Sunday across, the hours down, one coloured block per class or Work Time.
 /// Swipe sideways on a phone. Set Compact for a smaller version. Tapping a block runs BlockTappedCommand with the block.
 /// The hours shown follow the blocks (at least six hours).
 /// </summary>

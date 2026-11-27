@@ -29,7 +29,7 @@
                 <Label Text="Tap to show the request form." FontSize="12" TextColor="{StaticResource Gray600}" IsVisible="{Binding IsRequestClosed}" />
                 <controls:Banners />
                 <VerticalStackLayout Spacing="12" IsVisible="{Binding IsRequestOpen}">
-                <Label Text="Schedule changes go to your Chairperson. Room changes go to the Dean of your school, then IMS Personnel. Rooms are limited to the building your school is situated in." FontSize="13" TextColor="{StaticResource Gray600}" />
+                <Label Text="Schedule changes go to your Chairperson. Room changes go to the Dean of your school, then IMS Personnel. A room on a floor owned by another school is marked in the list: for those, the Dean of the owning school must give permission first (then IMS Personnel)." FontSize="13" TextColor="{StaticResource Gray600}" />
                 <controls:LabeledPicker Caption="Class" Title="Choose a class" ItemsSource="{Binding ClassLabels}" SelectedItem="{Binding SelectedClass, Mode=TwoWay}" />
                 <controls:LabeledPicker Caption="Type of request" Title="Choose type" ItemsSource="{Binding Kinds}" SelectedItem="{Binding SelectedKind, Mode=TwoWay}" />
                 <VerticalStackLayout Spacing="12" IsVisible="{Binding IsScheduleChange}">
