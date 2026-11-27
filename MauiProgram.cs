@@ -39,6 +39,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<VacantTimeService>();
         builder.Services.AddSingleton<ChangeRequestService>();
         builder.Services.AddSingleton<AttendanceService>();
+        builder.Services.AddSingleton<ResignationService>();
 
         // Shell
         builder.Services.AddSingleton<AppShell>();

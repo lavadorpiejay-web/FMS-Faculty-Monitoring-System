@@ -4,6 +4,9 @@ namespace FacultyMonitoring.Services;
 
 public sealed record DutyView(string Id, string Title, string Detail, string State);
 
+/// <summary>One of the signed-in person's own classes today, with what the READS recorded (Status is null until a first check exists).</summary>
+public sealed record MyClassToday(string ScheduleId, string Subject, string Time, string Room, AttendanceStatus? Status, string State, string Checks);
+
 /// <summary>
 /// READS Scholars see their duty hours (their own Work Time) and the classes IMS Personnel assigned to them (classes of their school that lie
 /// inside those Work Time, on the floors IMS chose).
@@ -337,6 +340,53 @@ public sealed class AttendanceService
         await _storage.SaveAsync(JsonStorageService.AttendanceFile, logs);
         if (!inRoom) await AddIrregularityAsync(me, IrregularityKind.FacultyNotInRoom, s, room, null, notes, now, false, "");
         return new OperationResult(true, $"{s.SubjectCode} ({s.FacultyName}) recorded as {status}.");
+    }
+
+    // ------------------------------------------- the person's own attendance today
+
+    /// <summary>The signed-in person's own classes today and what the READS logged for each (Present, Late or Absent), earliest first.</summary>
+    public async Task<List<MyClassToday>> GetMyClassesTodayAsync()
+    {
+        var me = _session.CurrentUser;
+        var result = new List<MyClassToday>();
+        if (me is null) return result;
+        await _storage.InitializeAsync();
+
+        var now = _clock.Now;
+        var dateText = ScheduleRules.DateText(now);
+        var nowM = ScheduleRules.Minutes(ScheduleRules.HHmm(now));
+        var schedules = await _storage.LoadAsync<ClassSchedule>(JsonStorageService.SchedulesFile);
+        var rooms = await _storage.LoadAsync<Classroom>(JsonStorageService.ClassroomsFile);
+        var logs = await _storage.LoadAsync<AttendanceLog>(JsonStorageService.AttendanceFile);
+
+        foreach (var s in schedules.Where(x => x.FacultyUserId == me.Id && x.Day == now.DayOfWeek)
+                     .OrderBy(x => ScheduleRules.Minutes(x.Start)))
+        {
+            var room = rooms.FirstOrDefault(r => r.Id == s.ClassroomId);
+            var log = logs.FirstOrDefault(l => l.ScheduleId == s.Id && l.Date == dateText);
+            var startM = ScheduleRules.Minutes(s.Start);
+            var endM = ScheduleRules.Minutes(s.End);
+
+            string state;
+            var checks = "";
+            if (log is not null)
+            {
+                state = log.IsComplete ? "Final" : "End check pending";
+                var parts = new List<string>();
+                if (log.StartCheckUtc is not null)
+                    parts.Add($"First check {log.StartCheckUtc.Value.ToLocalTime():h:mm tt}: {(log.StartInRoom == true ? "in the room" : "not in the room")}");
+                if (log.EndCheckUtc is not null)
+                    parts.Add($"End check {log.EndCheckUtc.Value.ToLocalTime():h:mm tt}: {(log.EndInRoom == true ? "in the room" : "not in the room")}");
+                checks = string.Join("\n", parts);
+            }
+            else if (nowM < startM + CheckMinutes) state = "Not checked yet";
+            else if (nowM < endM) state = "Waiting for the first check";
+            else state = "No check was recorded";
+
+            result.Add(new MyClassToday(s.Id, $"{s.SubjectCode} {s.SubjectTitle}".Trim(),
+                ScheduleRules.Range(s.Start, s.End), ScheduleRules.RoomLabel(room), log?.Status, state, checks));
+        }
+        return result;
     }
 
     // ------------------------------------------- notes and status (Directory)

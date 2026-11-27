@@ -86,6 +86,36 @@
                     </VerticalStackLayout>
                 </VerticalStackLayout>
             </Border>
+
+            <!-- Resignations: forward (Chairperson, Dean) or make official (IMS Personnel) -->
+            <Border Style="{StaticResource Card}" Padding="20">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{Binding ResignationsHeading}" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{Binding ResignationsExplanation}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                    <Label Text="No resignation is waiting for you." FontSize="14" TextColor="{StaticResource Gray600}"
+                           IsVisible="{Binding ResignationsEmpty}" />
+                    <VerticalStackLayout Spacing="14" BindableLayout.ItemsSource="{Binding Resignations}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:ListRow">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
+                                    <Label Text="{Binding Detail}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                    <Label Text="{Binding Extra}" FontSize="12" TextColor="{StaticResource ForestMid}" />
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                        <Button Text="{Binding Source={RelativeSource AncestorType={x:Type vm:ApprovalsHomeViewModel}}, Path=ResignationApproveText}"
+                                                HeightRequest="40" FontSize="13"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ApprovalsHomeViewModel}}, Path=ApproveResignationCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        <Button Grid.Column="1" Text="Decline" HeightRequest="40" FontSize="13" Style="{StaticResource OutlineButton}"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ApprovalsHomeViewModel}}, Path=DeclineResignationCommand}"
+                                                CommandParameter="{Binding .}" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
         </VerticalStackLayout>
     </controls:DraggableScrollView>
 </ContentPage>

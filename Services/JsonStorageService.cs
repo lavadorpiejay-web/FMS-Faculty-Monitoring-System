@@ -21,6 +21,7 @@ public sealed class JsonStorageService
     public const string IrregularitiesFile = "irregularities.json";
     public const string AuditFile = "audit.json";
     public const string NotificationsFile = "notifications.json";
+    public const string ResignationsFile = "resignations.json";
 
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
@@ -59,6 +60,7 @@ public sealed class JsonStorageService
             if (!Exists(IrregularitiesFile)) await WriteAsync(IrregularitiesFile, new List<IrregularityReport>());
             if (!Exists(AuditFile))      await WriteAsync(AuditFile, new List<AuditEntry>());
             if (!Exists(NotificationsFile)) await WriteAsync(NotificationsFile, new List<AppNotification>());
+            if (!Exists(ResignationsFile)) await WriteAsync(ResignationsFile, new List<ResignationRequest>());
 
             _initialized = true;
         }

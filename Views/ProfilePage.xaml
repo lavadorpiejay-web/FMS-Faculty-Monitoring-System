@@ -8,6 +8,8 @@
              Title="Profile">
     <controls:DraggableScrollView>
         <VerticalStackLayout Padding="20" Spacing="20">
+            <controls:Banners />
+
             <Border Style="{StaticResource Card}">
                 <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
                       RowSpacing="14" ColumnSpacing="8">
@@ -33,6 +35,39 @@
                     <Label Grid.Row="5" Grid.Column="1" Text="{Binding Oversees}"
                            IsVisible="{Binding HasOversees}" />
                 </Grid>
+            </Border>
+
+            <!-- Resignation (Faculty, Chairperson, Dean, READS) -->
+            <Border Style="{StaticResource Card}" Padding="20" IsVisible="{Binding CanResign}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Resignation" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{Binding ResignationRoute}" FontSize="12" TextColor="{StaticResource Gray600}" />
+
+                    <!-- Where an open resignation is -->
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding HasOpenResignation}">
+                        <Label Text="Your resignation is waiting for a decision:" FontAttributes="Bold" FontSize="14" />
+                        <Label Text="{Binding ResignationTrail}" FontSize="13" />
+                        <Button Text="Withdraw" Style="{StaticResource OutlineButton}" HeightRequest="40" FontSize="13"
+                                Command="{Binding WithdrawResignationCommand}" />
+                    </VerticalStackLayout>
+
+                    <!-- A declined one: the reason and who declined it -->
+                    <Label Text="{Binding ResignationDeclined}" FontSize="13" TextColor="{StaticResource ErrorRed}"
+                           IsVisible="{Binding HasDeclined}" />
+
+                    <!-- New resignation -->
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding ShowResignForm}">
+                        <Label Text="Reason for your resignation" FontSize="13" FontAttributes="Bold" />
+                        <Border StrokeThickness="1" Stroke="{StaticResource Gray600}" Padding="8,0">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+                            <Editor Text="{Binding ResignationReason}" Placeholder="State your reason"
+                                    TextColor="{StaticResource InkDark}" PlaceholderColor="#8FA096" BackgroundColor="Transparent"
+                                    AutoSize="TextChanges" MinimumHeightRequest="80" MaxLength="{Binding ReasonMaxLength}" />
+                        </Border>
+                        <Button Text="Submit resignation" HeightRequest="44"
+                                Command="{Binding SubmitResignationCommand}" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
             </Border>
 
             <Button Text="Sign out" Command="{Binding SignOutCommand}" />

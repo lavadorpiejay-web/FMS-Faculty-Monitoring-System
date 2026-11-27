@@ -18,57 +18,26 @@
             <BoxView HeightRequest="4" Color="{StaticResource Gold}" />
 
             <VerticalStackLayout Padding="20" Spacing="16">
-                <Label Text="{Binding Tagline}" FontSize="14" TextColor="{StaticResource Gray600}" />
-
-                <Border Style="{StaticResource Card}">
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Your place in the hierarchy" Style="{StaticResource SectionTitle}" />
-                        <Label IsVisible="{Binding HasReportsTo}" FontSize="14">
-                            <Label.FormattedText>
-                                <FormattedString>
-                                    <Span Text="Reports to: " TextColor="{StaticResource Gray600}" />
-                                    <Span Text="{Binding ReportsTo}" FontAttributes="Bold" />
-                                </FormattedString>
-                            </Label.FormattedText>
-                        </Label>
-                        <Label IsVisible="{Binding HasOversees}" FontSize="14">
-                            <Label.FormattedText>
-                                <FormattedString>
-                                    <Span Text="Oversees: " TextColor="{StaticResource Gray600}" />
-                                    <Span Text="{Binding Oversees}" FontAttributes="Bold" />
-                                </FormattedString>
-                            </Label.FormattedText>
-                        </Label>
-                    </VerticalStackLayout>
-                </Border>
-
-                <Border Style="{StaticResource Card}">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Available to you" Style="{StaticResource SectionTitle}" />
-                        <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Allowed}">
+                <Border Style="{StaticResource Card}" Padding="20">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="{Binding TodayHeading}" Style="{StaticResource SectionTitle}" />
+                        <Label Text="{Binding TodaySummary}" FontSize="13" TextColor="{StaticResource Gray600}" />
+                        <Label Text="Nothing to check today." FontSize="14" TextColor="{StaticResource Gray600}"
+                               IsVisible="{Binding HasNoClassesToday}" />
+                        <VerticalStackLayout Spacing="16" BindableLayout.ItemsSource="{Binding TodayRows}">
                             <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="x:String">
-                                    <HorizontalStackLayout Spacing="10">
-                                        <Label Text="✓" FontAttributes="Bold" TextColor="{StaticResource ForestMid}" />
-                                        <Label Text="{Binding .}" FontSize="14" />
-                                    </HorizontalStackLayout>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
-                <Border Style="{StaticResource Card}" BackgroundColor="{StaticResource GoldSoft}"
-                        Stroke="{StaticResource Gold}">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Restricted for your role" Style="{StaticResource SectionTitle}" />
-                        <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Restricted}">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="x:String">
-                                    <HorizontalStackLayout Spacing="10">
-                                        <Label Text="🔒" FontSize="13" />
-                                        <Label Text="{Binding .}" FontSize="14" TextColor="{StaticResource Gray600}" />
-                                    </HorizontalStackLayout>
+                                <DataTemplate x:DataType="vm:AttendanceCardRow">
+                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
+                                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
+                                        <Label Grid.Column="1" Text="{Binding StatusText}" FontAttributes="Bold" FontSize="16"
+                                               TextColor="{Binding StatusColor}" VerticalOptions="Start" />
+                                        <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Detail}" FontSize="12"
+                                               TextColor="{StaticResource Gray600}" />
+                                        <Label Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding State}" FontSize="12"
+                                               TextColor="{StaticResource ForestMid}" />
+                                        <Label Grid.Row="3" Grid.ColumnSpan="2" Text="{Binding Checks}" FontSize="12"
+                                               TextColor="{StaticResource Gray600}" IsVisible="{Binding HasChecks}" />
+                                    </Grid>
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </VerticalStackLayout>
